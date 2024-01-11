@@ -1,0 +1,215 @@
+<html>
+<body>
+<pre>
+<h1>µVision Build Log</h1>
+<h2>Tool Versions:</h2>
+IDE-Version: µVision V5.39.0.0
+Copyright (C) 2023 ARM Ltd and ARM Germany GmbH. All rights reserved.
+License Information: Kousha Motazedian, Carleton University, LIC=----
+ 
+Tool Versions:
+Toolchain:       MDK-Lite  Version: 5.39.0.0
+Toolchain Path:  C:\Keil_v5\ARM\ARMCLANG\Bin
+C Compiler:      ArmClang.exe V6.21
+Assembler:       Armasm.exe V6.21
+Linker/Locator:  ArmLink.exe V6.21
+Library Manager: ArmAr.exe V6.21
+Hex Converter:   FromElf.exe V6.21
+CPU DLL:         SARMCM3.DLL V5.39.0.0
+Dialog DLL:      DARMCM1.DLL V1.19.6.0
+Target DLL:      CMSIS_AGDI.dll V1.33.16.0
+Dialog DLL:      TARMCM1.DLL V1.14.6.0
+ 
+<h2>Project:</h2>
+C:\Users\kdMot\Desktop\UltraSonic Mulitple\MultiSensor.uvprojx
+Project File Date:  01/02/2024
+
+<h2>Output:</h2>
+*** Using Compiler 'V6.21', folder: 'C:\Keil_v5\ARM\ARMCLANG\Bin'
+Build target 'Target 1'
+src/echo.c(1): warning: non-portable path to file '<MKL25Z4.h>'; specified path differs in case from file name on disk [-Wnonportable-include-path]
+    1 | #include <MKL25Z4.H>
+      |          ^~~~~~~~~~~
+      |          <MKL25Z4.h>
+src/echo.c(14): warning: no previous extern declaration for non-static variable 'count' [-Wmissing-variable-declarations]
+   14 | volatile int32_t count = 0;
+      |                  ^
+src/echo.c(14): note: declare 'static' if the variable is not intended to be used outside of this translation unit
+   14 | volatile int32_t count = 0;
+      |          ^
+src/echo.c(15): warning: no previous extern declaration for non-static variable 'right_count' [-Wmissing-variable-declarations]
+   15 | volatile int32_t right_count = 0;
+      |                  ^
+src/echo.c(15): note: declare 'static' if the variable is not intended to be used outside of this translation unit
+   15 | volatile int32_t right_count = 0;
+      |          ^
+src/echo.c(16): warning: no previous extern declaration for non-static variable 'left_count' [-Wmissing-variable-declarations]
+   16 | volatile int32_t left_count = 0;
+      |                  ^
+src/echo.c(16): note: declare 'static' if the variable is not intended to be used outside of this translation unit
+   16 | volatile int32_t left_count = 0;
+      |          ^
+src/echo.c(92): warning: no previous extern declaration for non-static variable 'Threshold' [-Wmissing-variable-declarations]
+   92 | int Threshold[NUM_RANGE_STEPS] = {12000, 9000, 6000, 3000, 1000, 0};
+      |     ^
+src/echo.c(92): note: declare 'static' if the variable is not intended to be used outside of this translation unit
+   92 | int Threshold[NUM_RANGE_STEPS] = {12000, 9000, 6000, 3000, 1000, 0};
+      | ^
+src/echo.c(94): warning: no previous extern declaration for non-static variable 'Colors' [-Wmissing-variable-declarations]
+   94 | const int Colors[NUM_RANGE_STEPS][3] = {{ 1, 1, 1}, // white
+      |           ^
+src/echo.c(94): note: declare 'static' if the variable is not intended to be used outside of this translation unit
+   94 | const int Colors[NUM_RANGE_STEPS][3] = {{ 1, 1, 1}, // white
+      |       ^
+src/echo.c(130): warning: no previous prototype for function 'SysTick_Handler' [-Wmissing-prototypes]
+  130 | void SysTick_Handler(void) {
+      |      ^
+src/echo.c(130): note: declare 'static' if the function is not intended to be used outside of this translation unit
+  130 | void SysTick_Handler(void) {
+      | ^
+      | static 
+src/echo.c(134): warning: a function declaration without a prototype is deprecated in all versions of C [-Wstrict-prototypes]
+  134 | uint32_t read_time_elapsed() {
+      |                           ^
+      |                            void
+src/echo.c(134): warning: no previous prototype for function 'read_time_elapsed' [-Wmissing-prototypes]
+  134 | uint32_t read_time_elapsed() {
+      |          ^
+src/echo.c(134): note: declare 'static' if the function is not intended to be used outside of this translation unit
+  134 | uint32_t read_time_elapsed() {
+      | ^
+      | static 
+src/echo.c(6): warning: no previous extern declaration for non-static variable 'msTicks' [-Wmissing-variable-declarations]
+    6 | volatile uint32_t msTicks; // counts the number of SysTick interrupts
+      |                   ^
+src/echo.c(6): note: declare 'static' if the variable is not intended to be used outside of this translation unit
+    6 | volatile uint32_t msTicks; // counts the number of SysTick interrupts
+      |          ^
+src/echo.c(7): warning: no previous extern declaration for non-static variable 'time_elapsed' [-Wmissing-variable-declarations]
+    7 | volatile uint32_t time_elapsed;
+      |                   ^
+src/echo.c(7): note: declare 'static' if the variable is not intended to be used outside of this translation unit
+    7 | volatile uint32_t time_elapsed;
+      |          ^
+src/echo.c(8): warning: no previous extern declaration for non-static variable 'start_time' [-Wmissing-variable-declarations]
+    8 | volatile int32_t start_time;
+      |                  ^
+src/echo.c(8): note: declare 'static' if the variable is not intended to be used outside of this translation unit
+    8 | volatile int32_t start_time;
+      |          ^
+src/echo.c(9): warning: no previous extern declaration for non-static variable 'end_time' [-Wmissing-variable-declarations]
+    9 | volatile int32_t end_time;
+      |                  ^
+src/echo.c(9): note: declare 'static' if the variable is not intended to be used outside of this translation unit
+    9 | volatile int32_t end_time;
+      |          ^
+src/echo.c(10): warning: no previous extern declaration for non-static variable 'start_time_r' [-Wmissing-variable-declarations]
+   10 | volatile int32_t start_time_r;
+      |                  ^
+src/echo.c(10): note: declare 'static' if the variable is not intended to be used outside of this translation unit
+   10 | volatile int32_t start_time_r;
+      |          ^
+src/echo.c(11): warning: no previous extern declaration for non-static variable 'end_time_r' [-Wmissing-variable-declarations]
+   11 | volatile int32_t end_time_r;
+      |                  ^
+src/echo.c(11): note: declare 'static' if the variable is not intended to be used outside of this translation unit
+   11 | volatile int32_t end_time_r;
+      |          ^
+src/echo.c(12): warning: no previous extern declaration for non-static variable 'start_time_l' [-Wmissing-variable-declarations]
+   12 | volatile int32_t start_time_l;
+      |                  ^
+src/echo.c(12): note: declare 'static' if the variable is not intended to be used outside of this translation unit
+   12 | volatile int32_t start_time_l;
+      |          ^
+src/echo.c(13): warning: no previous extern declaration for non-static variable 'end_time_l' [-Wmissing-variable-declarations]
+   13 | volatile int32_t end_time_l;
+      |                  ^
+src/echo.c(13): note: declare 'static' if the variable is not intended to be used outside of this translation unit
+   13 | volatile int32_t end_time_l;
+      |          ^
+src/echo.c(23): warning: unsafe buffer access [-Wunsafe-buffer-usage]
+   23 |         PORTD->PCR[FRONT_ECHO] |= PORT_PCR_MUX(1) | PORT_PCR_PE_MASK | PORT_PCR_IRQC(0x09);
+      |         ^~~~~~~~~~
+C:/Users/kdMot/AppData/Local/Arm/Packs/Keil/Kinetis_KLxx_DFP/1.15.1/Device/Include\MKL25Z4.H(4456): note: expanded from macro 'PORTD'
+ 4456 | #define PORTD                                    ((PORT_Type *)PORTD_BASE)
+      |                                                  ^
+src/echo.c(25): warning: unsafe buffer access [-Wunsafe-buffer-usage]
+   25 |         PORTD->PCR[FRONT_ECHO] &= ~PORT_PCR_PS_MASK;
+      |         ^~~~~~~~~~
+C:/Users/kdMot/AppData/Local/Arm/Packs/Keil/Kinetis_KLxx_DFP/1.15.1/Device/Include\MKL25Z4.H(4456): note: expanded from macro 'PORTD'
+ 4456 | #define PORTD                                    ((PORT_Type *)PORTD_BASE)
+      |                                                  ^
+src/echo.c(33): warning: unsafe buffer access [-Wunsafe-buffer-usage]
+   33 |         PORTA->PCR[LEFT_ECHO] |= PORT_PCR_MUX(1) | PORT_PCR_PE_MASK | PORT_PCR_IRQC(0x09);
+      |         ^~~~~~~~~~
+C:/Users/kdMot/AppData/Local/Arm/Packs/Keil/Kinetis_KLxx_DFP/1.15.1/Device/Include\MKL25Z4.H(4441): note: expanded from macro 'PORTA'
+ 4441 | #define PORTA                                    ((PORT_Type *)PORTA_BASE)
+      |                                                  ^
+src/echo.c(35): warning: unsafe buffer access [-Wunsafe-buffer-usage]
+   35 |         PORTA->PCR[LEFT_ECHO] &= ~PORT_PCR_PS_MASK;
+      |         ^~~~~~~~~~
+C:/Users/kdMot/AppData/Local/Arm/Packs/Keil/Kinetis_KLxx_DFP/1.15.1/Device/Include\MKL25Z4.H(4441): note: expanded from macro 'PORTA'
+ 4441 | #define PORTA                                    ((PORT_Type *)PORTA_BASE)
+      |                                                  ^
+src/echo.c(37): warning: unsafe buffer access [-Wunsafe-buffer-usage]
+   37 |         PORTA->PCR[RIGHT_ECHO] |= PORT_PCR_MUX(1) | PORT_PCR_PE_MASK | PORT_PCR_IRQC(0x09);
+      |         ^~~~~~~~~~
+C:/Users/kdMot/AppData/Local/Arm/Packs/Keil/Kinetis_KLxx_DFP/1.15.1/Device/Include\MKL25Z4.H(4441): note: expanded from macro 'PORTA'
+ 4441 | #define PORTA                                    ((PORT_Type *)PORTA_BASE)
+      |                                                  ^
+src/echo.c(39): warning: unsafe buffer access [-Wunsafe-buffer-usage]
+   39 |         PORTA->PCR[RIGHT_ECHO] &= ~PORT_PCR_PS_MASK;
+      |         ^~~~~~~~~~
+C:/Users/kdMot/AppData/Local/Arm/Packs/Keil/Kinetis_KLxx_DFP/1.15.1/Device/Include\MKL25Z4.H(4441): note: expanded from macro 'PORTA'
+ 4441 | #define PORTA                                    ((PORT_Type *)PORTA_BASE)
+      |                                                  ^
+src/echo.c(62): warning: unsafe buffer access [-Wunsafe-buffer-usage]
+   62 |     PORTC->PCR[BUZZER_PIN] &= ~PORT_PCR_MUX_MASK;
+      |     ^~~~~~~~~~
+C:/Users/kdMot/AppData/Local/Arm/Packs/Keil/Kinetis_KLxx_DFP/1.15.1/Device/Include\MKL25Z4.H(4451): note: expanded from macro 'PORTC'
+ 4451 | #define PORTC                                    ((PORT_Type *)PORTC_BASE)
+      |                                                  ^
+src/echo.c(63): warning: unsafe buffer access [-Wunsafe-buffer-usage]
+   63 |     PORTC->PCR[BUZZER_PIN] |= PORT_PCR_MUX(1);
+      |     ^~~~~~~~~~
+C:/Users/kdMot/AppData/Local/Arm/Packs/Keil/Kinetis_KLxx_DFP/1.15.1/Device/Include\MKL25Z4.H(4451): note: expanded from macro 'PORTC'
+ 4451 | #define PORTC                                    ((PORT_Type *)PORTC_BASE)
+      |                                                  ^
+25 warnings generated.
+compiling echo.c...
+linking...
+Program Size: Code=1800 RO-data=208 RW-data=0 ZI-data=392  
+".\Objects\MultiSensor.axf" - 0 Error(s), 25 Warning(s).
+
+<h2>Software Packages used:</h2>
+
+Package Vendor: ARM
+                https://www.keil.com/pack/ARM.CMSIS.6.0.0.pack
+                ARM::CMSIS@6.0.0
+                CMSIS (Common Microcontroller Software Interface Standard)
+   * Component: CORE Version: 6.0.0
+
+Package Vendor: Keil
+                https://www.keil.com/pack/Keil.Kinetis_KLxx_DFP.1.15.1.pack
+                Keil::Kinetis_KLxx_DFP@1.15.1
+                NXP Kinetis KLxx Series Device Support and Examples
+   * Component: Startup Version: 2.5.0
+
+<h2>Collection of Component include folders:</h2>
+  ./RTE/Device/MKL25Z128xxx4
+  ./RTE/_Target_1
+  C:/Users/kdMot/AppData/Local/Arm/Packs/ARM/CMSIS/6.0.0/CMSIS/Core/Include
+  C:/Users/kdMot/AppData/Local/Arm/Packs/Keil/Kinetis_KLxx_DFP/1.15.1/Device/Include
+
+<h2>Collection of Component Files used:</h2>
+
+   * Component: ARM::CMSIS:CORE@6.0.0
+
+   * Component: Keil::Device:Startup@2.5.0
+      Source file:   Device/Source/system_MKL25Z4.c
+      Source file:   Device/Source/ARM/startup_MKL25Z4.s
+      Include file:  Device/Source/system_MKL25Z4.h
+Build Time Elapsed:  00:00:01
+</pre>
+</body>
+</html>
