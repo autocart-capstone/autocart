@@ -12,8 +12,8 @@ volatile bool obstacleDetected = false;
 
 
 void setup() {
-  pinMode(triggerPin, OUTPUT);  //Left Sensor Trigger Pin  
-  pinMode(echoPin, INPUT);     //Left Sensor Echo Pin 
+  pinMode(triggerPin, OUTPUT);  // Sensor Trigger Pin  
+  pinMode(echoPin, INPUT);     // Sensor Echo Pin 
   attachInterrupt(digitalPinToInterrupt(echoPin), echoReceived, CHANGE);  //Interrupt to be triggered on ANY edge of echo
   Serial.begin(115200); 
 }
