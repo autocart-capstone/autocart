@@ -118,35 +118,38 @@ void loop() {
 
   //Left
   long pulseWidthL = endTimeL - startTimeL;
-  if ((0 < pulseWidthL) && (pulseWidthL < 5000)) {
+  long distancecmL = (pulseWidthL * 0.0343) /2;
+  if ((0 < distancecmL) && (distancecmL < 60)) {
     digitalWrite(ledPinL, HIGH);
   }
   else {
     digitalWrite(ledPinL, LOW);
   }
   Serial.print("Left Sensor: ");
-  Serial.println(pulseWidthL);
+  Serial.println(distancecmL);
 
   //Middle
   long pulseWidthM = endTimeM - startTimeM;
-  if ((0 < pulseWidthM) && (pulseWidthM < 5000)) {
+  long distancecmM = (pulseWidthM * 0.0343) /2;
+  if ((0 < distancecmM) && (distancecmM < 60)) {
     digitalWrite(ledPinM, HIGH);
   }
   else {
     digitalWrite(ledPinM, LOW);
   }
   Serial.print("Middle Sensor: ");
-  Serial.println(pulseWidthM);
+  Serial.println(distancecmM);
 
   //Right
   long pulseWidthR = endTimeR - startTimeR;
-  if ((0 < pulseWidthR) && (pulseWidthR < 5000)) {
+  long distancecmR = (pulseWidthR * 0.0343) /2;
+  if ((0 < distancecmR) && (distancecmR < 60)) {
     digitalWrite(ledPinR, HIGH);
   }
   else {
     digitalWrite(ledPinR, LOW);
   }
   Serial.print("Right Sensor: ");
-  Serial.println(pulseWidthR);
+  Serial.println(distancecmR);
 
 }
