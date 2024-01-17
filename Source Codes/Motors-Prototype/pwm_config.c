@@ -13,6 +13,10 @@ void init_PWM() {
 	/*Set PORT D pin 1 to use ALT4 which is TPM0_CH1*/
 	PORTD->PCR[PTD1_PIN]|= PORT_PCR_MUX(4);
 
+	PORTD->PCR[PTD2_PIN]&= ~PORT_PCR_MUX_MASK; 
+	/*Set PORT D pin 2 to use ALT4 which is TPM0_CH2*/
+	PORTD->PCR[PTD2_PIN]|= PORT_PCR_MUX(4);
+	
 	/*Enable the clock for TPM0 by masking bit 25*/
 	SIM_SCGC6 |= SIM_SCGC6_TPM0_MASK; 
 	
