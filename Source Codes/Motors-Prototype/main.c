@@ -1,6 +1,10 @@
+#include <math.h>
+#include <stdbool.h> 
+
 #include "pwm_config.h"
 #include "pwm_control.h"
 #include "interrupt_stub.h"
+#include "direction_config.h"
 #include "MKL25Z4.h"
 
 /*
@@ -8,8 +12,15 @@
 #define DUTY_CYCLE (50)
 */
 
+#define pulses_for_360 12
+#define circle 360
+
+#define pulses_for_wheel_rotation 3
+#define turn_time 4
+
 static int var_left_duty_cycle = 0;
 static int var_right_duty_cycle = 0;
+
 
 /*Increases the duty cycle by increments of 10 percent on each PIT timer interrupt*/
 void increase_duty_cycle()
@@ -36,16 +47,44 @@ void increase_duty_cycle()
 	//control_left_motor(var_left_duty_cycle);
 }
 
-void turn_left() {
-	control_left_motor(0);
+void turn_theta(int angle) {
+	// Calculations for two wheels (prototype)
+	
+	bool right = false; 
+	
+	if(angle > 270) {
+		right = true;
+	} 
+	
+	int pulses_for_theta = (int) (lround((angle/circle) * (pulses_for_360)));
+	
+	int pulses_per_second = pulses_for_theta / turn_time;
+	
+	int RPM_factor = (pulses_for_theta / pulses_for_wheel_rotation);
+	
+	if(right) {
+		control_right_motor(var_right_duty_cycle - (var_right_duty_cycle * RPM_factor));
+	} else {
+		control_left_motor(var_left_duty_cycle - (var_left_duty_cycle * RPM_factor));
+	}
+}
+
+void turn_90_left() {
+	
+	PTE->PCOR = MASK(PTE20_PIN);
+	PTE->PSOR = MASK(PTE21_PIN);
+	
 	// Stub for detecting when we have turned 90 deg
 	for(int i = 0; i < 1000000; i++);
 	
 	drive_motors_straight();
 }
 
-void turn_right() {
-	control_right_motor(0);
+void turn_90_right() {
+	
+	PTE->PCOR = MASK(PTE22_PIN);
+	PTE->PSOR = MASK(PTE23_PIN);
+	
 	// Stub for detecting when we have turned 90 deg
 	for(int i = 0; i < 1000000; i++);
 	
@@ -62,13 +101,25 @@ void control_right_motor(int PWM) {
 }
 
 void drive_motors_straight() {
+	// Set left motor to spin forwards
+	PTE->PSOR = MASK(PTE20_PIN);
+	PTE->PCOR = MASK(PTE21_PIN);
+	
+	// Set right motor to spin forwards
+	PTE->PCOR = MASK(PTE22_PIN);
+	PTE->PSOR = MASK(PTE23_PIN);
+	
+	// Set to same duty cycle
 	control_left_motor(var_left_duty_cycle);
 	control_right_motor(var_right_duty_cycle);
 }
 
 void stop_car() {
-	control_right_motor(0);
-	control_left_motor(0);
+	PTE->PCOR = MASK(PTE20_PIN);
+	PTE->PCOR = MASK(PTE21_PIN);
+	
+	PTE->PCOR = MASK(PTE22_PIN);
+	PTE->PCOR = MASK(PTE23_PIN);
 }
 
 int get_duty_cycle() {
@@ -79,6 +130,7 @@ int main()
 {	
 	init_PWM();
 	init_timer();
+	init_direction_pins();
 
 	Start_PIT();
 	

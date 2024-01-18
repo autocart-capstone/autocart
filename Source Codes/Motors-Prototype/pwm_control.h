@@ -3,8 +3,10 @@
 
 void increase_duty_cycle();
 
-void turn_left();
-void turn_right();
+void turn_theta(int angle);
+
+void turn_90_left();
+void turn_90_right();
 
 void control_left_motor(int PWM);
 void control_right_motor(int PWM);

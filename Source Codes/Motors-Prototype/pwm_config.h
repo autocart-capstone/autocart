@@ -11,8 +11,4 @@ void init_enable();
 #define PTD1_PIN (1)
 #define PTD2_PIN (2)
 
-// output pins
-#define PTE20_PIN  (20)
-#define PTE21_PIN  (21)
-
 #endif
