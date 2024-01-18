@@ -8,7 +8,7 @@
 //Left
 const int triggerPinL = 0; 
 const int echoPinL = 1;
-const int ledPinL = 6;
+const int ledPinL = 8;
 volatile long startTimeL = 0;
 volatile long endTimeL = 0;
 volatile boolean pinHighL = false;
@@ -24,7 +24,7 @@ volatile boolean pinHighM = false;
 //Right
 const int triggerPinR = 4; 
 const int echoPinR = 5;
-const int ledPinR = 8;
+const int ledPinR = 6;
 volatile long startTimeR = 0;
 volatile long endTimeR = 0;
 volatile boolean pinHighR = false;
@@ -125,6 +125,7 @@ void loop() {
   else {
     digitalWrite(ledPinL, LOW);
   }
+  
   Serial.print("Left Sensor: ");
   Serial.println(distancecmL);
 
@@ -137,6 +138,7 @@ void loop() {
   else {
     digitalWrite(ledPinM, LOW);
   }
+  
   Serial.print("Middle Sensor: ");
   Serial.println(distancecmM);
 
@@ -149,6 +151,7 @@ void loop() {
   else {
     digitalWrite(ledPinR, LOW);
   }
+  
   Serial.print("Right Sensor: ");
   Serial.println(distancecmR);
 
