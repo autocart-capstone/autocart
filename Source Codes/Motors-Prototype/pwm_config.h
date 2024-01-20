@@ -1,9 +1,9 @@
 #ifndef PWM_CONFIG_H
 #define PWM_CONFIG_H
 
-void init_PWM();
+void init_PWM(void);
 
-void init_enable();
+void init_enable(void);
 
 #define MASK(x) (1UL << (x))
 
