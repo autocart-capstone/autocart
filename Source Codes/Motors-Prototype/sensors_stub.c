@@ -1,7 +1,7 @@
 #include "sensors_stub.h"
 
 static char* directions[2] = {"LEFT", "RIGHT"};
-static int angles[4] = {20, 60, 340, 300};
+static float angles[4] = {20, 60, 340, 300};
 
 static int direction_index = 0; 
 static int angles_index = 0;
@@ -16,7 +16,7 @@ char* get_next_direction() {
 	
 }
 
-int get_next_angle() {
+float get_next_angle() {
 	
 	if(angles_index > 3) {
 		angles_index = 0; 

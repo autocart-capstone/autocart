@@ -3,7 +3,7 @@
 
 void increase_duty_cycle(void);
 
-void turn_theta(int angle);
+void turn_theta(float angle);
 
 void turn_90_left(void);
 void turn_90_right(void);

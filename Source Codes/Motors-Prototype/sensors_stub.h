@@ -1,8 +1,7 @@
-#ifndef SENSORS_STUB_N
-#define SENSORS_STUB_N
+#ifndef SENSORS_STUB_H
+#define SENSORS_STUB_H
 
 char* get_next_direction(void);
-int get_next_angle(void);
-
+float get_next_angle(void);
 
 #endif

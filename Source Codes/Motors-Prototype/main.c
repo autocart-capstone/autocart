@@ -1,5 +1,8 @@
 #include <math.h>
 #include <stdbool.h> 
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
 
 #include "pwm_config.h"
 #include "pwm_control.h"
@@ -7,20 +10,27 @@
 #include "direction_config.h"
 #include "MKL25Z4.h"
 
-/*
-//Instead of hardcoding duty cycle, will make it variable based on interrupts. 
-#define DUTY_CYCLE (50)
-*/
+/*----- Measurements of small cart -----
 
-#define pulses_for_360 12
-#define circle 360
+	Wheel Diameter = 2.5 in = 6.35 cm
+	Cart Width (Pivot Radius) = 13.3 cm 
+		Pivot Diameter = 26.6 cm
 
-#define pulses_for_wheel_rotation 3
-#define turn_time 4
+*/ 
+
+#define PI 3.14159
+#define wheel_diam 6.35
+#define pivot_diam 26.6
+
+static float wheel_circ = wheel_diam * PI;
+static float pivot_circ = pivot_diam * PI;
 
 static int var_left_duty_cycle = 40;
 static int var_right_duty_cycle = 40;
 
+static bool turning = false;
+static float pulses_for_theta;
+static int starting_pulse; 
 
 /*Increases the duty cycle by increments of 10 percent on each PIT timer interrupt*/
 void increase_duty_cycle()
@@ -47,28 +57,29 @@ void increase_duty_cycle()
 	//control_left_motor(var_left_duty_cycle);
 }
 
-void turn_theta(int angle) {
+void turn_theta(float angle) {
 	// Calculations for two wheels (prototype)
 	
 	bool right = false; 
+	turning = true;
+	starting_pulse = encoder_pulses;
 	
 	if(angle > 270) {
 		right = true;
 	} 
 	
-	float pulses_for_theta = ((float) angle / (float) circle) * (pulses_for_360);
+	// rounding here, might need to change
+	float pulses_per_full_pivot = pulses_per_rev * (pivot_circ / wheel_circ);
 	
-	/* int pulses_per_second = pulses_for_theta / turn_time; */
+	pulses_for_theta = (angle / 360) * (pulses_per_full_pivot);
 	
-	float RPM_factor = (pulses_for_theta / pulses_for_wheel_rotation);
+	float RPM_factor = (pulses_for_theta / pulses_per_rev);
 	
 	if(right) {
 		control_right_motor(var_right_duty_cycle - (var_right_duty_cycle * RPM_factor));
 	} else {
 		control_left_motor(var_left_duty_cycle - (var_left_duty_cycle * RPM_factor));
 	}
-	
-	for(int i = 0; i < 10000000; i++);
 	
 }
 
@@ -141,14 +152,14 @@ int get_duty_cycle() {
 	return var_left_duty_cycle;
 }
 
-int main()
-{	
+int main(){	
 	init_PWM();
+	
 	init_timer();
+	
 	init_direction_pins();
 
 	Start_PIT();
-	
 	
 	/* Start motors running at 50% */ 
 	TPM0->CONTROLS[2].CnV = (50 * TPM0->MOD) / 100;
@@ -157,7 +168,23 @@ int main()
 	drive_motors_straight();
 	
 	while(1) {
-	
+		if(turning) {
+			
+		/* 
+		Stub implementation for detecting pulses elapsed. Car is properly oriented when
+		pulses elapsed reach the calculated value for theta  
+		
+		Cannot be certain that we will be begining a turn from the beginning of a new rotation (encoder_pulses = 0), 
+		so we must account for this by finding which pulse to stop at, regardless of what pulse we start at
+		*/
+			while(encoder_pulses != ((starting_pulse + (int) round(pulses_for_theta)) % pulses_per_rev)) { 	
+				/*
+					This is a rough implementation with rounding, idealy we want to avoid as much rounding as possible
+				*/
+			}
+			turning = false;
+			drive_motors_straight();
+		}
 	}
 	
 	Stop_PIT();
