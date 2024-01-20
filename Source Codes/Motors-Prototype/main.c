@@ -28,9 +28,17 @@ static float pivot_circ = pivot_diam * PI;
 static int var_left_duty_cycle = 40;
 static int var_right_duty_cycle = 40;
 
-static bool turning = false;
 static float pulses_for_theta;
 static int starting_pulse; 
+
+enum states {
+	ANGLE = 1, 
+	PIVOT = 2, 
+	STRAIGHT = 3, 
+	STOPPED = 4
+};
+
+static enum states state = STOPPED;
 
 /*Increases the duty cycle by increments of 10 percent on each PIT timer interrupt*/
 void increase_duty_cycle()
@@ -49,7 +57,7 @@ void increase_duty_cycle()
 	/*Generate PWM with a 0% duty cycle by writing into CNV which is the percent we are high vs low*/
 	/*Using a 12V source, if duty cycle is 30%, 3.6V is being driving to the 3-6V DC motor*/
 	 
-	drive_motors_straight();
+	//drive_motors_straight();
 	 
 	/*Channel 0, Motor 1*/
 	//control_right_motor(var_right_duty_cycle);
@@ -61,8 +69,9 @@ void turn_theta(float angle) {
 	// Calculations for two wheels (prototype)
 	
 	bool right = false; 
-	turning = true;
 	starting_pulse = encoder_pulses;
+	
+	state = ANGLE;
 	
 	if(angle > 270) {
 		right = true;
@@ -85,6 +94,8 @@ void turn_theta(float angle) {
 
 void turn_90_left() {
 	
+	state = PIVOT;
+	
 	/* Drive Motor 1 backwards*/
 	PTE->PSOR = MASK(PTE20_PIN);
 	PTE->PCOR = MASK(PTE21_PIN);
@@ -94,12 +105,11 @@ void turn_90_left() {
 	PTE->PCOR = MASK(PTE23_PIN);
 	
 	// Stub for detecting when we have turned 90 deg
-	for(int i = 0; i < 10000000; i++);
-	
-	drive_motors_straight();
 }
 
 void turn_90_right() {
+	
+	state = PIVOT;
 	
 	/* Drive Motor 1 forwards*/
 	PTE->PCOR = MASK(PTE20_PIN);
@@ -110,9 +120,6 @@ void turn_90_right() {
 	PTE->PSOR = MASK(PTE23_PIN);
 	
 	// Stub for detecting when we have turned 90 deg
-	for(int i = 0; i < 10000000; i++);
-	
-	drive_motors_straight();
 }
 
 void control_left_motor(float PWM) {
@@ -125,6 +132,9 @@ void control_right_motor(float PWM) {
 }
 
 void drive_motors_straight() {
+	
+	state = STRAIGHT;
+	
 	// Set left motor to spin forwards
 	PTE->PCOR = MASK(PTE20_PIN);
 	PTE->PSOR = MASK(PTE21_PIN);
@@ -133,12 +143,16 @@ void drive_motors_straight() {
 	PTE->PSOR = MASK(PTE22_PIN);
 	PTE->PCOR = MASK(PTE23_PIN);
 	
+
 	// Set to same duty cycle
 	control_left_motor(var_left_duty_cycle);
 	control_right_motor(var_right_duty_cycle);
 }
 
 void stop_car() {
+	
+	state = STOPPED;	
+	
 	PTE->PCOR = MASK(PTE20_PIN);
 	PTE->PCOR = MASK(PTE21_PIN);
 	
@@ -168,23 +182,50 @@ int main(){
 	drive_motors_straight();
 	
 	while(1) {
-		if(turning) {
+		switch(state) {
 			
-		/* 
-		Stub implementation for detecting pulses elapsed. Car is properly oriented when
-		pulses elapsed reach the calculated value for theta  
-		
-		Cannot be certain that we will be begining a turn from the beginning of a new rotation (encoder_pulses = 0), 
-		so we must account for this by finding which pulse to stop at, regardless of what pulse we start at
-		*/
-			while(encoder_pulses != ((starting_pulse + (int) round(pulses_for_theta)) % pulses_per_rev)) { 	
-				/*
-					This is a rough implementation with rounding, idealy we want to avoid as much rounding as possible
+			case 1: 
+				/* 
+				Stub implementation for detecting pulses elapsed. Car is properly oriented when
+				pulses elapsed reach the calculated value for theta  
+				
+				Cannot be certain that we will be begining a turn from the beginning of a new rotation (encoder_pulses = 0), 
+				so we must account for this by finding which pulse to stop at, regardless of what pulse we start at
+			
+				we must reset the encoder each time, so we count up to the required amount of pulses for our action. if we were to try and
+				reset each time we finished a rotation, it would be a lot more complicated to wait for more than [pulses_per_rev] pulses. 
+					Getting the RPM from encoder becomes more difficult this way, however, since we are 'randomly' resetting the count and would
+					most likely need another variable to keep track of total spins (in a timeframe maybe?)
 				*/
-			}
-			turning = false;
-			drive_motors_straight();
+				reset_encoder();
+				while(encoder_pulses != (int) round(pulses_for_theta)) { 	
+					/*
+						This is a rough implementation with rounding, idealy we want to avoid as much rounding as possible
+					*/
+				}
+				drive_motors_straight();
+				break;
+				
+			case 2:
+				reset_encoder();
+				while(encoder_pulses != 1) { 	
+					/*
+						This is a rough implementation with rounding, idealy we want to avoid as much rounding as possible
+					*/
+				}
+				drive_motors_straight();
+				break;
+			
+			case 3: 
+				// TODO straight
+				break;
+			
+			case 4:
+				// TODO stopped
+				break;
+			
 		}
+
 	}
 	
 	Stop_PIT();

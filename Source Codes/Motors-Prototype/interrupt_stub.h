@@ -11,4 +11,6 @@ void Start_PIT(void);
 
 void Stop_PIT(void);
 
+void reset_encoder(void);
+
 #endif
