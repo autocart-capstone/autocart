@@ -1,9 +1,13 @@
 #include <MKL25Z4.H>
 #include "spi_setup.h""
+#include "rx_queue.h"
 
 /*
 To configure the KL25z module controlling the motors as a slave. 
 */
+
+Q_T RxQ;
+uint8_t CR_received = 0;
 void SPI_init(void){
   
 		uint32_t divisor = 0;
@@ -68,11 +72,8 @@ void SPI0_IRQHandler(void) {
 		*/
 	}
 	if (SPI0->S & SPI_S_SPRF_MASK) { //Receive buffer full
-		// received a character
-		/*
 		if (!Q_Full(&RxQ)) {
-			c = UART2->D; //Read-only so we know it's the. ASSUMPTION: When D is read, 
-						  //it sets RDRF to 0 so we can now shift from shift register to data register without the OR flag going high.
+			c = SPI0_D; //Read the value in the buffer and then add it to the queue below. 
 			Q_Enqueue(&RxQ, c);
 			if (c == '\r') {
 				CR_received++;
@@ -82,6 +83,9 @@ void SPI0_IRQHandler(void) {
 			while (1)
 				;
 		}
-		*/
 	}
+}
+
+uint8_t	get_theta_and_distance(void) {
+	return Q_Dequeue(&RxQ);
 }

@@ -3,6 +3,8 @@
 
 void SPI_init();
 
+uint8_t	get_theta_and_distance(void);
+
 #define PORTD0 (0)
 #define PORTD1 (1)
 #define PORTD2 (2)
