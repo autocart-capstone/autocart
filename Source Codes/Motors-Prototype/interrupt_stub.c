@@ -9,6 +9,9 @@
 /*
 - Stubs data received from either UART from Lidar directly. Stub of choice was a counting timer. Can be updated later. 
 */
+
+int encoder_pulses = 0;
+
 void init_timer()
 {
 		// Enable clock to PIT module
@@ -26,6 +29,10 @@ void init_timer()
 		  We have 15,000 in the LDV so every 0.0416us we go down by 1. 
 		*/
 	
+	
+	
+		/* Initialize Channel 0 to generate interrupts to simulate requests from sensors/LiDAR */
+		// Channel 0: 2000000 microseconds = 2 seconds
 		PIT->CHANNEL[0].LDVAL = PIT_LDVAL_TSV(2000000*24); // 24 MHz clock frequency
 
 		// No chaining
@@ -33,6 +40,23 @@ void init_timer()
 		
 		// Generate interrupts
 		PIT->CHANNEL[0].TCTRL |= PIT_TCTRL_TIE_MASK;
+		
+		
+		
+		
+		/* Initialize Channel 1 to generate interrups to simulate recieveing encoder pulses */ 
+		
+		// Channel 1: 241000 microseconds = 0.241 seconds (desynchronized from channel 0)
+		PIT->CHANNEL[1].LDVAL = PIT_LDVAL_TSV(241000*24); // 24 MHz clock frequency
+
+		// No chaining
+		PIT->CHANNEL[1].TCTRL &= ~PIT_TCTRL_CHN_MASK;
+		
+		// Generate interrupts
+		PIT->CHANNEL[1].TCTRL |= PIT_TCTRL_TIE_MASK;
+
+
+
 
 		/* Enable Interrupts */
 		NVIC_SetPriority(PIT_IRQn, 128); // 0, 64, 128 or 192
@@ -43,26 +67,25 @@ void init_timer()
 void Start_PIT(void) {
 // Enable counter
 	PIT->CHANNEL[0].TCTRL |= PIT_TCTRL_TEN_MASK;
+	PIT->CHANNEL[1].TCTRL |= PIT_TCTRL_TEN_MASK;
 }
 
 void Stop_PIT(void) {
-// Enable counter
+// Disable counter
 	PIT->CHANNEL[0].TCTRL &= ~PIT_TCTRL_TEN_MASK;
+	PIT->CHANNEL[1].TCTRL &= ~PIT_TCTRL_TEN_MASK;
 }
-
 
 void PIT_IRQHandler() {
 	//clear pending IRQ
 	NVIC_ClearPendingIRQ(PIT_IRQn);
 	
-	// check to see which channel triggered interrupt 
+	/* Channel 0 */
 	if (PIT->CHANNEL[0].TFLG & PIT_TFLG_TIF_MASK) {
-		
-		stop_car();
 		int cycle = get_duty_cycle();
 		
 		if(cycle % 40 == 0) {
-			int angle = get_next_angle();
+			float angle = get_next_angle();
 			
 			turn_theta(angle);
 			
@@ -82,6 +105,19 @@ void PIT_IRQHandler() {
 		
 		// clear status flag for timer channel 0
 		PIT->CHANNEL[0].TFLG &= PIT_TFLG_TIF_MASK;
+	}
+	
+	/* Channel 1*/ 
+	if(PIT->CHANNEL[1].TFLG & PIT_TFLG_TIF_MASK) {
+		
+		if(encoder_pulses == pulses_per_rev) {
+			encoder_pulses = 0;
+		} else {
+			encoder_pulses++;
+		}
+		
+		// clear status flag for timer channel 1
+		PIT->CHANNEL[1].TFLG &= PIT_TFLG_TIF_MASK;
 	}
 }
 
