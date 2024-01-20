@@ -1,7 +1,7 @@
 #ifndef INTERRUPT_STUB_H
 #define INTERRUPT_STUB_H
 
-void init_timer();
+void init_timer(void);
 
 void Start_PIT(void);
 

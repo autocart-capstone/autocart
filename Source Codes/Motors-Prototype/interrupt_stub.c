@@ -1,7 +1,11 @@
+#include <stdio.h>
+#include <string.h>
+
 #include "MKL25Z4.h"
 #include "pwm_config.h"
 #include "pwm_control.h"
 #include "interrupt_stub.h"
+#include "sensors_stub.h"
 /*
 - Stubs data received from either UART from Lidar directly. Stub of choice was a counting timer. Can be updated later. 
 */
@@ -54,13 +58,26 @@ void PIT_IRQHandler() {
 	// check to see which channel triggered interrupt 
 	if (PIT->CHANNEL[0].TFLG & PIT_TFLG_TIF_MASK) {
 		
-		if(get_duty_cycle() >= 70) {
-			turn_right();
-		}
-		else if(get_duty_cycle() >= 50) {
-			turn_left();
-		}
+		stop_car();
+		int cycle = get_duty_cycle();
 		
+		if(cycle % 40 == 0) {
+			int angle = get_next_angle();
+			
+			turn_theta(angle);
+			
+		} else if (cycle % 20 == 0) {
+
+			if(strcmp(get_next_direction(), "LEFT") == 0) {
+				turn_90_left();
+			} else {
+				turn_90_right();
+			}
+
+		} else {
+			drive_motors_straight();
+		}
+
 		increase_duty_cycle();
 		
 		// clear status flag for timer channel 0
