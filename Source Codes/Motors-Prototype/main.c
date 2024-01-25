@@ -75,6 +75,7 @@ void turn_theta(float angle) {
 	
 	if(angle > 270) {
 		right = true;
+		angle = 360 - angle;
 	} 
 	
 	// rounding here, might need to change
