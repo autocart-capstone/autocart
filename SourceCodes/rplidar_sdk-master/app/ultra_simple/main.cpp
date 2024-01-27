@@ -284,18 +284,22 @@ int main(int argc, const char * argv[]) {
         if (SL_IS_OK(op_result)) {
             drv->ascendScanData(nodes, count);
             for (int pos = 0; pos < (int)count ; ++pos) {
-                if((((nodes[pos].angle_z_q14 * 90.f) / 16384.f) < 120) && (nodes[pos].dist_mm_q2/4.0f < 300) && (nodes[pos].quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT == 47)) {
+                
+	    
+                if((((nodes[pos].angle_z_q14 * 90.f) / 16384.f) < 120) && (nodes[pos].quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT == 47)) {
                     struct values datapoint;
                     datapoint.degrees = (nodes[pos].angle_z_q14 * 90.f) / 16384.f;
                     datapoint.distance = nodes[pos].dist_mm_q2/4.0f;
                     datapoint.quality = 47;
                     sendValues(datapoint);
-
-                    printf("%s theta: %03.2f Dist: %08.2f Q: %d \n", 
+		    
+		    printf("%s theta: %03.2f Dist: %08.2f Q: %d \n", 
                     (nodes[pos].flag & SL_LIDAR_RESP_HQ_FLAG_SYNCBIT) ?"S ":"  ", 
                     (nodes[pos].angle_z_q14 * 90.f) / 16384.f,
                     nodes[pos].dist_mm_q2/4.0f,
                     nodes[pos].quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT);
+
+                    
                 }
             }
         }
