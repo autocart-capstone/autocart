@@ -19,5 +19,5 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             if not d:
                 print()
             else:
-                values = struct.unpack('iii', d);
+                values = struct.unpack('ffi', d);
                 print(values);
