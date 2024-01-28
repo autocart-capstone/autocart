@@ -45,7 +45,9 @@ https://arduino-pico.readthedocs.io/en/latest/spi.html
 https://github.com/earlephilhower/arduino-pico/blob/master/libraries/SPISlave/examples/SPItoMyself/SPItoMyself.ino
 
 */
-
+//SPI SETUP
+  SPISettings spisettings(1000000, MSBFIRST, SPI_MODE0);
+  int msg[1] = {1};
 
 void setup() {
   //Left
@@ -66,10 +68,7 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(echoPinR), echoReceivedR, CHANGE);  //Interrupt to be triggered on ANY edge of echo
   pinMode(ledPinR, OUTPUT);
 
-  //SPI SETUP
-  SPISettings spisettings(1000000, MSBFIRST, SPI_MODE0);
-  int msg[1];
-  memset(msg, 0, sizeof(msg));
+  
 
   Serial.begin(115200); 
 }
