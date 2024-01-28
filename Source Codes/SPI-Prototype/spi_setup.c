@@ -1,6 +1,10 @@
 #include <MKL25Z4.H>
 #include "spi_setup.h""
 #include "rx_queue.h"
+#include "led.h"
+
+//#define QUEUE_NEEDED
+#define LED_DEMO
 
 /*
 To configure the KL25z module controlling the motors as a slave. 
@@ -60,18 +64,24 @@ void SPI0_IRQHandler(void) {
 	uint8_t c;
 	NVIC_ClearPendingIRQ(SPI0_IRQn);
 	if (SPI0->S & SPI_S_SPTEF_MASK) { //Transmit Buffer is empty
-		// can send back a response
-		/*
-		if (!Q_Empty(&TxQ)) {
-			UART2->D = Q_Dequeue(&TxQ); //Write-Only so we know it's the Tx buffer
-		} else {
-			// queue is empty so disable transmitter
-			UART2->C2 &= ~UART_C2_TIE_MASK;
-		}
-		//TODO: Implement Queue
-		*/
+		/*For this implementation, nothing is being done when trasmit buffer is empty because nothing is being sent back to master...might be changed later*/
 	}
 	if (SPI0->S & SPI_S_SPRF_MASK) { //Receive buffer full
+		
+		#ifdef LED_DEMO
+		
+		c = SPI0_D; //read the value in the buffer. Current implementation is:
+		/*
+		* c == 0x01 -> GO
+		* c == 0x00 -> STOPPED
+		* bypass queue for now
+		*/
+		
+		control_LED(c);
+		
+		#endif
+		
+		#ifdef QUEUE_NEEDED
 		if (!Q_Full(&RxQ)) {
 			c = SPI0_D; //Read the value in the buffer and then add it to the queue below. 
 			Q_Enqueue(&RxQ, c);
@@ -83,6 +93,8 @@ void SPI0_IRQHandler(void) {
 			while (1)
 				;
 		}
+		#endif
+		
 	}
 }
 

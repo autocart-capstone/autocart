@@ -3,6 +3,11 @@
 
 int main()
 {
-	return 0;
-	//
+	init_RGB_LEDs();
+	SPI_init();
+
+	while (1)
+	{
+		//loop indefinitely
+	}
 }
