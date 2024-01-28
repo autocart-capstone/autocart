@@ -3,8 +3,7 @@
 
 #include "MKL25Z4.h"
 #include "common.h"
-#include "pwm_config.h"
-#include "pwm_control.h"
+#include "pin_config.h"
 #include "interrupt_stub.h"
 #include "sensors_stub.h"
 /*

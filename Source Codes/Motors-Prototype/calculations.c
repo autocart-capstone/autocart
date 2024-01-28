@@ -37,4 +37,4 @@ int calculate_RPM(int pulses_elapsed) {
 /* create method to determine if we need to slowdown/stop if an object is in our path.
 	 We findout if there is an object infornt of us if it's angle is in the range of maybe 
 	 30 degrees, and, based on it's distance, we need to be able to slow the cart down accordingly
-/*
+*/

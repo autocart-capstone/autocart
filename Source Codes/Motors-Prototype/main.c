@@ -4,10 +4,8 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "pwm_config.h"
-#include "pwm_control.h"
+#include "pin_config.h"
 #include "interrupt_stub.h"
-#include "direction_config.h"
 #include "encoder_interrputs.h"
 #include "common.h"
 #include "motors_control.h"
@@ -48,7 +46,7 @@ int main(){
 				*/
 				 
 				reset_encoder();
-				int num_pulses_turn = turn_theta(get_next_angle());
+				int num_pulses_turn = turn_theta(get_next_theta());
 				while(encoder_pulses != num_pulses_turn) { 	
 					/*
 						This is a rough implementation with rounding, idealy we want to avoid as much rounding as possible
@@ -61,7 +59,7 @@ int main(){
 				reset_encoder();
 				/* we can divide by two here as in a pivot, the wheels each drive in opposite directions, which halves the turning radius. 
 					 so each wheel only needs to turn half as much as if we were making a smooth turn */
-				int num_pulses_pivot = pivot_theta(get_next_angle()) / 2;
+				int num_pulses_pivot = pivot_theta(get_next_theta()) / 2;
 				while(encoder_pulses != num_pulses_pivot) { 	
 					/*
 						This is a rough implementation with rounding, idealy we want to avoid as much rounding as possible

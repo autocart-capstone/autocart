@@ -3,10 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "pwm_config.h"
-#include "pwm_control.h"
+#include "pin_config.h"
 #include "interrupt_stub.h"
-#include "direction_config.h"
 #include "encoder_interrputs.h"
 #include "common.h"
 #include "calculations.h"
@@ -147,6 +145,6 @@ int get_duty_cycle() {
 }
 
 /* stub implementation for queue */
-float get_next_angle(void) {
+float get_next_theta(void) {
 	return 20.0f;
 }

@@ -27,6 +27,6 @@ void stop_car(void);
 
 int get_duty_cycle(void);
 
-float get_next_angle(void);
+float get_next_theta(void);
 
 #endif
