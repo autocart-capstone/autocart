@@ -1,4 +1,5 @@
 #include "pwm_config.h"
+#include "common.h"
 #include "MKL25Z4.h"
 
 void init_PWM() {

@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "MKL25Z4.h"
+#include "common.h"
 #include "pwm_config.h"
 #include "pwm_control.h"
 #include "interrupt_stub.h"
@@ -9,8 +10,6 @@
 /*
 - Stubs data received from either UART from Lidar directly. Stub of choice was a counting timer. Can be updated later. 
 */
-
-
 
 void init_timer()
 {
@@ -22,17 +21,14 @@ void init_timer()
 		PIT->MCR |= PIT_MCR_FRZ_MASK;
 		
 		//Initialize PIT0 to count down from argument 
-		//Example:
 		/*
 			period_us = 625 us * (24MHz -> 24e6/1s OR 0.0416 us (1/24MHz))))
 		  This means we do 24e6 periods in 1 second so one period is 0.0416us
 		  We have 15,000 in the LDV so every 0.0416us we go down by 1. 
+		
+		  Initialize Channel 0 to generate interrupts to simulate requests from sensors/LiDAR 
+		  Channel 0: 2000000 microseconds = 2 seconds 
 		*/
-	
-	
-	
-		/* Initialize Channel 0 to generate interrupts to simulate requests from sensors/LiDAR */
-		// Channel 0: 2000000 microseconds = 2 seconds
 		PIT->CHANNEL[0].LDVAL = PIT_LDVAL_TSV(2000000*24); // 24 MHz clock frequency
 
 		// No chaining
@@ -51,13 +47,11 @@ void init_timer()
 void Start_PIT(void) {
 // Enable counter
 	PIT->CHANNEL[0].TCTRL |= PIT_TCTRL_TEN_MASK;
-	PIT->CHANNEL[1].TCTRL |= PIT_TCTRL_TEN_MASK;
 }
 
 void Stop_PIT(void) {
 // Disable counter
 	PIT->CHANNEL[0].TCTRL &= ~PIT_TCTRL_TEN_MASK;
-	PIT->CHANNEL[1].TCTRL &= ~PIT_TCTRL_TEN_MASK;
 }
 
 void PIT_IRQHandler() {
@@ -66,8 +60,9 @@ void PIT_IRQHandler() {
 	
 	/* Channel 0 */
 	if (PIT->CHANNEL[0].TFLG & PIT_TFLG_TIF_MASK) {
-
-		increase_duty_cycle();
+		
+		
+		/* code to set state here based on interrupt */ 
 		
 		// clear status flag for timer channel 0
 		PIT->CHANNEL[0].TFLG &= PIT_TFLG_TIF_MASK;

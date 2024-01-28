@@ -1,7 +1,9 @@
 #include "encoder_interrputs.h"
+#include "common.h"
 #include "MKL25Z4.h"
 
 int encoder_pulses = 0;
+int total_pulses = 0;
 
 // Can add paramter for pin if all encoders are on same port
 void init_encoder() {
@@ -32,10 +34,12 @@ void reset_encoder() {
 void PORTA_IRQHandler(void) {
 	NVIC_ClearPendingIRQ(PORTA_IRQn);
 	
+	// encoder 1
 	if(PORTA->ISFR & MASK(PTA1_PIN)) {
 		
 		encoder_pulses++;
 		
+	// encoder 2
 	} else if (PORTA->ISFR & MASK(PTA2_PIN)) {
 		
 		encoder_pulses++;
