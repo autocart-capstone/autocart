@@ -8,6 +8,7 @@
 #include "pwm_control.h"
 #include "interrupt_stub.h"
 #include "direction_config.h"
+#include "encoder_interrputs.h"
 #include "MKL25Z4.h"
 
 /*----- Measurements of small cart -----
@@ -171,10 +172,12 @@ int main(){
 	init_PWM();
 	
 	init_timer();
-	
 	init_direction_pins();
-
+	init_encoder();
+	
 	Start_PIT();
+	
+	__enable_irq();
 	
 	/* Start motors running at 50% */ 
 	TPM0->CONTROLS[2].CnV = (50 * TPM0->MOD) / 100;
@@ -223,6 +226,9 @@ int main(){
 			
 			case 4:
 				// TODO stopped
+				break;
+			
+			default: 
 				break;
 			
 		}

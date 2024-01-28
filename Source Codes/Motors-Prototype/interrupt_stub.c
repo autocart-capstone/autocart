@@ -10,7 +10,7 @@
 - Stubs data received from either UART from Lidar directly. Stub of choice was a counting timer. Can be updated later. 
 */
 
-int encoder_pulses = 0;
+
 
 void init_timer()
 {
@@ -41,22 +41,6 @@ void init_timer()
 		// Generate interrupts
 		PIT->CHANNEL[0].TCTRL |= PIT_TCTRL_TIE_MASK;
 		
-		
-		
-		
-		/* Initialize Channel 1 to generate interrups to simulate recieveing encoder pulses */ 
-		
-		// Channel 1: 241000 microseconds = 0.241 seconds (desynchronized from channel 0)
-		PIT->CHANNEL[1].LDVAL = PIT_LDVAL_TSV(241000*24); // 24 MHz clock frequency
-
-		// No chaining
-		PIT->CHANNEL[1].TCTRL &= ~PIT_TCTRL_CHN_MASK;
-		
-		// Generate interrupts
-		PIT->CHANNEL[1].TCTRL |= PIT_TCTRL_TIE_MASK;
-
-
-
 
 		/* Enable Interrupts */
 		NVIC_SetPriority(PIT_IRQn, 128); // 0, 64, 128 or 192
@@ -76,48 +60,17 @@ void Stop_PIT(void) {
 	PIT->CHANNEL[1].TCTRL &= ~PIT_TCTRL_TEN_MASK;
 }
 
-
-void reset_encoder() {
-	encoder_pulses = 0;
-}
-
 void PIT_IRQHandler() {
 	//clear pending IRQ
 	NVIC_ClearPendingIRQ(PIT_IRQn);
 	
 	/* Channel 0 */
 	if (PIT->CHANNEL[0].TFLG & PIT_TFLG_TIF_MASK) {
-		int cycle = get_duty_cycle();
-
-		
-		if(cycle % 40 == 0) {
-			float angle = get_next_angle();
-			
-			turn_theta(angle);
-			
-		} else if (cycle % 20 == 0) {
-
-			if(strcmp(get_next_direction(), "LEFT") == 0) {
-				turn_90_left();
-			} else {
-				turn_90_right();
-			}
-
-		}
 
 		increase_duty_cycle();
 		
 		// clear status flag for timer channel 0
 		PIT->CHANNEL[0].TFLG &= PIT_TFLG_TIF_MASK;
-	}
-	
-	/* Channel 1*/ 
-	if(PIT->CHANNEL[1].TFLG & PIT_TFLG_TIF_MASK) {
-
-		encoder_pulses++;
-		
-		// clear status flag for timer channel 1
-		PIT->CHANNEL[1].TFLG &= PIT_TFLG_TIF_MASK;
 	}
 }
 
