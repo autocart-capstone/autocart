@@ -31,6 +31,13 @@
 
 #include "sl_lidar.h" 
 #include "sl_lidar_driver.h"
+
+//Socket Implementation
+#include <iostream>
+#include "socket.hpp"
+using namespace std;
+
+
 #ifndef _countof
 #define _countof(_Array) (int)(sizeof(_Array) / sizeof(_Array[0]))
 #endif
@@ -94,6 +101,8 @@ void ctrlc(int)
 }
 
 int main(int argc, const char * argv[]) {
+    createConnection();
+
 	const char * opt_is_channel = NULL; 
 	const char * opt_channel = NULL;
     const char * opt_channel_param_first = NULL;
@@ -275,11 +284,23 @@ int main(int argc, const char * argv[]) {
         if (SL_IS_OK(op_result)) {
             drv->ascendScanData(nodes, count);
             for (int pos = 0; pos < (int)count ; ++pos) {
-                printf("%s theta: %03.2f Dist: %08.2f Q: %d \n", 
+                
+	    
+                if((((nodes[pos].angle_z_q14 * 90.f) / 16384.f) < 120) && (nodes[pos].quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT == 47)) {
+                    struct values datapoint;
+                    datapoint.degrees = (nodes[pos].angle_z_q14 * 90.f) / 16384.f;
+                    datapoint.distance = nodes[pos].dist_mm_q2/4.0f;
+                    datapoint.quality = 47;
+                    sendValues(datapoint);
+		    
+		    printf("%s theta: %03.2f Dist: %08.2f Q: %d \n", 
                     (nodes[pos].flag & SL_LIDAR_RESP_HQ_FLAG_SYNCBIT) ?"S ":"  ", 
                     (nodes[pos].angle_z_q14 * 90.f) / 16384.f,
                     nodes[pos].dist_mm_q2/4.0f,
                     nodes[pos].quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT);
+
+                    
+                }
             }
         }
 
@@ -298,6 +319,7 @@ on_finished:
         delete drv;
         drv = NULL;
     }
+    closeConnection();
     return 0;
 }
 
