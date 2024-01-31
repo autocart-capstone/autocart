@@ -9,8 +9,8 @@
 
 #define MASK(x) (1UL << (x))
 
-#define STOP (0x00)
-#define GO (0x01)
+#define STOP (0)
+#define GO (1)
 
 // function prototypes
 void control_LED(uint8_t cmd);

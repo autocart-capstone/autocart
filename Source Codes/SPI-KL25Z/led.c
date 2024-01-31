@@ -19,7 +19,8 @@ void control_LED(uint8_t cmd) {
 	if (cmd == STOP){
 			PTB->PSOR = MASK(GREEN_LED_POS);
 			PTB->PCOR = MASK(RED_LED_POS);
-	} else {
+	}
+	if (cmd == GO){
 			PTB->PSOR = MASK(RED_LED_POS); 
 			PTB->PCOR = MASK(GREEN_LED_POS);
 	}

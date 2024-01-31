@@ -5,7 +5,7 @@
 int main()
 {
 	init_RGB_LEDs();
-	SPI_init();
+	SPI_init_e();
 
 	while (1)
 	{
