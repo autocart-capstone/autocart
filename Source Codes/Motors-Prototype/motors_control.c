@@ -4,7 +4,6 @@
 #include <stdlib.h>
 
 #include "pin_config.h"
-#include "interrupt_stub.h"
 #include "encoder_interrputs.h"
 #include "common.h"
 #include "calculations.h"

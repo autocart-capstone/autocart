@@ -16,7 +16,7 @@ int calculate_pulses_for_angle(float angle) {
 	return round(pulses_for_theta);
 }
 
-int calculate_RPM(int pulses_elapsed) {
+float calculate_RPM(int pulses_elapsed) {
 	/* to calculate the RPM from the pulses, we need to know how many pulses happened 
 		 in a given period of time, ie 1 sec. With this, we can find the frequency of the
 		 pulses, and then calculate with the formula below. 

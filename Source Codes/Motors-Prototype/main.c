@@ -5,7 +5,6 @@
 #include <math.h>
 
 #include "pin_config.h"
-#include "interrupt_stub.h"
 #include "encoder_interrputs.h"
 #include "common.h"
 #include "motors_control.h"
@@ -14,9 +13,10 @@
 int main(){	
 	init_PWM();
 	
-	init_timer();
+	//init_timer();
 	init_direction_pins();
-	init_encoder();
+	init_encoders();
+	init_RPM_timer();
 	
 	Start_PIT();
 	
@@ -28,9 +28,14 @@ int main(){
 	
 	drive_motors_straight();
 	
+	float num1, num2;
+	
 	while(1) {
-		switch(state) {
-			
+		/* test values to view RPM in debug */
+		num1 = mtr_1_RPM;
+		num2 = mtr_2_RPM;
+		
+		switch(state) { 
 			case 1: // Turning
 				/* 
 				Stub implementation for detecting pulses elapsed. Car is properly oriented when
@@ -45,9 +50,9 @@ int main(){
 					most likely need another variable to keep track of total spins (in a timeframe maybe?) for determining speed
 				*/
 				 
-				reset_encoder();
+				reset_encoders();
 				int num_pulses_turn = turn_theta(get_next_theta());
-				while(encoder_pulses != num_pulses_turn) { 	
+				while(enc_1_turn_pulses != num_pulses_turn) { 	
 					/*
 						This is a rough implementation with rounding, idealy we want to avoid as much rounding as possible
 					*/
@@ -56,11 +61,11 @@ int main(){
 				break;
 				
 			case 2: //  Pivot
-				reset_encoder();
+				reset_encoders();
 				/* we can divide by two here as in a pivot, the wheels each drive in opposite directions, which halves the turning radius. 
 					 so each wheel only needs to turn half as much as if we were making a smooth turn */
 				int num_pulses_pivot = pivot_theta(get_next_theta()) / 2;
-				while(encoder_pulses != num_pulses_pivot) { 	
+				while(enc_1_turn_pulses != num_pulses_pivot) { 	
 					/*
 						This is a rough implementation with rounding, idealy we want to avoid as much rounding as possible
 					*/
@@ -75,10 +80,6 @@ int main(){
 			case 4:
 				// TODO stopped
 				break;
-			
-			default: 
-				break;
-			
 		}
 
 	}
