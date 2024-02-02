@@ -1,7 +1,8 @@
-#include "pwm_config.h"
+#include "pin_config.h"
+#include "common.h"
 #include "MKL25Z4.h"
 
-void init_PWM() {
+void init_PWM(void) {
 	/* Enable Port D clock Gating */ 
 	SIM_SCGC5 |= SIM_SCGC5_PORTD_MASK; 
 	
@@ -49,4 +50,30 @@ void init_PWM() {
 	
 	TPM0_C2SC &= ~((TPM_CnSC_ELSB_MASK | TPM_CnSC_ELSA_MASK | TPM_CnSC_MSB_MASK | TPM_CnSC_MSA_MASK)); 
 	TPM0_C2SC |= (TPM_CnSC_ELSB(1) | TPM_CnSC_MSB(1)); 
+}
+
+void init_direction_pins(void) {
+	
+	/* Enable Port D clock Gating */ 
+	SIM_SCGC5 |= SIM_SCGC5_PORTE_MASK; 
+	
+	PORTE->PCR[PTE20_PIN]&= ~PORT_PCR_MUX_MASK; 
+	/*Set PORT E pin 20 to use ALT1 which is GPIO*/
+	PORTE->PCR[PTE20_PIN]|= PORT_PCR_MUX(1);
+	
+	PORTE->PCR[PTE21_PIN]&= ~PORT_PCR_MUX_MASK; 
+	/*Set PORT E pin 21 to use ALT1 which is GPIO*/
+	PORTE->PCR[PTE21_PIN]|= PORT_PCR_MUX(1);
+	
+	PORTE->PCR[PTE22_PIN]&= ~PORT_PCR_MUX_MASK; 
+	/*Set PORT E pin 22 to use ALT1 which is GPIO*/
+	PORTE->PCR[PTE22_PIN]|= PORT_PCR_MUX(1);
+	
+	PORTE->PCR[PTE23_PIN]&= ~PORT_PCR_MUX_MASK; 
+	/*Set PORT E pin 23 to use ALT1 which is GPIO*/
+	PORTE->PCR[PTE23_PIN]|= PORT_PCR_MUX(1);
+	
+	/*Set Pins to Output*/
+	PTE->PDDR |= MASK(PTE20_PIN)| MASK(PTE21_PIN) | MASK(PTE22_PIN)| MASK(PTE23_PIN);
+	
 }
