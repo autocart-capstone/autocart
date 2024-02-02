@@ -8,6 +8,7 @@
 #include "encoder_interrputs.h"
 #include "common.h"
 #include "motors_control.h"
+#include "spi_setup.h"
 #include "MKL25Z4.h"
 
 int main(){	
@@ -17,6 +18,7 @@ int main(){
 	init_direction_pins();
 	init_encoders();
 	init_RPM_timer();
+	SPI_init();
 	
 	Start_PIT();
 	
