@@ -10,43 +10,6 @@
 To configure the KL25z module controlling the motors as a slave. 
 */
 
-Q_T RxQ;
-uint8_t CR_received = 0;
-void SPI_init(void){
-  	
-    SIM_SCGC5 |= SIM_SCGC5_PORTD_MASK; //Turn on clock to D module
-    SIM_SCGC4 |= SIM_SCGC4_SPI0_MASK;  //Enable SPI0 clock
-	
-		SPI0_C1 &= ~SPI_C1_SPE_MASK; //Disable SPI for config
-  
-		PORTD->PCR[PORTD0] &= ~PORT_PCR_MUX_MASK; //Set PTD0 to mux 2 [SPI0_PCS0]         
-		PORTD->PCR[PORTD0] |= PORT_PCR_MUX(0x2);
-		
-		PORTD->PCR[PORTD1] &= ~PORT_PCR_MUX_MASK;
-		PORTD->PCR[PORTD1] |= PORT_PCR_MUX(0x2); //Set PTD1 to mux 2 [SPI0_SCK]
-	
-		PORTD->PCR[PORTD2] &= ~PORT_PCR_MUX_MASK;
-		PORTD->PCR[PORTD2] |= PORT_PCR_MUX(0x2); //Set PTD2 to mux 2 [SPI0_MOSI]
-	
-		PORTD->PCR[PORTD3] &= ~PORT_PCR_MUX_MASK;
-		PORTD->PCR[PORTD3] |= PORT_PCR_MUX(0x2); //Set PTD3 to mux 2 [SPIO_MISO]
-				  
-		/* Set Configuration register | Clock Polarity idles high (active high -> needs to match master) | Clock Phase SPSCK occurs at the start of the first cycle*/
-		//SPI0_C1 = (SPI_C1_CPOL_MASK | SPI_C1_CPHA_MASK);
-		
-		SPI0_C1 |= SPI_C1_SPIE_MASK; //Enable Slave Receive Interrupts, when (SPRF is set) receive buffer is full we interrupt
-		//SPI0_C1 |= SPI_C1_SPTIE_MASK; //Enable Slave Transmit, when (SPTEF is set) transmit buffer is empty, we interrupt.
-		
-		//SPI0_BR = (SPI_BR_SPPR(0x00) | SPI_BR_SPR(0x00)); //No Baud rate divider
-		
-		SPI0_C1 |= SPI_C1_SPE_MASK; //Enable SPI0
-		
-		/*Enable interrupts for SPI0 */
-		NVIC_SetPriority(SPI0_IRQn, 128); // 0, 64, 128 or 192
-		NVIC_ClearPendingIRQ(SPI0_IRQn); 
-		NVIC_EnableIRQ(SPI0_IRQn);
-}
-
 void SPI_init_e(void){
   	
 		// enable clock gate for spi module
@@ -66,14 +29,14 @@ void SPI_init_e(void){
 		PORTE_PCR4 = PORT_PCR_MUX(2)|PORT_PCR_DSE_MASK;			    //Use PTE4 as SPI1_SS_b 
     
     SPI1_C1 &= ~ SPI_C1_CPHA_MASK;		
-		SPI1_C1 = (SPI_C1_CPOL_MASK | SPI_C1_CPHA_MASK); /* Set Configuration register */
-	 // SPI1_C1 = (SPI_C1_CPOL_MASK ); //CPOL=1,CPHA=0
-		//SPI1_C1 = (SPI_C1_CPHA_MASK );//CPOL=0,CPHA=1;
-  	SPI1_C2 = 0x00U;                     /* Set Configuration register */
-    SPI1_BR = (SPI_BR_SPPR(0x00) | SPI_BR_SPR(0x00)); /* Set baud rate register */
-    SPI1_C1 |= SPI_C1_SPE_MASK;          /* Enable device */
+		 //SPI1_C1 = (SPI_C1_CPOL_MASK | SPI_C1_CPHA_MASK); /* Set Configuration register */
+	   //SPI1_C1 = (SPI_C1_CPOL_MASK ); //CPOL=1,CPHA=0
+	  SPI1_C1 = (SPI_C1_CPHA_MASK );//CPOL=0,CPHA=1;
+  	//SPI1_C2 = 0x00U;                     /* Set Configuration register */
+    //SPI1_BR = (SPI_BR_SPPR(0x00) | SPI_BR_SPR(0x00)); /* Set baud rate register */
 		
 		SPI1_C1 |= SPI_C1_SPIE_MASK;
+    SPI1_C1 |= SPI_C1_SPE_MASK;          /* Enable device */
 		
 		/*Enable interrupts for SPI0 */
 		NVIC_SetPriority(SPI1_IRQn, 128); // 0, 64, 128 or 192
@@ -122,7 +85,7 @@ void SPI0_IRQHandler(void) {
 
 void SPI1_IRQHandler(void) {
 	
-	uint8_t c;
+	uint8_t c = 0x00;
 	
 	NVIC_ClearPendingIRQ(SPI1_IRQn);
 	
