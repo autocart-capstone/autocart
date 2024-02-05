@@ -29,7 +29,7 @@ void onReceive()
 
     if (sound_in_ind < NUMBER_OF_SAMPLES_TO_RECORD && samples_to_skip == 0)
     {
-      recorded_sound[sound_in_ind] = (float)good_bits / fabsf((float)std::numeric_limits<int16_t>::min());
+      recorded_sound[sound_in_ind] = good_bits;
       sound_in_ind += 1;
     }
     else if (samples_to_skip > 0)

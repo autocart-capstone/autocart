@@ -6,6 +6,7 @@ noise = np.load("filtered_noise.npy") # not in the function so this only execute
 
 def correlate_and_find_delay2(rec):
     #rec_padded = np.pad(rec, (len(noise), 0), 'constant', constant_values=0)
+    print(rec)
     rec_fft = np.fft.rfft(rec)
     diff = len(rec)-len(noise)
     noise_padded = np.pad(noise, (0, diff), 'constant', constant_values=0)
@@ -15,7 +16,7 @@ def correlate_and_find_delay2(rec):
     cross_corr = np.abs(np.fft.irfft(cross_corr_freq))
     valid_len = diff + 1
     cross_corr = cross_corr[:valid_len]
-    
+    print(cross_corr)
     plt.plot(cross_corr)
     plt.title("correlation")
 
@@ -44,7 +45,7 @@ while True:
     delay_index = correlate_and_find_delay2(samples)
     delay_s = delay_index / 48000
     delay_m = delay_s * 343
-    plt.text(delay_index, -30, f"{round(delay_m, 6)} m")
+    plt.text(delay_index, 5, f"{round(delay_m, 6)} m")
     plt.show()
     plt.pause(0.01)
     
