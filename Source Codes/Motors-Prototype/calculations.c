@@ -29,7 +29,7 @@ float calculate_RPM(int pulses_elapsed) {
 		 sufficient?) 
 	*/
 	
-	float RPM = (pulses_elapsed * period) / pulses_per_rev;
+	float RPM = (pulses_elapsed * 60) / (period * pulses_per_rev);
 	
 	return RPM;
 }

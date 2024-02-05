@@ -25,8 +25,7 @@ int main(){
 	__enable_irq();
 	
 	/* Start motors running at 50% */ 
-	TPM0->CONTROLS[2].CnV = (50 * TPM0->MOD) / 100;
-	TPM0->CONTROLS[0].CnV = (50 * TPM0->MOD) / 100;
+	control_duty_cycle(50, 50, 50, 50);
 	
 	drive_motors_straight();
 	

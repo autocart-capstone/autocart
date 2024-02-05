@@ -10,7 +10,7 @@ enum states {
 
 extern enum states state;
 
-void increase_duty_cycle(void);
+void control_duty_cycle(int front_left, int back_left, int front_right, int back_right);
 
 int turn_theta(float angle);
 int pivot_theta(float angle);
@@ -18,14 +18,14 @@ int pivot_theta(float angle);
 void pivot_left(void);
 void pivot_right(void);
 
-void control_left_motor(float PWM);
-void control_right_motor(float PWM);
+void control_left_motors(float F_PWM, float B_PWM);
+void control_right_motors(float F_PWM, float B_PWM);
 
 void drive_motors_straight(void);
 
 void stop_car(void);
 
-int get_duty_cycle(void);
+struct duty_cycles get_duty_cycle(void);
 
 float get_next_theta(void);
 
