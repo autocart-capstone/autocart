@@ -32,6 +32,7 @@ void SPI_init(void){
 	   //SPI1_C1 = (SPI_C1_CPOL_MASK ); //CPOL=1,CPHA=0
 	  SPI1_C1 = (SPI_C1_CPHA_MASK );//CPOL=0,CPHA=1;
   	//SPI1_C2 = 0x00U;                     /* Set Configuration register */
+		
     //SPI1_BR = (SPI_BR_SPPR(0x00) | SPI_BR_SPR(0x00)); /* Set baud rate register */
 		
 		SPI1_C1 |= SPI_C1_SPIE_MASK;

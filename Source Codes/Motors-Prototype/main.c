@@ -28,13 +28,8 @@ int main(){
 	control_duty_cycle(50, 50, 50, 50);
 	
 	drive_motors_straight();
-	
-	float num1, num2;
-	
+
 	while(1) {
-		/* test values to view RPM in debug */
-		num1 = mtr_1_RPM;
-		num2 = mtr_2_RPM;
 		
 		switch(state) { 
 			case 1: // Turning
@@ -53,7 +48,7 @@ int main(){
 				 
 				reset_encoders();
 				int num_pulses_turn = turn_theta(get_next_theta());
-				while(enc_1_turn_pulses != num_pulses_turn) { 	
+				while(FL_turn_pulses != num_pulses_turn) { 	
 					/*
 						This is a rough implementation with rounding, idealy we want to avoid as much rounding as possible
 					*/
@@ -66,7 +61,7 @@ int main(){
 				/* we can divide by two here as in a pivot, the wheels each drive in opposite directions, which halves the turning radius. 
 					 so each wheel only needs to turn half as much as if we were making a smooth turn */
 				int num_pulses_pivot = pivot_theta(get_next_theta()) / 2;
-				while(enc_1_turn_pulses != num_pulses_pivot) { 	
+				while(FL_turn_pulses != num_pulses_pivot) { 	
 					/*
 						This is a rough implementation with rounding, idealy we want to avoid as much rounding as possible
 					*/
