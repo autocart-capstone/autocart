@@ -6,12 +6,12 @@ I2S i2s_out(OUTPUT);
 const int sampleRate = 48000;
 
 size_t sound_out_ind = SOUND_SAMPLES_LEN; // silence at first
-uint32_t last_interrupt_ticks = 0;              // Time in microseconds of the last "onTransmit" interrupt
+uint64_t last_interrupt_ticks = 0;        // Number of CPU cycles since the last "onTransmit" interrupt
 uint32_t samples_to_skip = 0;             // amount of samples to skip before sending samples
 
 void onTransmit()
 {
-  last_interrupt_ticks = micros();
+  last_interrupt_ticks = rp2040.getCycleCount64();
   while (true)
   {
     int32_t sample;
@@ -62,10 +62,20 @@ void setup_i2s_sound_out()
 void start_transmitting_sound()
 {
   sound_out_ind = 0;
-  float time_dif = micros() - last_interrupt_ticks;
-  float skip = (time_dif * ((float)sampleRate / 1000000));
-  // Serial.println(skip);
+  uint64_t tick_diff = rp2040.getCycleCount64() - last_interrupt_ticks;
+  // Rationale:
+  // With the DMA triple-buffering, we always submit a certain amount of samples ahead of time
+  // Start transmitting audio after having skipped as many future samples submission as we are currently into the buffer
+  // Ex: (s means sample already submitted, e is not submitted, [] is a buffer)
+  // [s s s s] [s s s s] [s s s s] [e e e e]
+  //    ^                             ^
+  //    cur time                      start transmitting here
+  // want to start transmitting at cur time, but empty samples (0s) already submitted for the next few buffer. 
+  // In the next available buffer, delay sound transmission by 2 samples
+  // This is for consistency, this way we always transmit x samples late (x=numbuffers*numsamplesinbuffer).
+  float skip = ((float)tick_diff * ((float)sampleRate / (float)rp2040.f_cpu()));
   samples_to_skip = (uint32_t)skip;
+  //Serial.printf("delaying by %i samples\n", samples_to_skip);
 }
 
 bool is_done_transmitting_sound()

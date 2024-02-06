@@ -13,7 +13,7 @@ uint16_t recorded_sound[NUMBER_OF_SAMPLES_TO_RECORD] = {0};
 
 size_t sound_in_ind = NUMBER_OF_SAMPLES_TO_RECORD; // start disabled
 
-uint64_t last_interrupt_ticks = 0;
+uint64_t last_interrupt_ticks = 0; // Number of CPU cycles since the last "onReceive" interrupt
 uint32_t samples_to_skip = 0;
 
 void onReceive()
@@ -61,8 +61,17 @@ void start_recording_sound()
 {
   sound_in_ind = 0;
   uint64_t tick_diff = rp2040.getCycleCount64() - last_interrupt_ticks;
+  // Rationale:
+  // With the DMA triple-buffering, we always 'hear' the sound a little late
+  // Start 'listening' to the audio coming in after having skipped as many samples as we haven't listened to, but have already been recorded by the mic
+  // Ex: (r means sample already recorded, e is not recorded, [] is a buffer)
+  // [r r e e] [e e e e] [e e e e]
+  //    ^         
+  //    cur time 
+  // Skip the first 2 samples that come in once the buffer is filled up
   float skip = ((float)tick_diff * ((float)sampleRate / (float)rp2040.f_cpu()));
   samples_to_skip = (uint32_t)skip;
+  //Serial.printf("delaying by %i samples\n", samples_to_skip);
 }
 
 bool is_done_recording_sound()
