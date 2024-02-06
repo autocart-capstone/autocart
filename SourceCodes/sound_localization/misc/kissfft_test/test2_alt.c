@@ -1,3 +1,4 @@
+
 #include "kiss_fftr.h"
 #include "sound_correlation0.h"
 #include "sound_samples0.h"
@@ -18,6 +19,16 @@ void setup()
 
 int correlate_sound()
 {
+  kiss_fft_cpx *sound_samples_fft_cmplx = (kiss_fft_cpx *)sound_samples_fft;
+
+  kiss_fftr(kissfft_forw, (int32_t *)sound_samples_fft, sound_samples_fft_cmplx);
+
+  for (int i = 0; i < FFT_SIZE / 2 + 1; i++)
+  {
+    // take conjugate
+    sound_samples_fft_cmplx[i].i *= -1;
+    // printf("%08X %08X\n", sound_samples_fft_cmplx[i].r, sound_samples_fft_cmplx[i].i);
+  }
 
   // FFT in-place the recorded sound
   int32_t *recorded_sound_int = (int32_t *)recorded_sound;
@@ -26,7 +37,6 @@ int correlate_sound()
 
   int32_t correlation_int[CONV_BUFFER_SIZE];
   kiss_fft_cpx *correlation = (kiss_fft_cpx *)correlation_int;
-  kiss_fft_cpx *sound_samples_fft_cmplx = (kiss_fft_cpx *)sound_samples_fft_conj;
   for (int i = 0; i < FFT_SIZE / 2 + 1; i++)
   {
     correlation[i].r = recorded_sound_fft[i].r * sound_samples_fft_cmplx[i].r - recorded_sound_fft[i].i * sound_samples_fft_cmplx[i].i;
