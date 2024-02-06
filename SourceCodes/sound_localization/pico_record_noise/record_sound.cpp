@@ -1,6 +1,4 @@
 #include <I2S.h>
-#include "pffft.h"
-#include "sound_correlation.h"
 #include <math.h> // fabsf
 #include <limits> // max int
 
@@ -8,14 +6,19 @@ I2S i2s_in(INPUT);
 
 const int sampleRate = 48000;
 
+#define NUMBER_OF_SAMPLES_TO_RECORD 12800
+#define NOISE_ACTUAL_LENGTH 10000
+
+uint16_t recorded_sound[NUMBER_OF_SAMPLES_TO_RECORD] = {0};
+
 size_t sound_in_ind = NUMBER_OF_SAMPLES_TO_RECORD; // start disabled
 
-uint32_t last_interrupt = 0;
+uint64_t last_interrupt_ticks = 0;
 uint32_t samples_to_skip = 0;
 
 void onReceive()
 {
-  last_interrupt = micros();
+  last_interrupt_ticks = rp2040.getCycleCount64();
   while (true)
   {
     int32_t l, r;
@@ -39,8 +42,6 @@ void onReceive()
   }
 }
 
-PFFFT_Setup *pffft_setup;
-
 void setup_sound_in()
 {
   i2s_in.setBCLK(12); // WS / LRCLK has to be 13, BCLK+1
@@ -55,19 +56,12 @@ void setup_sound_in()
     while (1)
       ; // do nothing
   }
-  pffft_setup = pffft_new_setup(FFT_SIZE, PFFFT_REAL);
-  if (!pffft_setup)
-  {
-    Serial.println("Failed to initialize pffft!");
-    while (1)
-      ; // do nothing
-  }
 }
 void start_recording_sound()
 {
   sound_in_ind = 0;
-  float time_dif = micros() - last_interrupt;
-  float skip = (time_dif * ((float)sampleRate / 1000000));
+  uint64_t tick_diff = rp2040.getCycleCount64() - last_interrupt_ticks;
+  float skip = ((float)tick_diff * ((float)sampleRate / (float)rp2040.f_cpu()));
   samples_to_skip = (uint32_t)skip;
 }
 
@@ -76,52 +70,10 @@ bool is_done_recording_sound()
   return sound_in_ind >= NUMBER_OF_SAMPLES_TO_RECORD;
 }
 
-int correlate_sound()
-{
-  // FFT in-place the recorded sound
-  pffft_transform_ordered(pffft_setup, recorded_sound, recorded_sound, NULL, PFFFT_FORWARD);
-  // For a real FFT (see https://en.wikipedia.org/wiki/Fast_Fourier_transform#FFT_algorithms_specialized_for_real_or_symmetric_data)
-  // The 0th index freq and Nth have 0 imaginary component
-  // Pffft took advantage of this and packed the Nth frequency into the 0th indexe's imaginary component
-  // First entry (first two floats) is equal to F(0)+i*F(n/2+1)
-  // Put this back to how its supposed to be, first entry F(0)+i*0 and Nth F(N)+i*0
-
-  // recorded_sound is actually NUMBER_OF_SAMPLES_TO_RECORD+2 (CONV_BUFFER_SIZE) long
-  recorded_sound[CONV_BUFFER_SIZE - 2] = recorded_sound[1];
-  recorded_sound[1] = 0;
-
-  float correlation[CONV_BUFFER_SIZE];
-  for (int i = 0; i < CONV_BUFFER_SIZE; i += 2)
-  {
-    // complex multiplication
-    int r_ind = i;
-    int i_ind = i + 1;
-    correlation[r_ind] = recorded_sound[r_ind] * sound_samples_fft_conj[r_ind] - recorded_sound[i_ind] * sound_samples_fft_conj[i_ind];
-    correlation[i_ind] = recorded_sound[r_ind] * sound_samples_fft_conj[i_ind] + recorded_sound[i_ind] * sound_samples_fft_conj[r_ind];
-  }
-
-  // Redo the packing
-  correlation[1] = correlation[CONV_BUFFER_SIZE - 2];
-  // IFFT in-place
-  pffft_transform_ordered(pffft_setup, correlation, correlation, NULL, PFFFT_BACKWARD);
-
-  // get index of max correlation
-  int max_ind = 0;
-  float max_val = fabsf(correlation[0]);
-  for (int i = 1; i < VALID_CORRELATION_LENGTH; i++)
-  {
-    if (fabsf(correlation[i]) > max_val)
-    {
-      max_val = fabsf(correlation[i]);
-      max_ind = i;
-    }
-  }
-  return max_ind;
-}
-
 void print_recorded_sound_to_serial()
 {
   Serial.printf("bytes\n");
-  Serial.printf("%i\n", NUMBER_OF_SAMPLES_TO_RECORD);
-  Serial.write((byte *)recorded_sound, NUMBER_OF_SAMPLES_TO_RECORD * 4); // 32-bit per float, 4 bytes
+  int num_bytes = NUMBER_OF_SAMPLES_TO_RECORD*2;// 16-bit per in, 2 bytes
+  Serial.printf("%i\n", num_bytes);
+  Serial.write((byte *)recorded_sound, num_bytes); 
 }

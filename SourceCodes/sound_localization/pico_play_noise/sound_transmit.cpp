@@ -6,12 +6,12 @@ I2S i2s_out(OUTPUT);
 const int sampleRate = 48000;
 
 size_t sound_out_ind = SOUND_SAMPLES_LEN; // silence at first
-uint32_t last_interrupt = 0;              // Time in microseconds of the last "onTransmit" interrupt
+uint32_t last_interrupt_ticks = 0;              // Time in microseconds of the last "onTransmit" interrupt
 uint32_t samples_to_skip = 0;             // amount of samples to skip before sending samples
 
 void onTransmit()
 {
-  last_interrupt = micros();
+  last_interrupt_ticks = micros();
   while (true)
   {
     int32_t sample;
@@ -62,7 +62,7 @@ void setup_i2s_sound_out()
 void start_transmitting_sound()
 {
   sound_out_ind = 0;
-  float time_dif = micros() - last_interrupt;
+  float time_dif = micros() - last_interrupt_ticks;
   float skip = (time_dif * ((float)sampleRate / 1000000));
   // Serial.println(skip);
   samples_to_skip = (uint32_t)skip;

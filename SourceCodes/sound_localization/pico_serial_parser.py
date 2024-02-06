@@ -16,7 +16,7 @@ def correlate_and_find_delay2(rec):
     cross_corr = np.abs(np.fft.irfft(cross_corr_freq))
     valid_len = diff + 1
     cross_corr = cross_corr[:valid_len]
-    print(cross_corr)
+    #print(cross_corr)
     plt.plot(cross_corr)
     plt.title("correlation")
 
@@ -34,19 +34,22 @@ while True:
         continue
     size = ser.readline().strip()
     size = int(size.decode('utf-8'))
-    print(size)
-    b = ser.read(size*4)
-    samples = np.frombuffer(b, dtype='<f')
-    
-    #sd.play(samples, 48000, blocking=False)
-    plt.ion()
-    plt.figure(1)
-    plt.clf()
-    delay_index = correlate_and_find_delay2(samples)
-    delay_s = delay_index / 48000
-    delay_m = delay_s * 343
-    plt.text(delay_index, 5, f"{round(delay_m, 6)} m")
-    plt.show()
-    plt.pause(0.01)
+    #print(size)
+    b = ser.read(size)
+    samples = np.frombuffer(b, dtype='<i2')
+    samples = np.asarray(samples, dtype='double') / 2**15 # normalize to [-1, 1]
+    if False: # set to true to hear the audio
+        import sounddevice as sd
+        sd.play(samples, 48000, blocking=False)
+    else:
+        plt.ion()
+        plt.figure(1)
+        plt.clf()
+        delay_index = correlate_and_find_delay2(samples)
+        delay_s = delay_index / 48000
+        delay_m = delay_s * 343
+        plt.text(delay_index, 5, f"{round(delay_m, 6)} m")
+        plt.show()
+        plt.pause(0.01)
     
     
