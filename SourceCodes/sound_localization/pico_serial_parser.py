@@ -2,7 +2,7 @@ import serial
 import numpy as np
 import matplotlib.pyplot as plt
 
-noise = np.load("filtered_noise.npy") # not in the function so this only executes when script is imported, not every func call
+noise = np.load("filtered_noise1.npy") # not in the function so this only executes when script is imported, not every func call
 
 def correlate_and_find_delay2(rec):
     #rec_padded = np.pad(rec, (len(noise), 0), 'constant', constant_values=0)

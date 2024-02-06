@@ -1,6 +1,6 @@
 #include "sound_transmit.h"
 #include <I2S.h>
-#include "sound_samples.h"
+#include "sound_samples0.h"
 
 I2S i2s_out(OUTPUT);
 const int sampleRate = 48000;
@@ -19,7 +19,7 @@ void onTransmit()
     {
       // sample = sound | sound << 16; // 16 bits for L channel, 16 bits for R channel
       sample = sound_samples[sound_out_ind] << 16; // sample is 32-bit audio, shift 16 bit sound to most significant bits of 32-bit sample
-      sample /= 16;                                // make sound less loud
+      //sample /= 16;                                // make sound less loud
     }
     else
     {
