@@ -1,3 +1,6 @@
+#include "pin_config.h"
+#include "calculations.h"
+
 void setup_pwm()
 {
   pinMode(PWM_TL, OUTPUT);
@@ -76,8 +79,7 @@ int turn_theta(float angle) {
     angle = 360 - angle;
   } 
 
-  int pulses = 0;
-  //int pulses = calculate_pulses_for_angle(angle);
+  int pulses = calculate_pulses_for_angle(angle);
   float RPM_factor = (pulses / PULSES_PER_REV);
   
   if(turning_right) {
