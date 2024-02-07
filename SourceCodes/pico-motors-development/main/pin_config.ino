@@ -22,12 +22,16 @@ void check_and_set_pin(unsigned int pwm_pin, unsigned int duty_cycle)
   {
     case PWM_TL:
       duty_cycles.TL = duty_cycle;
+      break;
     case PWM_BL:
       duty_cycles.BL = duty_cycle;
+      break;
     case PWM_TR:
       duty_cycles.TR = duty_cycle;
+      break;
     case PWM_BR:
       duty_cycles.BR = duty_cycle;
+      break;
   }
 }
 
