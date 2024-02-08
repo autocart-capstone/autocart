@@ -85,4 +85,5 @@ void print_recorded_sound_to_serial()
   int num_bytes = NUMBER_OF_SAMPLES_TO_RECORD*2;// 16-bit per in, 2 bytes
   Serial.printf("%i\n", num_bytes);
   Serial.write((byte *)recorded_sound, num_bytes); 
+  Serial.flush();
 }
