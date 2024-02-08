@@ -14,6 +14,5 @@
 void setup_rfm69();
 void sendPing();
 void receivePing();
-bool timeout_occurred(unsigned long startTime, unsigned long timeoutDuration);
 
 #endif

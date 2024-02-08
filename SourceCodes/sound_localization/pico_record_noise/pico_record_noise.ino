@@ -1,9 +1,6 @@
 #include "transceiver_mic.h"
 #include "record_sound.h"
 
-const int num_speaker = 4;
-int target_speaker = 0;
-
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   rp2040.enableDoubleResetBootloader();
@@ -15,17 +12,9 @@ void setup() {
   Serial.printf("Started! Clock speed: %i\n", rp2040.f_cpu());
   setup_rfm69();
   setup_sound_in();
-  // receive();
 }
 
-// void receive() {
-//   waiting_for_transmitter = false;
-//   receivePing();
-//   start_recording_sound();
-// }
-
 void loop() {
-  // target_speaker = (target_speaker % num_speaker) + 1;
   for (int i = 1; i <= 2; i++) {
     sendPing(i);
     start_recording_sound();
@@ -35,7 +24,4 @@ void loop() {
     Serial.printf("node%i\n",i);
     print_recorded_sound_to_serial();
   }
-  // sendPing();
-  // receive();
-  //delay(1000);
 }

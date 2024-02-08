@@ -11,13 +11,9 @@ void setup() {
 
   setup_rfm69();
   setup_i2s_sound_out();
-  // sendPing();
-  // start_transmitting_sound();
 }
 
 void loop() {
   receivePing();
-  // delay(1000);
-  // sendPing();
   start_transmitting_sound();
 }
