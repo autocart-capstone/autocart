@@ -50,12 +50,12 @@ void stop_motor(unsigned int pwm_pin)
 void pivot_left() {
   
   /* Drive Motor 1 backwards*/
-  digitalWrite(DIRECTION_LF, 1);
-  digitalWrite(DIRECTION_LB, 0);
+  digitalWrite(DIRECTION_FL, 1);
+  digitalWrite(DIRECTION_BL, 0);
   
   /* Drive Motor 2 forwards*/
-  digitalWrite(DIRECTION_RF, 1);
-  digitalWrite(DIRECTION_RB, 0);
+  digitalWrite(DIRECTION_FR, 1);
+  digitalWrite(DIRECTION_BR, 0);
   
   // Stub for detecting when we have turned 90 deg
 }
@@ -63,12 +63,12 @@ void pivot_left() {
 void pivot_right() {
   
   /* Drive Motor 1 forwards*/
-  digitalWrite(DIRECTION_LF, 0);
-  digitalWrite(DIRECTION_LB, 1);
+  digitalWrite(DIRECTION_FL, 0);
+  digitalWrite(DIRECTION_BL, 1);
   
   /* Drive Motor 2 backwards*/
-  digitalWrite(DIRECTION_RF, 0);
-  digitalWrite(DIRECTION_RB, 1);
+  digitalWrite(DIRECTION_FR, 0);
+  digitalWrite(DIRECTION_BR, 1);
   
   // Stub for detecting when we have turned 90 deg
 }

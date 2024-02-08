@@ -7,20 +7,33 @@ void set_pwm_duty_cycle(unsigned int pwm_pin, unsigned int duty_cycle);
 
 void stop_motor(unsigned int pwm_pin);
 
-//PWM-Drive
+// PWM-Drive
+// Board Left Side
 #define PWM_TL 6
 #define PWM_BL 7
+// Board Right Side
 #define PWM_BR 26
 #define PWM_TR 27
 
-//Encoder
-#define PULSES_PER_REV 3
+// FWD of the board is USB connection
 
-//PWM-direction
-#define DIRECTION_LB (12) // -x Backwards
-#define DIRECTION_LF (13) // x- Forwards
-#define DIRECTION_RB (19) // -x Backwards
-#define DIRECTION_RF (18) // x- Forwards
+// PWM-direction
+// Board Left Side
+#define DIRECTION_FL (13) // x- Forwards
+#define DIRECTION_BL (12) // -x Backwards
+// Board Right Side
+#define DIRECTION_FR (18) // x- Forwards
+#define DIRECTION_BR (19) // -x Backwards
+
+// Encoder Pins
+// Board Left Side
+#define ENCODER_FL (10)
+#define ENCODER_BL (11)
+// Board Right Side
+#define ENCODER_FR (20)
+#define ENCODER_BR (21)
+
+
 
 #define PWM_FREQ 50
 
