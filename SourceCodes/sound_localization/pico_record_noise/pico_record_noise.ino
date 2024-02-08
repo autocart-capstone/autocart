@@ -26,13 +26,15 @@ void setup() {
 
 void loop() {
   // target_speaker = (target_speaker % num_speaker) + 1;
-
-  sendPing(2);
-  start_recording_sound();
+  for (int i = 1; i <= 2; i++) {
+    sendPing(i);
+    start_recording_sound();
+    
+    while (!is_done_recording_sound()); // delay until done recording sound
   
-  while (!is_done_recording_sound()); // delay until done recording sound
-
-  print_recorded_sound_to_serial();
+    Serial.printf("node%i\n",i);
+    print_recorded_sound_to_serial();
+  }
   // sendPing();
   // receive();
   //delay(1000);

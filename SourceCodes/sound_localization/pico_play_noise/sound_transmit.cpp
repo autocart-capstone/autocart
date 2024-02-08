@@ -1,6 +1,6 @@
 #include "sound_transmit.h"
 #include <I2S.h>
-#include "sound_samples0.h"
+#include "src/sound_samples/sound_samples1.h"
 
 I2S i2s_out(OUTPUT);
 const int sampleRate = 48000;

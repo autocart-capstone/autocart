@@ -38,11 +38,12 @@ void sendPing(int target) {
     }
   } while (input != 'y'); */
 
-  Serial.printf("\nSending ping to node %d\n", target);
+  //Serial.printf("\nSending ping to node %d\n", target);
 
   if (USEACK) {
     unsigned long time1 = micros();
-    bool success = radio.sendWithRetry(TONODEID, "e", 1, 0, 2); //send character "m" (length 1) to TONODEID, 0 retries, 2ms wait time for ACK
+    byte msg = 5;
+    bool success = radio.sendWithRetry(target, &msg, 1, 0, 2); //send character "m" (length 1) to TONODEID, 0 retries, 2ms wait time for ACK
     unsigned long time2 = micros();
     unsigned long RTT = time2 - time1;
     // Serial.printf("\tRTT: %d us\n", RTT);
@@ -65,15 +66,15 @@ void sendPing(int target) {
 
 
     if (success) {
-        Serial.printf("ACK received!\n");
+        //Serial.printf("ACK received!\n");
     } else {
-        Serial.printf("no ACK received :(\n");
-        sendPing(2);
+        //Serial.printf("no ACK received :(\n");
+        sendPing(target);
     }
   } else {
-    Serial.printf("Sending without ack\n");
-    radio.send(TONODEID, "m", 1); //send character "m" (length 1) to TONODEID
-    Serial.printf("Sent!\n");
+    //Serial.printf("Sending without ack\n");
+    radio.send(target, "m", 1); //send character "m" (length 1) to TONODEID
+    //Serial.printf("Sent!\n");
   }
 }
 
