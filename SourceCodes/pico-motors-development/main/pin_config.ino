@@ -9,6 +9,8 @@ void setup_pwm()
   pinMode(PWM_BR, OUTPUT);   
 }
 
+static const uint8_t motors_pins[4] = {PWM_TL, PWM_BL, PWM_TR, PWM_BR}; 
+
 //Struct to store values of duty cycle. 
 static struct duty_cycles {
   int TL, BL; // Front and Back left
@@ -45,6 +47,23 @@ void stop_motor(unsigned int pwm_pin)
 {
   analogWrite(pwm_pin, 0); //Set duty cycle to 0 to stop specified motor.
   check_and_set_pin(pwm_pin, 0);
+}
+
+void stop_all_motors()
+{
+  for (int i = 0; i < (sizeof(motors_pins) / sizeof(motors_pins[0])); i++)
+  {
+    stop_motor(i);  
+  }
+}
+
+/* The initial PWM we want to start the motors at */
+void drive_all_motors_init(uint8_t duty_cycle)
+{
+  for (int i = 0; i < (sizeof(motors_pins) / sizeof(motors_pins[0])); i++)
+  {
+    set_pwm_duty_cycle(i, duty_cycle);  
+  }
 }
 
 void pivot_left() {

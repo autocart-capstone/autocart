@@ -7,6 +7,10 @@ void set_pwm_duty_cycle(unsigned int pwm_pin, unsigned int duty_cycle);
 
 void stop_motor(unsigned int pwm_pin);
 
+void drive_all_motors_init(uint8_t duty_cycle);
+
+void stop_all_motors();
+
 // PWM-Drive
 // Board Left Side
 #define PWM_TL 6
@@ -32,8 +36,6 @@ void stop_motor(unsigned int pwm_pin);
 // Board Right Side
 #define ENCODER_FR (20)
 #define ENCODER_BR (21)
-
-
 
 #define PWM_FREQ 50
 
