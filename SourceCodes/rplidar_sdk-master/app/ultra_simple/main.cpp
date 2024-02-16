@@ -285,8 +285,7 @@ int main(int argc, const char * argv[]) {
             drv->ascendScanData(nodes, count);
             for (int pos = 0; pos < (int)count ; ++pos) {
                 
-	    
-                if((((nodes[pos].angle_z_q14 * 90.f) / 16384.f) < 120) && (nodes[pos].quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT == 47)) {
+                if((nodes[pos].quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT == 47)) {
                     struct values datapoint;
                     datapoint.degrees = (nodes[pos].angle_z_q14 * 90.f) / 16384.f;
                     datapoint.distance = nodes[pos].dist_mm_q2/4.0f;

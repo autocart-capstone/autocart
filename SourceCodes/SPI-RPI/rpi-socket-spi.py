@@ -10,7 +10,7 @@ key = 5
 def init_spi():
     spi = spidev.SpiDev()
     spi.open(0, 0)  # Use CE0 (chip enable 0) on the Raspberry Pi
-    spi.max_speed_hz = 1000000  # Set SPI speed to 1 MHz
+    spi.max_speed_hz = 100000  # Set SPI speed to 100 KHz
     return spi
 
 # Function to send and receive data over SPI
@@ -33,11 +33,11 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 print()
             else:
                 values = struct.unpack('ffi', d)
-                print(values)
                 
-                if(values[1]<200): #STOP
-                    data_to_send = [0x0]
+                if(values[1]<200 and ((values[0] < 60) or values[0] > 300)): #STOP
+                    print(values)
+                    data_to_send = [0x2]
                     received_data = transfer_spi(spi, data_to_send)
-                else: #GO
-                    data_to_send = [0x1]
+                elif(values[1]>200 and ((values[0] < 60) or values[0] > 300)): #GO
+                    data_to_send = [0x4]
                     received_data = transfer_spi(spi, data_to_send)
