@@ -1,6 +1,16 @@
 #include "pin_config.h"
 #include "calculations.h"
 
+//Struct to store values of duty cycle. 
+static struct duty_cycles {
+  int TL, BL; // Front and Back left
+  int TR, BR; // Front and Back right
+}duty_cycles;
+
+
+static const uint8_t motors_pins[4] = {PWM_TL, PWM_BL, PWM_TR, PWM_BR}; 
+
+
 void setup_pwm()
 {
   pinMode(PWM_TL, OUTPUT);
@@ -8,14 +18,6 @@ void setup_pwm()
   pinMode(PWM_TR, OUTPUT);
   pinMode(PWM_BR, OUTPUT);   
 }
-
-static const uint8_t motors_pins[4] = {PWM_TL, PWM_BL, PWM_TR, PWM_BR}; 
-
-//Struct to store values of duty cycle. 
-static struct duty_cycles {
-  int TL, BL; // Front and Back left
-  int TR, BR; // Front and Back right
-}duty_cycles;
 
 //Temp Function for storing PWM
 void check_and_set_pin(unsigned int pwm_pin, unsigned int duty_cycle)
@@ -37,6 +39,7 @@ void check_and_set_pin(unsigned int pwm_pin, unsigned int duty_cycle)
   }
 }
 
+/* This method to contol PWM */
 void set_pwm_duty_cycle(unsigned int pwm_pin, unsigned int duty_cycle)
 {
   analogWrite(pwm_pin, (255 * duty_cycle) / 100); //set duty cycle to passed in value
@@ -53,7 +56,7 @@ void stop_all_motors()
 {
   for (int i = 0; i < (sizeof(motors_pins) / sizeof(motors_pins[0])); i++)
   {
-    stop_motor(i);  
+    stop_motor(motors_pins[i]);  
   }
 }
 
@@ -62,32 +65,46 @@ void drive_all_motors_init(uint8_t duty_cycle)
 {
   for (int i = 0; i < (sizeof(motors_pins) / sizeof(motors_pins[0])); i++)
   {
-    set_pwm_duty_cycle(i, duty_cycle);  
+    set_pwm_duty_cycle(motors_pins[i], duty_cycle);  
   }
+}
+
+void drive_straight(int PWM) {
+
+  control_left_motors(PWM, PWM);
+  control_right_motors(PWM, PWM);
+
+  /* Drive right side forwards*/
+  digitalWrite(DIRECTION_FR, HIGH);
+  digitalWrite(DIRECTION_BR, LOW);
+
+  /* Drive left side forwards*/
+  digitalWrite(DIRECTION_FL, HIGH);
+  digitalWrite(DIRECTION_BL, LOW);
 }
 
 void pivot_left() {
   
-  /* Drive Motor 1 backwards*/
-  digitalWrite(DIRECTION_FL, 1);
-  digitalWrite(DIRECTION_BL, 0);
+  /* Drive left side backwards*/
+  digitalWrite(DIRECTION_FL, LOW);
+  digitalWrite(DIRECTION_BL, HIGH);
   
-  /* Drive Motor 2 forwards*/
-  digitalWrite(DIRECTION_FR, 1);
-  digitalWrite(DIRECTION_BR, 0);
+  /* Drive right side forwards*/
+  digitalWrite(DIRECTION_FR, HIGH);
+  digitalWrite(DIRECTION_BR, LOW);
   
   // Stub for detecting when we have turned 90 deg
 }
 
 void pivot_right() {
   
-  /* Drive Motor 1 forwards*/
-  digitalWrite(DIRECTION_FL, 0);
-  digitalWrite(DIRECTION_BL, 1);
+  /* Drive left side forwards*/
+  digitalWrite(DIRECTION_FL, HIGH);
+  digitalWrite(DIRECTION_BL, LOW);
   
-  /* Drive Motor 2 backwards*/
-  digitalWrite(DIRECTION_FR, 0);
-  digitalWrite(DIRECTION_BR, 1);
+  /* Drive right side backwards*/
+  digitalWrite(DIRECTION_FR, LOW);
+  digitalWrite(DIRECTION_BR, HIGH);
   
   // Stub for detecting when we have turned 90 deg
 }
@@ -116,6 +133,24 @@ int turn_theta(float angle) {
   return pulses;
 }
 
+int pivot_theta(float angle) {
+
+	bool turning_right = false; 
+	
+	if(angle > 270) {
+		turning_right = true;
+		angle = 360 - angle;
+	} 
+	
+	if(turning_right) {
+		pivot_right();
+	} else {
+		pivot_left();
+	}
+	
+	return calculate_pulses_for_angle(angle);
+}
+
 void control_left_motors(float T_PWM, float B_PWM) {
   set_pwm_duty_cycle(PWM_TL, T_PWM);
   set_pwm_duty_cycle(PWM_BL, B_PWM);
@@ -124,4 +159,14 @@ void control_left_motors(float T_PWM, float B_PWM) {
 void control_right_motors(float T_PWM, float B_PWM) {
   set_pwm_duty_cycle(PWM_TR, T_PWM);
   set_pwm_duty_cycle(PWM_BR, B_PWM);
+}
+
+// Getter function for the 'state' variable
+enum states getState() {
+    return state;
+}
+
+// Setter function for the 'state' variable
+void setState(enum states newState) {
+    state = newState;
 }

@@ -1,15 +1,15 @@
 #ifndef PIN_CONFIG_H
 #define PIN_CONFIG_H
 
-void setup_pwm();
+enum states {
+	ANGLE = 1, 
+	PIVOT = 2, 
+	STRAIGHT = 3, 
+	STOPPED = 4,
+  RECEIVING = 5 // Default state
+};
 
-void set_pwm_duty_cycle(unsigned int pwm_pin, unsigned int duty_cycle);
-
-void stop_motor(unsigned int pwm_pin);
-
-void drive_all_motors_init(uint8_t duty_cycle);
-
-void stop_all_motors();
+enum states state = RECEIVING;
 
 // PWM-Drive
 // Board Left Side
@@ -38,5 +38,26 @@ void stop_all_motors();
 #define ENCODER_BR (21)
 
 #define PWM_FREQ 50
+
+
+void setup_pwm();
+
+void set_pwm_duty_cycle(unsigned int pwm_pin, unsigned int duty_cycle);
+
+void stop_motor(unsigned int pwm_pin);
+
+void drive_all_motors_init(uint8_t duty_cycle);
+
+void stop_all_motors();
+
+void drive_straight(int PWM);
+
+int turn_theta(float angle);
+
+int pivot_theta(float angle);
+
+void setState(enum states newState);
+
+states getState();
 
 #endif
