@@ -6,7 +6,7 @@ void setup_pwm()
   pinMode(PWM_TL, OUTPUT);
   pinMode(PWM_BL, OUTPUT);
   pinMode(PWM_TR, OUTPUT);
-  pinMode(PWM_BR, OUTPUT);   
+  pinMode(PWM_BR, OUTPUT);
 }
 
 static const uint8_t motors_pins[4] = {PWM_TL, PWM_BL, PWM_TR, PWM_BR}; 
@@ -53,7 +53,7 @@ void stop_all_motors()
 {
   for (int i = 0; i < (sizeof(motors_pins) / sizeof(motors_pins[0])); i++)
   {
-    stop_motor(i);  
+    stop_motor(motors_pins[i]);  
   }
 }
 
@@ -62,7 +62,7 @@ void drive_all_motors_init(uint8_t duty_cycle)
 {
   for (int i = 0; i < (sizeof(motors_pins) / sizeof(motors_pins[0])); i++)
   {
-    set_pwm_duty_cycle(i, duty_cycle);  
+    set_pwm_duty_cycle(motors_pins[i], duty_cycle);  
   }
 }
 
@@ -82,15 +82,13 @@ void pivot_left() {
 void pivot_right() {
   
   /* Drive Motor 1 forwards*/
-  digitalWrite(DIRECTION_FL, 0);
-  digitalWrite(DIRECTION_BL, 1);
+  digitalWrite(DIRECTION_FL, 1);
+  digitalWrite(DIRECTION_BL, 0);
+
   
-  /* Drive Motor 2 backwards*/
   digitalWrite(DIRECTION_FR, 0);
   digitalWrite(DIRECTION_BR, 1);
-  
-  // Stub for detecting when we have turned 90 deg
-}
+  }
 
 // Calculations for two wheels (prototype)
 int turn_theta(float angle) {
@@ -114,6 +112,14 @@ int turn_theta(float angle) {
   }
   
   return pulses;
+}
+
+void drive_motors_straight()
+{
+  digitalWrite(DIRECTION_FL, HIGH);
+  digitalWrite(DIRECTION_FR, HIGH);
+  digitalWrite(DIRECTION_BL, LOW);
+  digitalWrite(DIRECTION_BR, LOW);
 }
 
 void control_left_motors(float T_PWM, float B_PWM) {

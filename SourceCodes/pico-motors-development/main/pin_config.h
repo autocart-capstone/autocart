@@ -7,9 +7,13 @@ void set_pwm_duty_cycle(unsigned int pwm_pin, unsigned int duty_cycle);
 
 void stop_motor(unsigned int pwm_pin);
 
+void drive_motors_straight();
+
 void drive_all_motors_init(uint8_t duty_cycle);
 
 void stop_all_motors();
+
+void pivot_right();
 
 // PWM-Drive
 // Board Left Side
