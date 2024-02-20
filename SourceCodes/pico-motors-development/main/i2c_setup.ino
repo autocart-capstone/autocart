@@ -55,6 +55,4 @@ void processMessage(int* data) {
   {
     //Set the state to turning here.
   }
-
-  //Set the state to turning here.
 }
