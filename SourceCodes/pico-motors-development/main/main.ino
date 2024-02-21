@@ -6,14 +6,15 @@ void setup() {
   Serial.begin(115200);
   // Setup SPI inteFRace
   setup_pwm(); 
+  init_i2c();
   setState(STOPPED);
+  drive_all_motors_init(20);
 }
 
 void setup1() {
   Serial.begin(115200);
   init_encoders();
   init_RPM_timer();
-  init_i2c();
 }
 
 void loop() {
@@ -40,7 +41,7 @@ void loop() {
 
     case 2: // Pivoting
       reset_encoders();
-      pivot_pulses = pivot_theta(10) / 2;
+      pivot_pulses = pivot_theta(turning_angle) / 2;
       if (FL_turn_pulses != pivot_pulses) {
           // Continue pivoting
       } else {
@@ -96,3 +97,6 @@ void handleSerialCommand(char command) {
             break;
     }
 }
+
+void loop1()
+{}

@@ -11,7 +11,7 @@ void init_i2c();
 
 #define STOP_SIGNAL (-1)
 
-extern uint16_t turning_angle;
-extern uint16_t turning_distance;
+extern uint32_t turning_angle;
+extern int32_t turning_distance;
 
 #endif

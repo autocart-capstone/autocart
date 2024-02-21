@@ -1,8 +1,12 @@
 #include <Wire.h>
 #include "i2c_setup.h"
+#include "pin_config.h"
 
 const byte PICO_I2C_SDA = 0;
 const byte PICO_I2C_SCL = 1;
+
+uint32_t turning_angle;
+int32_t turning_distance;
 
 //Define
 arduino::MbedI2C mywire(PICO_I2C_SDA, PICO_I2C_SCL);
@@ -23,19 +27,14 @@ void receiveEvent(int bytes) {
     int c = mywire.read();
     // Store received byte in array
     received_data[index++] = c;
-    Serial.println(received_data[index]);
   }
 
-  Serial.println("------------------------------------------------------------------------");
   // Process received data
   processMessage(received_data); // Assuming 3 elements in tuple
 }
 
 void processMessage(int* data) {
   // Print received tuple elements
-
-  uint32_t turning_angle;
-  uint32_t turning_distance;
 
   turning_angle = (data[MSB_ANGLE_INDEX] << 8) | (data[LSB_ANGLE_INDEX]);
   Serial.print("Angle: ");
@@ -49,10 +48,10 @@ void processMessage(int* data) {
 
   if (turning_distance == STOP_SIGNAL)
   {
-    //Set the state to stopped since the person is too far from the cart.  
+    setState(STOPPED);
   }
   else
   {
-    //Set the state to turning here.
+    setState(PIVOT);
   }
 }
