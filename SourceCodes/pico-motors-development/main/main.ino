@@ -4,10 +4,12 @@
 
 static int turn_pulses = 0;
 static int pivot_pulses = 0; 
+
+
 static long prevT = 0;
+static int vt = 0; // target velocity 
 static float velFilt[4] = {0, 0, 0, 0};
 static float velPrev[4] = {0, 0, 0, 0}; 
-
 static float eintegral[4] = {0, 0, 0, 0}; 
 
 /* Method needs to be tested to ensure that we can hit 0 RPM and target RPM on each motor */
@@ -18,9 +20,6 @@ void PID_controller() {
 
   //  Apply controller to each motor
   for (int i = 0; i < NUM_MOTORS; i++) {
-
-    // Target velocity (RPM)
-    float vt = 230;
 
     // Get current velocity in RPM (udpates every second on RPM calc interrupt)
     float vel = FL_mtr_RPM; 
@@ -47,12 +46,14 @@ void PID_controller() {
       adjusted_PWM = 255;
     }
 
-    set_pwm_duty_cycle(DIRECTION_FL, adjusted_PWM);
+    // Set the PWM, and update struct
+    set_pwm_duty_cycle(PWM[i], adjusted_PWM);
     
     Serial.print(vt);
     Serial.print(" ");
-    delay(1);
+    
   }
+  delay(1);
 }
 
 void setup() {
@@ -78,6 +79,13 @@ void loop() {
       handleSerialCommand(command);
   }
 
+  /*  only straight and stopped states use PID controller, as the controller ensures that all the wheels operate 
+      at a given target RPM. turning requires one side to slow dowm, and as such would need different target for 
+      each side, which is extra. 
+
+      currently, the PID controller will set PWM in the struct, so it will be used in turning, and can be reverted
+      to after turning is finsihed 
+  */
   switch(getState()) {
     case 1: // Turning
       reset_encoders();
@@ -102,11 +110,13 @@ void loop() {
       break;
 
     case 3: // Striaght 
-      drive_straight(60);
+      setTarget(230); // arg is RPM
+      drive_straight();
       break;
 
     case 4: // Stopped
-      stop_all_motors();
+      setTarget(0);
+      stop_motors();
       break;
 
     case 5: // Recieving
@@ -117,6 +127,10 @@ void loop() {
       // Todo
       break;
   }
+}
+
+void setTarget(int target) {
+  vt = target;
 }
 
 void handleSerialCommand(char command) {
@@ -140,8 +154,6 @@ void handleSerialCommand(char command) {
             setState(STOPPED);
             Serial.println("Set state to STOPPED");
             break;
-
-        // Add more cases for additional commands if needed
 
         default:
             Serial.println("Invalid command. Available commands: 1, 2, 3, 4");

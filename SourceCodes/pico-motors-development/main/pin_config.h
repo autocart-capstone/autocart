@@ -46,19 +46,21 @@ const int directions[4] = {DIRECTION_FL, DIRECTION_BL, DIRECTION_FR, DIRECTION_B
 
 void setup_pwm();
 
-void set_pwm_duty_cycle(unsigned int pwm_pin, unsigned int duty_cycle);
-
-void stop_motor(unsigned int pwm_pin);
-
 void drive_all_motors_init(uint8_t duty_cycle);
 
-void stop_all_motors();
+void set_pwm_duty_cycle(unsigned int pwm_pin, unsigned int duty_cycle);
 
 void drive_straight(int PWM);
 
-int turn_theta(float angle);
+void stop_motors();
+
+void pivot_left();
+
+void pivot_right();
 
 int pivot_theta(float angle);
+
+int turn_theta(float angle);
 
 void setState(enum states newState);
 

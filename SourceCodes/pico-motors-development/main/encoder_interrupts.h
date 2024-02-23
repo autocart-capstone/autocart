@@ -4,15 +4,15 @@
 //Encoder, not 100% accurate, needs more testing 
 #define PULSES_PER_REV 90
 
-extern int FL_turn_pulses;
-extern int BL_turn_pulses;
-extern int FR_turn_pulses;
-extern int BR_turn_pulses;
+extern volatile int FL_turn_pulses;
+extern volatile int BL_turn_pulses;
+extern volatile int FR_turn_pulses;
+extern volatile int BR_turn_pulses;
 
-extern int FL_speed_pulses;
-extern int BL_speed_pulses;
-extern int FR_speed_pulses;
-extern int BR_speed_pulses;
+extern volatile int FL_speed_pulses;
+extern volatile int BL_speed_pulses;
+extern volatile int FR_speed_pulses;
+extern volatile int BR_speed_pulses;
 
 extern float FL_mtr_RPM;
 extern float BL_mtr_RPM;

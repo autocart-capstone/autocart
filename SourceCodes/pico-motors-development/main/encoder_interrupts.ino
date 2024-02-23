@@ -10,16 +10,16 @@
 #define TIMER_PERIOD 1000000L
 
 /* variables to track encoder pulses elapsed for turning */
-int FL_turn_pulses = 0;
-int BL_turn_pulses = 0;
-int FR_turn_pulses = 0;
-int BR_turn_pulses = 0;
+volatile int FL_turn_pulses = 0;
+volatile int BL_turn_pulses = 0;
+volatile int FR_turn_pulses = 0;
+volatile int BR_turn_pulses = 0;
 
 /* variables to track pulses over a period to track RPM */
-int FL_speed_pulses = 0;
-int BL_speed_pulses = 0;
-int FR_speed_pulses = 0;
-int BR_speed_pulses = 0;
+volatile int FL_speed_pulses = 0;
+volatile int BL_speed_pulses = 0;
+volatile int FR_speed_pulses = 0;
+volatile int BR_speed_pulses = 0;
 
 float FL_mtr_RPM = 0;
 float BL_mtr_RPM = 0;
@@ -33,6 +33,11 @@ void init_encoders() {
   pinMode(ENCODER_BL, INPUT);
   pinMode(ENCODER_FR, INPUT);
   pinMode(ENCODER_BR, INPUT);
+
+  digitalWrite(ENCODER_FL, INPUT_PULLDOWN);
+  digitalWrite(ENCODER_BL, INPUT_PULLDOWN);
+  digitalWrite(ENCODER_FR, INPUT_PULLDOWN);
+  digitalWrite(ENCODER_BR, INPUT_PULLDOWN);
 
   /* Attach interrutps to encoder input pins */
   attachInterrupt(digitalPinToInterrupt(ENCODER_FL), encoder_IRQHandler, RISING);

@@ -7,10 +7,6 @@ static struct duty_cycles {
   int TR, BR; // Front and Back right
 }duty_cycles;
 
-
-static const uint8_t motors_pins[4] = {PWM_TL, PWM_BL, PWM_TR, PWM_BR}; 
-
-
 void setup_pwm()
 {
   pinMode(PWM_TL, OUTPUT);
@@ -39,6 +35,16 @@ void check_and_set_pin(unsigned int pwm_pin, unsigned int duty_cycle)
   }
 }
 
+/* The initial PWM we want to start the motors at */
+void drive_all_motors_init(uint8_t duty_cycle)
+{
+  for (int i = 0; i < NUM_MOTORS; i++)
+  {
+    set_pwm_duty_cycle(PWM[i], duty_cycle);  
+  }
+}
+
+
 /* This method to contol PWM */
 void set_pwm_duty_cycle(unsigned int pwm_pin, unsigned int duty_cycle)
 {
@@ -46,33 +52,8 @@ void set_pwm_duty_cycle(unsigned int pwm_pin, unsigned int duty_cycle)
   check_and_set_pin(pwm_pin, duty_cycle);
 }
 
-void stop_motor(unsigned int pwm_pin)
-{
-  analogWrite(pwm_pin, 0); //Set duty cycle to 0 to stop specified motor.
-  check_and_set_pin(pwm_pin, 0);
-}
 
-void stop_all_motors()
-{
-  for (int i = 0; i < (sizeof(motors_pins) / sizeof(motors_pins[0])); i++)
-  {
-    stop_motor(motors_pins[i]);  
-  }
-}
-
-/* The initial PWM we want to start the motors at */
-void drive_all_motors_init(uint8_t duty_cycle)
-{
-  for (int i = 0; i < (sizeof(motors_pins) / sizeof(motors_pins[0])); i++)
-  {
-    set_pwm_duty_cycle(motors_pins[i], duty_cycle);  
-  }
-}
-
-void drive_straight(int PWM) {
-
-  control_left_motors(PWM, PWM);
-  control_right_motors(PWM, PWM);
+void drive_straight() {
 
   /* Drive right side forwards*/
   digitalWrite(DIRECTION_FR, HIGH);
@@ -82,6 +63,20 @@ void drive_straight(int PWM) {
   digitalWrite(DIRECTION_FL, HIGH);
   digitalWrite(DIRECTION_BL, LOW);
 }
+
+
+/* Stop Motor by setting direction pins to 0 */
+void stop_motors()
+{
+  /* Stop right side */
+  digitalWrite(DIRECTION_FR, LOW);
+  digitalWrite(DIRECTION_BR, LOW);
+
+  /* Stop left side */
+  digitalWrite(DIRECTION_FL, LOW);
+  digitalWrite(DIRECTION_BL, LOW);
+}
+
 
 void pivot_left() {
   
@@ -96,6 +91,7 @@ void pivot_left() {
   // Stub for detecting when we have turned 90 deg
 }
 
+
 void pivot_right() {
   /* Drive left side forwards*/
   digitalWrite(DIRECTION_FL, HIGH);
@@ -107,6 +103,26 @@ void pivot_right() {
   
   // Stub for detecting when we have turned 90 deg
 }
+
+
+int pivot_theta(float angle) {
+
+	bool turning_right = false; 
+	
+	if(angle > 270) {
+		turning_right = true;
+		angle = 360 - angle;
+	} 
+	
+	if(turning_right) {
+		pivot_right();
+	} else {
+		pivot_left();
+	}
+	
+	return calculate_pulses_for_angle(angle);
+}
+
 
 // Calculations for two wheels (prototype)
 int turn_theta(float angle) {
@@ -132,38 +148,24 @@ int turn_theta(float angle) {
   return pulses;
 }
 
-int pivot_theta(float angle) {
-
-	bool turning_right = false; 
-	
-	if(angle > 270) {
-		turning_right = true;
-		angle = 360 - angle;
-	} 
-	
-	if(turning_right) {
-		pivot_right();
-	} else {
-		pivot_left();
-	}
-	
-	return calculate_pulses_for_angle(angle);
-}
 
 void control_left_motors(float T_PWM, float B_PWM) {
   set_pwm_duty_cycle(PWM_TL, T_PWM);
   set_pwm_duty_cycle(PWM_BL, B_PWM);
 }
 
+
 void control_right_motors(float T_PWM, float B_PWM) {
   set_pwm_duty_cycle(PWM_TR, T_PWM);
   set_pwm_duty_cycle(PWM_BR, B_PWM);
 }
 
+
 // Getter function for the 'state' variable
 enum states getState() {
     return state;
 }
+
 
 // Setter function for the 'state' variable
 void setState(enum states newState) {
