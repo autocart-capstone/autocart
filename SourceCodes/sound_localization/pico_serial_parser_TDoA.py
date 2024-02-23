@@ -14,46 +14,47 @@ assert A[0] == 0 and A[1] == 0
 assert B[0] > 0 and B[1] == 0
 assert C[1] > 0
 
-def correlate_and_find_delay2(rec, noise, plot):
-    #rec_padded = np.pad(rec, (len(noise), 0), 'constant', constant_values=0)
-    #print(rec)
+def correlate_and_find_delay(rec, noise):
+    # rec_padded = np.pad(rec, (len(noise), 0), 'constant', constant_values=0)
+    # print(rec)
     rec_fft = np.fft.rfft(rec)
-    diff = len(rec)-len(noise)
-    noise_padded = np.pad(noise, (0, diff), 'constant', constant_values=0)
+    diff = len(rec) - len(noise)
+    noise_padded = np.pad(noise, (0, diff), "constant", constant_values=0)
     noise_fft_conj = np.conj(np.fft.rfft(noise_padded))
-    #print(rec_fft.shape, noise_fft_conj.shape)
-    cross_corr_freq = noise_fft_conj * rec_fft 
+    # print(rec_fft.shape, noise_fft_conj.shape)
+    cross_corr_freq = noise_fft_conj * rec_fft
     cross_corr = np.abs(np.fft.irfft(cross_corr_freq))
     valid_len = diff + 1
     cross_corr = cross_corr[:valid_len]
-    #print(cross_corr)
-    if plot:
-        plt.plot(cross_corr)
-        plt.title("correlation")
+    # print(cross_corr)
+    plt.plot(cross_corr)
+    plt.title("correlation")
 
     k_max_ind = np.argmax(cross_corr)
+    k_max = cross_corr[k_max_ind]
+    avg = np.sum(cross_corr) / len(cross_corr)
 
-    return k_max_ind
+    return k_max_ind, k_max, avg
 
 
-b = B[0]  # also = np.linalg.norm(B)
-cx = C[0]
-cy = C[1]
-c = np.linalg.norm(C)
-
-def calculate_TDoA(rec):
-    Fs = 48000
-    T1 = correlate_and_find_delay2(rec, noise1, False) / Fs
-    T2 = correlate_and_find_delay2(rec, noise1, False) / Fs
-    T3 = correlate_and_find_delay2(rec, noise1, False) / Fs
-    c = 343 # m/s, speed of sound
-
+def fangs_algorithm_TDoA(ta, tb, tc):
     ## Fang's algorithm, gotten from the PDF (in the repo or at https://ieeexplore.ieee.org/document/102710)
+    c = 343  # speed of wave in medium, speed of sound=343 m/s
 
-    Rab = c*(T1 - T2)
-    Rac = c*(T1 - T3)
+    cTa = ta * c
+    cTb = tb * c
+    cTc = tc * c
+
+    b = B[0]  # also = np.linalg.norm(B)
+    cx = C[0]
+    cy = C[1]
+    c = np.linalg.norm(C)
+
+    Rab = cTa - cTb
+    Rac = cTa - cTc
 
     # variable names correspond to those in the paper
+
     g = (Rac * b / Rab - cx) / cy
     h = (c**2 - Rac**2 + Rac * Rab * (1 - (b / Rab) ** 2)) / (2 * cy)
 
@@ -69,8 +70,9 @@ def calculate_TDoA(rec):
     guess1 = np.array([x[0], y[0]])
     guess2 = np.array([x[1], y[1]])
 
-
     def err(g):
+        # calculate what sort of time deltas would be seen with this guess
+        # compare them to the original, return the MSE
         deltaA = np.linalg.norm(g - A)
         deltaB = np.linalg.norm(g - B)
         deltaC = np.linalg.norm(g - C)
@@ -78,7 +80,6 @@ def calculate_TDoA(rec):
         rac = deltaA - deltaC
         mse = ((rab - Rab) ** 2 + (rac - Rac) ** 2) / 2
         return mse
-
 
     best_guess = min([guess1, guess2], key=err)
     return best_guess
@@ -100,15 +101,27 @@ while True:
         import sounddevice as sd
         sd.play(samples, 48000, blocking=False)
     else:
-        pos = calculate_TDoA(samples)
         plt.ion()
         plt.figure(1)
-        plt.clf()
-        plt.scatter(
-            [A[0], B[0], C[0]], [A[1], B[1], C[1]], label="base stations", marker="D"
-        )
-        plt.scatter(pos[0], pos[1], label="position guess")
-        plt.legend()
+        ax1 = plt.subplot(231)
+        found_delay1, max1, avg1 = correlate_and_find_delay(samples, noise1, "A")
+        plt.subplot(232, sharey=ax1)
+        found_delay2, max2, avg2 = correlate_and_find_delay(samples, noise2, "B")
+        plt.tick_params('y', labelleft=False)
+        plt.subplot(233, sharey=ax1)
+        found_delay3, max3, avg3 = correlate_and_find_delay(samples, noise3, "C")
+        plt.tick_params('y', labelleft=False)
+
+        ta = found_delay1 / 48000
+        tb = found_delay2 / 48000
+        tc = found_delay3 / 48000
+
+        guessed_position = fangs_algorithm_TDoA(ta, tb, tc)
+        plt.subplot(212)
+        plt.scatter([A[0], B[0], C[0]], [A[1], B[1], C[1]], label="base stations", marker="o")
+        plt.scatter(guessed_position[0], guessed_position[1], label="position guess")
+        plt.gca().set_aspect("equal")
+        plt.legend(loc="center left", bbox_to_anchor=(1.0, 0.5))
         plt.show()
         plt.pause(0.01)
 
