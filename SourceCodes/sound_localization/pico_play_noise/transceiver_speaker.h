@@ -11,8 +11,9 @@
 #define CS_PIN        17    // in PICO
 #define INTRPT_PIN    2     // in PICO
 
-void setup_rfm69();
+void setupRfm69();
 void sendPing();
 void receivePing();
-
+void waitForTimeSync();
+void waitForStartSignal();
 #endif
