@@ -38,6 +38,11 @@ enum states state = RECEIVING;
 #define ENCODER_BR (21)
 
 #define PWM_FREQ 50
+#define NUM_MOTORS 4 
+
+const int encoders[4] = {ENCODER_FL, ENCODER_BL, ENCODER_FR, ENCODER_BR};
+const int PWM[4] = {PWM_TL, PWM_BL, PWM_BR, PWM_TR};
+const int directions[4] = {DIRECTION_FL, DIRECTION_BL, DIRECTION_FR, DIRECTION_BR};
 
 void setup_pwm();
 
