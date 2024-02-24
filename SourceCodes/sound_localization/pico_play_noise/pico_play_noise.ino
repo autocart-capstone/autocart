@@ -13,10 +13,7 @@ void setup() {
   setup_i2s_sound_out();
   waitForTimeSync();
   waitForStartSignal();
+  start_transmitting_sound(); // This will play the sound in a loop
 }
 
-void loop() {
-  // For testing, sound is emitted every 1s.
-  start_transmitting_sound();
-  delay(1000);
-}
+void loop() {}

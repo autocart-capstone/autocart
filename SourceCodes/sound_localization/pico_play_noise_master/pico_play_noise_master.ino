@@ -15,10 +15,8 @@ void setup() {
   Serial.println("Setting up time sync..");
   doTimeSync();
   waitForStartSignal(); 
+  // This will play the sound in a loop
+  start_transmitting_sound();
 }
 
-void loop() {
-  // For testing, sound is emitted every 1s.
-  start_transmitting_sound();
-  delay(1000);
-}
+void loop() {}

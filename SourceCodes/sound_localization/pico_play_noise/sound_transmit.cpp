@@ -1,6 +1,7 @@
 #include "sound_transmit.h"
 #include <I2S.h>
-#include "src/sound_samples/sound_samples1.h"
+#include "src/sound_samples/sound_samplesB.h"
+//#include "src/sound_samples/sound_samplesC.h"
 
 I2S i2s_out(OUTPUT);
 const int sampleRate = 48000;
@@ -36,6 +37,7 @@ void onTransmit()
     if (sound_out_ind < SOUND_SAMPLES_LEN && samples_to_skip == 0)
     {
       sound_out_ind += 1;
+      sound_out_ind %= SOUND_SAMPLES_LEN; // Repeat sound when done
     }
     else if (samples_to_skip > 0)
     {
@@ -78,7 +80,7 @@ void start_transmitting_sound()
   //Serial.printf("delaying by %i samples\n", samples_to_skip);
 }
 
-bool is_done_transmitting_sound()
+/* bool is_done_transmitting_sound()
 {
   return sound_out_ind >= SOUND_SAMPLES_LEN;
-}
+} */
