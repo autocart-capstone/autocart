@@ -45,8 +45,8 @@ def fangs_algorithm_TDoA(ta, tb, tc):
     # The correlation wraps around, this can cause issues when 1 val is close to index 0, and the other close to Nw
     # assume the tdoa is always less than Nw/2, if not then substract 1 val Nw, this should bring substraction back in the range
     # substracting the largest value by Nw makes it negative
-    tab = min([ta-tb, ta-tb-Nw, ta-tb+Nw], key=lambda x: abs(x))
-    tac = min([ta-tc, ta-tc-Nw, ta-tc+Nw], key=lambda x: abs(x))
+    #tab = min([ta-tb, ta-tb-Nw, ta-tb+Nw], key=lambda x: abs(x))
+    #tac = min([ta-tc, ta-tc-Nw, ta-tc+Nw], key=lambda x: abs(x))
 
     ## Fang's algorithm, gotten from the PDF (in the repo or at https://ieeexplore.ieee.org/document/102710)
     c = 343  # speed of wave in medium, speed of sound=343 m/s
@@ -60,10 +60,10 @@ def fangs_algorithm_TDoA(ta, tb, tc):
     cy = C[1]
     c = np.linalg.norm(C)
 
-    #Rab = cTa - cTb
-    #Rac = cTa - cTc
-    Rab = c*tab
-    Rac = c*tac
+    Rab = cTa - cTb
+    Rac = cTa - cTc
+    #Rab = c*tab
+    #Rac = c*tac
 
     #avoid division by zero, just make em real small
     if Rab == 0.0:
