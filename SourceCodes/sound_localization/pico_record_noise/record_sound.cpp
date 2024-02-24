@@ -6,8 +6,7 @@ I2S i2s_in(INPUT);
 
 const int sampleRate = 48000;
 
-#define NUMBER_OF_SAMPLES_TO_RECORD 12800
-#define NOISE_ACTUAL_LENGTH 10000
+#define NUMBER_OF_SAMPLES_TO_RECORD 16384
 
 uint16_t recorded_sound[NUMBER_OF_SAMPLES_TO_RECORD] = {0};
 
@@ -82,7 +81,7 @@ bool is_done_recording_sound()
 void print_recorded_sound_to_serial()
 {
   Serial.printf("bytes\n");
-  int num_bytes = NUMBER_OF_SAMPLES_TO_RECORD*2;// 16-bit per in, 2 bytes
+  int num_bytes = NUMBER_OF_SAMPLES_TO_RECORD*2;// 16 bits/sample, 2 bytes/sample
   Serial.printf("%i\n", num_bytes);
   Serial.write((byte *)recorded_sound, num_bytes); 
   Serial.flush();
