@@ -1,6 +1,6 @@
 #include <RFM69.h>
 #include <SPI.h>
-#include "transceiver_speaker.h"
+#include "transceiver_speaker_master.h"
 
 RFM69 radio = RFM69(CS_PIN, INTRPT_PIN);
 String receivedData = "";

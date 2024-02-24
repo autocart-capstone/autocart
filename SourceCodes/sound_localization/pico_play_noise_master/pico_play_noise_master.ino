@@ -1,4 +1,4 @@
-#include "transceiver_speaker.h"
+#include "transceiver_speaker_master.h"
 #include "sound_transmit.h"
 
 void setup() {
