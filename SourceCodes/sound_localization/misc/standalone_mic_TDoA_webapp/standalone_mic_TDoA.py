@@ -114,6 +114,9 @@ def fangs_algorithm_TDoA(ta, tb, tc):
     best_guess = min([guess1, guess2], key=err)
     return best_guess
 
+update_plot_done = asyncio.Event()
+update_plot_done.set()
+
 async def update_plot(audio_buffer):
     fig = plt.figure(1)
     plt.clf()
@@ -143,7 +146,7 @@ async def update_plot(audio_buffer):
     
     display(fig, append=False, target='matplot')
 
-    await asyncio.sleep(0.1)
+    update_plot_done.set()
 
 
 from pyodide.ffi import to_js
@@ -174,9 +177,10 @@ context = window.AudioContext.new(options)
 
 record_time = Nw * Ts
 
-data_parsed = asyncio.Event()
-
 async def onDataAvail(event):
+    if not update_plot_done.is_set():
+        return
+    update_plot_done.clear()
     print("onDataAvail callback")
     blob = event.data
     print(blob.type)
@@ -189,15 +193,11 @@ async def onDataAvail(event):
     out = np.zeros(Nw)
     out[:min(len(s), Nw)] += s[:Nw]
     await update_plot(out)
-    data_parsed.set()
+    
 
 pyodide.ffi.wrappers.add_event_listener(recorder, 'dataavailable', onDataAvail)
 
 while True:
     recorder.start()
-    print("recording started!")
     await asyncio.sleep(record_time)
-    print("recording stopped!")
     recorder.stop()
-    await data_parsed.wait()
-    data_parsed.clear()
