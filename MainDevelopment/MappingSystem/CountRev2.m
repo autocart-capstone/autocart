@@ -1,15 +1,44 @@
-filename = "new.txt";
+filename = "19thjan";
+new_filename = strcat(filename, "_filtered.txt")
+filename = strcat(filename, ".txt")
 
 % Read data file, and skip header and blank line at end
 loadedData = readlines(filename);
 loadedData = loadedData(7:end-1);
 
 % Extract angle and distance
-data = cellfun(@(S) sscanf(S, "%*[^:]: %g %*[^:]: %g%*[^\n]"), ...
-                    loadedData, UniformOutput=false);
-data = reshape(cell2mat(data), 2, []);
+data = cellfun(@(S) sscanf(S, "%*[^:]: %g %*[^:]: %g %*[^:]: %g"), ...
+                loadedData, 'UniformOutput', false);
+data = reshape(cell2mat(data), 3, []);
 theta = data(1,:);
 distance = data(2,:);
+quality = data(3,:);
+
+% Filter out invalid data
+validIndices = quality ~= 0;
+theta = theta(validIndices);
+distance = distance(validIndices);
+
+% Reconstruct lines with filtered data
+filteredLines = arrayfun(@(t, d) sprintf("theta: %g distance: %g", t, d), theta, distance, 'UniformOutput', false);
+
+% Open a new file for writing
+fid = fopen(new_filename, 'w'); 
+
+% Check if file is opened successfully
+if fid == -1
+    error('Failed to open file %s for writing.', new_filename);
+end
+
+% Write each line to the new file
+for i = 1:length(filteredLines)
+    fprintf(fid, "%s\n", filteredLines{i});
+end
+
+% Close the file
+fclose(fid);
+
+fprintf('Filtered data saved to %s\n', new_filename);
 
 % Convert to Cartesian coordinates
 x = distance .* cos(theta*pi/180);
