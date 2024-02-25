@@ -1,0 +1,2 @@
+name = "Mic TDoA"
+packages = ["numpy", "matplotlib", "soundfile"]

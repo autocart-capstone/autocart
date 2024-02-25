@@ -2,8 +2,8 @@ import serial
 import numpy as np
 import matplotlib.pyplot as plt
 
-noise1 = np.load("misc/filtered_noise1.npy") 
-noise2 = np.load("misc/filtered_noise2.npy") 
+noiseA = np.load("misc/filtered_noiseA.npy") 
+noiseB = np.load("misc/filtered_noiseB.npy") 
 
 def correlate_and_find_delay2(rec, noise, plot):
     #rec_padded = np.pad(rec, (len(noise), 0), 'constant', constant_values=0)
@@ -36,10 +36,10 @@ while True:
     noise_to_use = None
     if line == b'node1':
         node = 1
-        noise_to_use = noise2
+        noise_to_use = noiseB
     elif line == b'node2':
         node = 2
-        noise_to_use = noise2
+        noise_to_use = noiseB
     else:
         if len(line) < 100:
             #print(line)

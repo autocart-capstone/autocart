@@ -3,9 +3,9 @@ import matplotlib.pyplot as plt
 import sounddevice as sd
 import threading
 
-noise1 = np.load("misc/filtered_noise1.npy") 
-noise2 = np.load("misc/filtered_noise2.npy") 
-noise3 = np.load("misc/filtered_noise3.npy")
+noiseA = np.load("misc/filtered_noiseA.npy") 
+noiseB = np.load("misc/filtered_noiseB.npy") 
+noiseC = np.load("misc/filtered_noiseC.npy")
 
 A = np.array([0, 0])
 B = np.array([10, 0])
@@ -42,7 +42,7 @@ def correlate_and_find_delay(rec, noise, name):
 
 def fangs_algorithm_TDoA(ta, tb, tc):
 
-    Nw = len(noise1)
+    Nw = len(noiseA)
     # The correlation wraps around, this can cause issues when 1 val is close to index 0, and the other close to Nw
     # assume the tdoa is always less than Nw/2, if not then substract 1 val Nw, this should bring substraction back in the range
     # substracting the largest value by Nw makes it negative
@@ -103,7 +103,7 @@ def fangs_algorithm_TDoA(ta, tb, tc):
     best_guess = min([guess1, guess2], key=err)
     return best_guess
 
-Nw = len(noise1)
+Nw = len(noiseA)
 audio_buffer = np.zeros(Nw)
 audio_buffer_record_index = 0
 
@@ -136,12 +136,12 @@ with stream:
         plt.figure(1)
         plt.clf()
         ax1 = plt.subplot(231)
-        found_delay1, max1, avg1 = correlate_and_find_delay(audio_buffer, noise1, "A")
+        found_delay1, max1, avg1 = correlate_and_find_delay(audio_buffer, noiseA, "A")
         plt.subplot(232, sharey=ax1)
-        found_delay2, max2, avg2 = correlate_and_find_delay(audio_buffer, noise2, "B")
+        found_delay2, max2, avg2 = correlate_and_find_delay(audio_buffer, noiseB, "B")
         plt.tick_params('y', labelleft=False)
         plt.subplot(233, sharey=ax1)
-        found_delay3, max3, avg3 = correlate_and_find_delay(audio_buffer, noise3, "C")
+        found_delay3, max3, avg3 = correlate_and_find_delay(audio_buffer, noiseC, "C")
         plt.tick_params('y', labelleft=False)
 
         ta = found_delay1 / 48000
