@@ -4,7 +4,7 @@
 #include <RFM69.h>
 
 #define BROADCAST     true  
-#define NUM_PICO      2       // Change if necessary
+#define NUM_PICO      3       // Change if necessary
 
 #define NETWORKID     0   // Must be the same for all nodes (0 to 255)
 #define MYNODEID      100   // My node ID (0 to 255)
