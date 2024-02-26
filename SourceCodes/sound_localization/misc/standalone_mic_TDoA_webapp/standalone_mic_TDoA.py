@@ -4,7 +4,8 @@ import threading
 import asyncio
 from pyodide.http import pyfetch
 import io
-from pyscript import display
+from pyscript import display, document
+from pyweb import pydom
 
 noiseA = await pyfetch("assets/filtered_noiseA.npy")
 noiseB = await pyfetch("assets/filtered_noiseB.npy")
@@ -18,13 +19,29 @@ noiseA = np.load(io.BytesIO(noiseA))
 noiseB = np.load(io.BytesIO(noiseB))
 noiseC = np.load(io.BytesIO(noiseC))
 
-A = np.array([0, 0])
-B = np.array([10, 0])
-C = np.array([5, 10])
+posA = np.array([0, 0], dtype=float)
+posB = np.array([10, 0], dtype=float)
+posC = np.array([5, 10], dtype=float)
 
-assert A[0] == 0 and A[1] == 0
-assert B[0] > 0 and B[1] == 0
-assert C[1] > 0
+def updatePositionsFromDom():
+    v = pydom["#PosBx"][0].value
+    if v != '':
+        posB[0] = float(v)
+
+    v = pydom["#PosCx"][0].value
+    if v != '':
+        posC[0] = float(v)
+
+    v = pydom["#PosCy"][0].value
+    if v != '':
+        posC[1] = float(v)
+
+    print(f"positions updated, B: {posB}, C: {posC}")
+    #assert posA[0] == 0 and posA[1] == 0
+    #assert posB[0] > 0 and posB[1] == 0
+    #assert posC[1] > 0
+
+updatePositionsFromDom()
 
 def correlate_and_find_delay(rec, noise, name):
     # rec_padded = np.pad(rec, (len(noise), 0), 'constant', constant_values=0)
@@ -67,10 +84,10 @@ def fangs_algorithm_TDoA(ta, tb, tc):
     cTb = tb * c
     cTc = tc * c
 
-    b = B[0]  # also = np.linalg.norm(B)
-    cx = C[0]
-    cy = C[1]
-    c = np.linalg.norm(C)
+    b = posB[0]  # also = np.linalg.norm(B)
+    cx = posC[0]
+    cy = posC[1]
+    c = np.linalg.norm(posC)
 
     Rab = cTa - cTb
     Rac = cTa - cTc
@@ -94,24 +111,28 @@ def fangs_algorithm_TDoA(ta, tb, tc):
 
     z = 0
     x = np.roots([d, e, f - z**2])  # eq 9a
+    x = x[abs(x.imag) < 1e-5] #ignore imaginary roots
     y = g * x + h  # eq 13
     #print(x, y)
 
-    guess1 = np.array([x[0], y[0]])
-    guess2 = np.array([x[1], y[1]])
+    guesses = np.transpose([x, y])
+    print(guesses)
 
     def err(g):
         # calculate what sort of time deltas would be seen with this guess
         # compare them to the original, return the MSE
-        deltaA = np.linalg.norm(g - A)
-        deltaB = np.linalg.norm(g - B)
-        deltaC = np.linalg.norm(g - C)
+        deltaA = np.linalg.norm(g - posA)
+        deltaB = np.linalg.norm(g - posB)
+        deltaC = np.linalg.norm(g - posC)
         rab = deltaA - deltaB
         rac = deltaA - deltaC
         mse = ((rab - Rab) ** 2 + (rac - Rac) ** 2) / 2
         return mse
-
-    best_guess = min([guess1, guess2], key=err)
+    
+    if len(guesses) == 0:
+        return None
+    
+    best_guess = min(guesses, key=err)
     return best_guess
 
 update_plot_done = asyncio.Event()
@@ -134,10 +155,10 @@ async def update_plot(audio_buffer):
     tc = found_delay3 / 48000
 
     guessed_position = fangs_algorithm_TDoA(ta, tb, tc)
-    print(f"pos: {guessed_position}")
+    
     plt.subplot(212)
-    plt.scatter([A[0], B[0], C[0]], [A[1], B[1], C[1]], label="base stations", marker="o")
-    if guessed_position[0] > -1.0 and guessed_position[0] < 11.0 and guessed_position[1] > -1.0 and guessed_position[1] < 11.0:
+    plt.scatter([posA[0], posB[0], posC[0]], [posA[1], posB[1], posC[1]], label="base stations", marker="o")
+    if guessed_position is not None and guessed_position[0] > -1.0 and guessed_position[0] < posB[0] + 1 and guessed_position[1] > -1.0 and guessed_position[1] < posC[1] + 1.0:
         plt.scatter(guessed_position[0], guessed_position[1], label="position guess")
     else :
         plt.text(0.5, 0.5, "guessed position not within bounds", color="red", ha="center", va="center", transform=plt.gca().transAxes)
@@ -145,6 +166,9 @@ async def update_plot(audio_buffer):
     plt.legend(loc="center left", bbox_to_anchor=(1.0, 0.5))
     
     display(fig, append=False, target='matplot')
+    #div = document.getElementById("matplot")
+    #if len(div.children) > 1:
+    #    div.removeChild(div.firstElementChild)
 
     update_plot_done.set()
 
@@ -198,6 +222,7 @@ async def onDataAvail(event):
 pyodide.ffi.wrappers.add_event_listener(recorder, 'dataavailable', onDataAvail)
 
 while True:
+    updatePositionsFromDom()
     recorder.start()
     await asyncio.sleep(record_time)
     recorder.stop()

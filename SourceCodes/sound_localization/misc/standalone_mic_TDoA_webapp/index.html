@@ -37,9 +37,12 @@
         
 
         <section class="pyscript">
-            <div id="mpl"></div>
             <script type="py" src="./standalone_mic_TDoA.py" config="./pyscript.toml" target="matplot" async></script>
         </section>
+        <h3>Positions in meters</h3>
+        <p>Pos A: (0,0)</p>
+        <p>Pos B: (<input type="number" name="PosBx" id="PosBx", value=10>, 0)</p>
+        <p>Pos C: (<input type="number" name="PosCx" id="PosCx", value=5>, <input type="number" name="PosCy" id="PosCy", value=10>)</p>
 
         <div id="matplot"></div>
 
