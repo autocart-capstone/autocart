@@ -22,6 +22,7 @@ noiseC = np.load(io.BytesIO(noiseC))
 posA = np.array([0, 0], dtype=float)
 posB = np.array([10, 0], dtype=float)
 posC = np.array([5, 10], dtype=float)
+z_of_receiver = 0
 
 def updatePositionsFromDom():
     v = pydom["#PosBx"][0].value
@@ -36,7 +37,11 @@ def updatePositionsFromDom():
     if v != '':
         posC[1] = float(v)
 
-    print(f"positions updated, B: {posB}, C: {posC}")
+    v = pydom["#ZofReceiver"][0].value
+    if v != '':
+        z_of_receiver = float(v)
+
+    #print(f"positions updated, B: {posB}, C: {posC}")
     #assert posA[0] == 0 and posA[1] == 0
     #assert posB[0] > 0 and posB[1] == 0
     #assert posC[1] > 0
@@ -109,7 +114,7 @@ def fangs_algorithm_TDoA(ta, tb, tc):
     e = b * (1 - (b / Rab) ** 2) - 2 * g * h
     f = (Rab**2 / 4) * (1 - (b / Rab) ** 2) ** 2 - h**2
 
-    z = 0
+    z = z_of_receiver
     x = np.roots([d, e, f - z**2])  # eq 9a
     x = x[abs(x.imag) < 1e-5] #ignore imaginary roots
     y = g * x + h  # eq 13
