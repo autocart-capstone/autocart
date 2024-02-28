@@ -3,9 +3,11 @@ import matplotlib.pyplot as plt
 import threading
 import asyncio
 from pyodide.http import pyfetch
+import pyodide
 import io
-from pyscript import display, document
+from pyscript import display, document, window
 from pyweb import pydom
+
 
 noiseA = await pyfetch("assets/filtered_noiseA.npy")
 noiseB = await pyfetch("assets/filtered_noiseB.npy")
@@ -23,8 +25,12 @@ posA = np.array([0, 0], dtype=float)
 posB = np.array([10, 0], dtype=float)
 posC = np.array([5, 10], dtype=float)
 z_of_receiver = 0
+recipient_addr = ""
+recipient_websocket = None
 
 def updatePositionsFromDom():
+    global z_of_receiver, recipient_websocket, recipient_addr
+
     v = pydom["#PosBx"][0].value
     if v != '':
         posB[0] = float(v)
@@ -40,6 +46,15 @@ def updatePositionsFromDom():
     v = pydom["#ZofReceiver"][0].value
     if v != '':
         z_of_receiver = float(v)
+
+    v = pydom["#AddrRecipient"][0].value
+    if recipient_addr != v:
+        recipient_addr = v
+        try:
+            recipient_websocket = window.WebSocket.new(recipient_addr)
+        except BaseException as e:
+            print(e)
+            recipient_websocket = None
 
     #print(f"positions updated, B: {posB}, C: {posC}")
     #assert posA[0] == 0 and posA[1] == 0
@@ -160,7 +175,12 @@ async def update_plot(audio_buffer):
     tc = found_delay3 / 48000
 
     guessed_position = fangs_algorithm_TDoA(ta, tb, tc)
-    
+    if guessed_position is not None and recipient_websocket is not None and recipient_websocket.readyState == 1:
+        b = guessed_position.tobytes()
+        buf = window.ArrayBuffer.new(len(b))
+        buf.assign(b)
+        recipient_websocket.send(buf)
+
     plt.subplot(212)
     plt.scatter([posA[0], posB[0], posC[0]], [posA[1], posB[1], posC[1]], label="base stations", marker="o")
     if guessed_position is not None and guessed_position[0] > -1.0 and guessed_position[0] < posB[0] + 1 and guessed_position[1] > -1.0 and guessed_position[1] < posC[1] + 1.0:
@@ -176,11 +196,6 @@ async def update_plot(audio_buffer):
     #    div.removeChild(div.firstElementChild)
 
     update_plot_done.set()
-
-
-from pyodide.ffi import to_js
-import pyodide
-from pyscript import window
 
 options = window.Object.new()
 options.audio = True

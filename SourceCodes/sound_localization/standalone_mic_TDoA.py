@@ -1,7 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import sounddevice as sd
-import threading
+import asyncio
+from websockets.server import serve
 
 noiseA = np.load("misc/filtered_noiseA.npy") 
 noiseB = np.load("misc/filtered_noiseB.npy") 
@@ -83,11 +84,12 @@ def fangs_algorithm_TDoA(ta, tb, tc):
 
     z = 0
     x = np.roots([d, e, f - z**2])  # eq 9a
+    x = x[abs(x.imag) < 1e-5] #ignore imaginary roots
     y = g * x + h  # eq 13
     #print(x, y)
 
-    guess1 = np.array([x[0], y[0]])
-    guess2 = np.array([x[1], y[1]])
+    guesses = np.transpose([x, y])
+    #print(guesses)
 
     def err(g):
         # calculate what sort of time deltas would be seen with this guess
@@ -99,68 +101,104 @@ def fangs_algorithm_TDoA(ta, tb, tc):
         rac = deltaA - deltaC
         mse = ((rab - Rab) ** 2 + (rac - Rac) ** 2) / 2
         return mse
-
-    best_guess = min([guess1, guess2], key=err)
+    
+    if len(guesses) == 0:
+        return None
+    
+    best_guess = min(guesses, key=err)
     return best_guess
 
-Nw = len(noiseA)
-audio_buffer = np.zeros(Nw)
+positions_lock = asyncio.Lock()
+positions = {}
+
 audio_buffer_record_index = 0
 
-audio_buffer_full_event = threading.Event()
+async def main_task():
+    Nw = len(noiseA)
+    audio_buffer = np.zeros(Nw)
+    global audio_buffer_record_index
 
-def audio_callback(indata, frames, time, status):
-    """This is called (from a separate thread) for each audio block."""
+    audio_buffer_full_event = asyncio.Event()
+    audio_buffer_full_event.set()
 
-    global audio_buffer, audio_buffer_record_index
-    if status:
-        print(status)
+    loop = asyncio.get_event_loop()
 
-    if audio_buffer_full_event.is_set():
-        return
-    
-    length = min(Nw - audio_buffer_record_index, frames)
-    audio_buffer[audio_buffer_record_index: audio_buffer_record_index+length] = indata[:length].flatten()
-    audio_buffer_record_index += length
+    def audio_callback(indata, frames, time, status):
+        """This is called (from a separate thread) for each audio block."""
 
-    if audio_buffer_record_index >= Nw:
-        audio_buffer_full_event.set() # signal to other thread it can start processing
+        global audio_buffer_record_index
+        if status:
+            print(status)
 
-
-stream = sd.InputStream(channels=1, samplerate=48000, callback=audio_callback)
-with stream:
-    while True:
-        audio_buffer_full_event.wait()
+        if audio_buffer_full_event.is_set() or audio_buffer_record_index >= Nw:
+            return
         
-        plt.ion()
-        plt.figure(1)
-        plt.clf()
-        ax1 = plt.subplot(231)
-        found_delay1, max1, avg1 = correlate_and_find_delay(audio_buffer, noiseA, "A")
-        plt.subplot(232, sharey=ax1)
-        found_delay2, max2, avg2 = correlate_and_find_delay(audio_buffer, noiseB, "B")
-        plt.tick_params('y', labelleft=False)
-        plt.subplot(233, sharey=ax1)
-        found_delay3, max3, avg3 = correlate_and_find_delay(audio_buffer, noiseC, "C")
-        plt.tick_params('y', labelleft=False)
+        length = min(Nw - audio_buffer_record_index, frames)
+        audio_buffer[audio_buffer_record_index: audio_buffer_record_index+length] = indata[:length].flatten()
+        audio_buffer_record_index += length
 
-        ta = found_delay1 / 48000
-        tb = found_delay2 / 48000
-        tc = found_delay3 / 48000
+        if audio_buffer_record_index >= Nw:
+            loop.call_soon_threadsafe(audio_buffer_full_event.set) # signal to other thread it can start processing
 
-        guessed_position = fangs_algorithm_TDoA(ta, tb, tc)
-        print("pos: ", guessed_position)
-        plt.subplot(212)
-        plt.scatter([A[0], B[0], C[0]], [A[1], B[1], C[1]], label="base stations", marker="o")
-        if guessed_position[0] > -1.0 and guessed_position[0] < 11.0 and guessed_position[1] > -1.0 and guessed_position[1] < 11.0:
-            plt.scatter(guessed_position[0], guessed_position[1], label="position guess")
-        else :
-            plt.text(0.5, 0.5, "guessed position not within bounds", color="red", ha="center", va="center", transform=plt.gca().transAxes)
-        plt.gca().set_aspect("equal")
-        plt.legend(loc="center left", bbox_to_anchor=(1.0, 0.5))
-        plt.show()
-        plt.pause(0.01)
+    stream = sd.InputStream(channels=1, samplerate=48000, callback=audio_callback)
+    with stream:
+        while True:
+            await audio_buffer_full_event.wait()
+            
+            plt.ion()
+            plt.figure(1)
+            plt.clf()
+            ax1 = plt.subplot(231)
+            found_delay1, max1, avg1 = correlate_and_find_delay(audio_buffer, noiseA, "A")
+            plt.subplot(232, sharey=ax1)
+            found_delay2, max2, avg2 = correlate_and_find_delay(audio_buffer, noiseB, "B")
+            plt.tick_params('y', labelleft=False)
+            plt.subplot(233, sharey=ax1)
+            found_delay3, max3, avg3 = correlate_and_find_delay(audio_buffer, noiseC, "C")
+            plt.tick_params('y', labelleft=False)
+
+            plt.subplot(212)
+            plt.scatter([A[0], B[0], C[0]], [A[1], B[1], C[1]], label="base stations", marker="o")
+            a = plt.gca()
+            a.set_aspect("equal")
+            a.set_xlim(a.get_xlim())
+            a.set_ylim(a.get_xlim())
+
+            ta = found_delay1 / 48000
+            tb = found_delay2 / 48000
+            tc = found_delay3 / 48000
+
+            guessed_position = fangs_algorithm_TDoA(ta, tb, tc)
+            
+            async with positions_lock:
+                if guessed_position is not None:
+                    positions['self'] = guessed_position
+                print(positions)
+                for (name, position) in positions.items():
+                    plt.scatter(position[0], position[1], label=name)
+            
+            plt.legend(loc="center left", bbox_to_anchor=(1.0, 0.5))
+            plt.show()
+            plt.pause(0.01)
+            
+            audio_buffer_record_index = 0
+            audio_buffer_full_event.clear()
+
+async def echo(websocket):
+    async for message in websocket:
+        #print("msg: ", message)
+        if websocket.remote_address is not None:
+            async with positions_lock:
+                positions[websocket.remote_address] = np.frombuffer(message)
         
-        
-        audio_buffer_record_index = 0
-        audio_buffer_full_event.clear()
+
+async def serve_task():
+    async with serve(echo, "0.0.0.0", 8765):
+        await asyncio.Future()  # run forever
+
+async def yes():
+    await asyncio.gather(serve_task(), main_task())
+
+asyncio.run(yes())
+
+
