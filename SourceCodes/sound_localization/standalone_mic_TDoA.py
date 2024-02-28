@@ -8,8 +8,8 @@ noiseB = np.load("misc/filtered_noiseB.npy")
 noiseC = np.load("misc/filtered_noiseC.npy")
 
 A = np.array([0, 0])
-B = np.array([10, 0])
-C = np.array([5, 10])
+B = np.array([3.2258, 0])
+C = np.array([0, 2.9464])
 
 assert A[0] == 0 and A[1] == 0
 assert B[0] > 0 and B[1] == 0

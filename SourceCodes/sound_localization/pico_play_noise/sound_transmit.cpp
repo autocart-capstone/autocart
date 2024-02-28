@@ -1,6 +1,7 @@
 #include "sound_transmit.h"
 #include <I2S.h>
 #include "src/sound_samples/sound_samplesA.h"
+//#include "src/sound_samples/sound_samplesB.h"
 //#include "src/sound_samples/sound_samplesC.h"
 
 I2S i2s_out(OUTPUT);
@@ -9,6 +10,11 @@ const int sampleRate = 48000;
 size_t sound_out_ind = SOUND_SAMPLES_LEN; // silence at first
 uint64_t last_interrupt_ticks = 0;        // Number of CPU cycles since the last "onTransmit" interrupt
 uint32_t samples_to_skip = 0;             // amount of samples to skip before sending samples
+int32_t divider = 1; // makes sound less loud
+
+void set_sound_divider(int div) {
+  divider = div;
+}
 
 void onTransmit()
 {
@@ -20,7 +26,7 @@ void onTransmit()
     {
       // sample = sound | sound << 16; // 16 bits for L channel, 16 bits for R channel
       sample = sound_samples[sound_out_ind] << 16; // sample is 32-bit audio, shift 16 bit sound to most significant bits of 32-bit sample
-      //sample /= 16;                                // make sound less loud
+      sample /= divider;                           // make sound less loud
     }
     else
     {

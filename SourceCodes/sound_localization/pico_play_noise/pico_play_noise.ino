@@ -11,6 +11,7 @@ void setup() {
 
   setupRfm69();
   setup_i2s_sound_out();
+  set_sound_divider(64);
   waitForTimeSync();
   waitForStartSignal();
   start_transmitting_sound(); // This will play the sound in a loop

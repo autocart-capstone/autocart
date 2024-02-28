@@ -70,8 +70,7 @@ void waitForTimeSync() {
   char rcvbuf[receivedData.length() + 1];
   receivedData.toCharArray(rcvbuf, receivedData.length() + 1);
   rcvbuf[receivedData.length()] = '\0';
-  char* endptr;
-  masterTimeBegin = strtoul(rcvbuf, &endptr, 10);
+  masterTimeBegin = strtoul(rcvbuf, NULL, 10);
   Serial.printf("master start time: %lu\n", masterTimeBegin);
   
   // Get time difference
