@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import threading
 import asyncio
 from pyodide.http import pyfetch
 import pyodide
@@ -21,12 +20,16 @@ noiseA = np.load(io.BytesIO(noiseA))
 noiseB = np.load(io.BytesIO(noiseB))
 noiseC = np.load(io.BytesIO(noiseC))
 
-posA = np.array([0, 0], dtype=float)
-posB = np.array([10, 0], dtype=float)
-posC = np.array([5, 10], dtype=float)
+posA = np.array([0, 0])
+posB = np.array([3.0988, 0])
+posC = np.array([2.00025, 4.7752])
 z_of_receiver = 0
-recipient_addr = ""
-recipient_websocket = None
+url = window.location.href # ex: http://localhost:8000/
+url = url.split(":")[1] # //localhost
+url = url[2:] # localhost
+websocket_url = f"ws://{url}:8765"
+print(f"connecting to: {websocket_url}")
+recipient_websocket = window.WebSocket.new(websocket_url)
 
 def updatePositionsFromDom():
     global z_of_receiver, recipient_websocket, recipient_addr
@@ -47,21 +50,12 @@ def updatePositionsFromDom():
     if v != '':
         z_of_receiver = float(v)
 
-    v = pydom["#AddrRecipient"][0].value
-    if recipient_addr != v:
-        recipient_addr = v
-        try:
-            recipient_websocket = window.WebSocket.new(recipient_addr)
-        except BaseException as e:
-            print(e)
-            recipient_websocket = None
-
     #print(f"positions updated, B: {posB}, C: {posC}")
     #assert posA[0] == 0 and posA[1] == 0
     #assert posB[0] > 0 and posB[1] == 0
     #assert posC[1] > 0
 
-updatePositionsFromDom()
+#updatePositionsFromDom()
 
 def correlate_and_find_delay(rec, noise, name):
     # rec_padded = np.pad(rec, (len(noise), 0), 'constant', constant_values=0)
@@ -242,7 +236,7 @@ async def onDataAvail(event):
 pyodide.ffi.wrappers.add_event_listener(recorder, 'dataavailable', onDataAvail)
 
 while True:
-    updatePositionsFromDom()
+    #updatePositionsFromDom()
     recorder.start()
     await asyncio.sleep(record_time)
     recorder.stop()

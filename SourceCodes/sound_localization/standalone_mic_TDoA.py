@@ -7,10 +7,14 @@ from websockets.server import serve
 noiseA = np.load("misc/filtered_noiseA.npy") 
 noiseB = np.load("misc/filtered_noiseB.npy") 
 noiseC = np.load("misc/filtered_noiseC.npy")
-
+# 172.17.185.143
+# A = 29.25 inch
+# B = 122 = 3.0988 meters
+# Cx = 108 - 29.25 = 78.75 = 2.00025 meters
+# Cy = 188 = 4.7752 meters
 A = np.array([0, 0])
-B = np.array([3.2258, 0])
-C = np.array([0, 2.9464])
+B = np.array([3.0988, 0])
+C = np.array([2.00025, 4.7752])
 
 assert A[0] == 0 and A[1] == 0
 assert B[0] > 0 and B[1] == 0
@@ -162,7 +166,7 @@ async def main_task():
             a = plt.gca()
             a.set_aspect("equal")
             a.set_xlim(a.get_xlim())
-            a.set_ylim(a.get_xlim())
+            a.set_ylim(a.get_ylim())
 
             ta = found_delay1 / 48000
             tb = found_delay2 / 48000
