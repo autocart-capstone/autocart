@@ -5,7 +5,7 @@
 static const float wheel_circ = WHEEL_DIAM * PI;
 static const float pivot_circ = PIVOT_DIAM * PI;
 
-static const float period = 1;
+static const float period = 0.25;
 
 int calculate_pulses_for_angle(float angle){
   float pulses_per_full_pivot = PULSES_PER_REV * (pivot_circ / wheel_circ);

@@ -19,27 +19,30 @@ void PID_controller() {
   prevT = currT; 
 
   //  Apply controller to each motor
-  for (int i = 0; i < NUM_MOTORS; i++) {
+  for (int i = 0; i < 4; i++) {
 
     // Get current velocity in RPM (udpates every second on RPM calc interrupt)
-    float vel = FL_mtr_RPM; 
+    float vel = getMotorRPM(i); 
+  
 
     // Low-pass filter (25 Hz cutoff)
     velFilt[i] = 0.854*velFilt[i] + 0.0728*vel + 0.0728*velPrev[i];
     velPrev[i] = vel;
 
     /* -------- Proportional Controller -------- */
-    float kp = 1; // proportional constant, needs to be tuned. increasing provides more power
+    float kp = 0.28; // proportional constant, needs to be tuned. increasing provides more power
     float e = vt - velFilt[i]; // error
 
 
     /* -------- Integral Controller -------- */
-    float ki = 1; // Integral constant. increasing provides more power
+    float ki = 0.7; // Integral constant. increasing provides more power
     eintegral[i] = eintegral[i] + e*deltaT; // Update integral with difference
 
 
     float u = kp*e + ki*eintegral[i]; // Control signal
 
+    // Serial.print("U: ");
+    // Serial.println(u);
     // Set motor speed
     int adjusted_PWM = (int) fabs(u);
     if(adjusted_PWM > 255) {
@@ -49,10 +52,18 @@ void PID_controller() {
     // Set the PWM, and update struct
     set_pwm_duty_cycle(PWM[i], adjusted_PWM);
     
-    Serial.print(vt);
-    Serial.print(" ");
-    
   }
+
+  Serial.print(vt);
+  Serial.print(" ");
+  Serial.print(velFilt[0]);
+  Serial.print(" ");
+  Serial.print(velFilt[1]);
+  Serial.print(" ");
+  Serial.print(velFilt[2]);
+  Serial.print(" ");
+  Serial.print(velFilt[3]);
+  Serial.println();
   delay(1);
 }
 
@@ -62,18 +73,21 @@ void setup() {
   setup_pwm(); 
   init_i2c();
   setState(STOPPED);
-  drive_all_motors_init(20);
-}
-
-void setup1() {
-  Serial.begin(115200);
   init_encoders();
   init_RPM_timer();
 }
 
+void setup1() {
+  Serial.begin(115200);
+}
+
 void loop() {
   // put your main code here, to run repeatedly:
-  // drive_all_motors_init(50);
+  //drive_all_motors_init(100);
+  Serial.print(200);
+  Serial.print(", ");
+  Serial.print(-10);
+  Serial.print(", ");
   if (Serial.available() > 0) {
       char command = Serial.read();
       handleSerialCommand(command);
@@ -86,6 +100,8 @@ void loop() {
       currently, the PID controller will set PWM in the struct, so it will be used in turning, and can be reverted
       to after turning is finsihed 
   */
+
+  //float vel2 = getMotorRPM(2); 
   switch(getState()) {
     case 1: // Turning
       reset_encoders();
@@ -110,11 +126,33 @@ void loop() {
       break;
 
     case 3: // Striaght 
-      setTarget(230); // arg is RPM
+      PID_controller();
+      setTarget(80); // arg is RPM
       drive_straight();
+      //Serial.println(vel2);
+
+
+      // Serial.print(digitalRead(ENCODER_FL));
+      // Serial.print(digitalRead(ENCODER_FR));
+      // Serial.print(digitalRead(ENCODER_BL));
+      // Serial.print(digitalRead(ENCODER_BR));
+
+      // Serial.print("Front Left ");
+      // Serial.print(FL_speed_pulses);
+      // Serial.print(" ");
+      // Serial.print("Back Left ");
+      // Serial.print(BL_speed_pulses);
+      // Serial.print(" ");
+      // Serial.print("Front Right ");
+      // Serial.print(FR_speed_pulses);
+      // Serial.print(" ");
+      // Serial.print("Back Right ");
+      // Serial.println(BR_speed_pulses);
+
       break;
 
     case 4: // Stopped
+      PID_controller();
       setTarget(0);
       stop_motors();
       break;

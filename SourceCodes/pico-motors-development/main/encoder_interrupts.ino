@@ -7,7 +7,7 @@
 #include "MBED_RPi_Pico_TimerInterrupt.h"
 
 // Period for timer in usec
-#define TIMER_PERIOD 1000000L
+#define TIMER_PERIOD 250000L // 1000000L
 
 /* variables to track encoder pulses elapsed for turning */
 volatile int FL_turn_pulses = 0;
@@ -21,11 +21,8 @@ volatile int BL_speed_pulses = 0;
 volatile int FR_speed_pulses = 0;
 volatile int BR_speed_pulses = 0;
 
-float FL_mtr_RPM = 0;
-float BL_mtr_RPM = 0;
-float FR_mtr_RPM = 0;
-float BR_mtr_RPM = 0;
-
+// FL, BL, FR, BR
+float motor_RPM[4] = {0, 0, 0, 0};
 
 void init_encoders() {
 
@@ -40,10 +37,10 @@ void init_encoders() {
   digitalWrite(ENCODER_BR, INPUT_PULLDOWN);
 
   /* Attach interrutps to encoder input pins */
-  attachInterrupt(digitalPinToInterrupt(ENCODER_FL), encoder_IRQHandler, RISING);
-  attachInterrupt(digitalPinToInterrupt(ENCODER_BL), encoder_IRQHandler, RISING);  
-  attachInterrupt(digitalPinToInterrupt(ENCODER_FR), encoder_IRQHandler, RISING);   
-  attachInterrupt(digitalPinToInterrupt(ENCODER_BR), encoder_IRQHandler, RISING); 
+  attachInterrupt(digitalPinToInterrupt(ENCODER_FL), FL_encoder_IRQHandler, RISING);
+  attachInterrupt(digitalPinToInterrupt(ENCODER_BL), BL_encoder_IRQHandler, RISING);  
+  attachInterrupt(digitalPinToInterrupt(ENCODER_FR), FR_encoder_IRQHandler, RISING);   
+  attachInterrupt(digitalPinToInterrupt(ENCODER_BR), BR_encoder_IRQHandler, RISING); 
 
 }
 
@@ -60,28 +57,27 @@ void reset_encoders() {
 	BR_turn_pulses = 0;
 }
 
-void encoder_IRQHandler() {
-  // Front Left Encoder
-  if(digitalRead(ENCODER_FL) == HIGH) {
+void FL_encoder_IRQHandler() {
     FL_turn_pulses++;
     FL_speed_pulses++;
-  } 
-  // Back Left Encoder
-  else if(digitalRead(ENCODER_BL) == HIGH) {
+}
+void BL_encoder_IRQHandler() {
     BL_turn_pulses++;
     BL_speed_pulses++;
-  } 
-  // Front Right Encoder
-  else if(digitalRead(ENCODER_FR) == HIGH) {
+}
+void FR_encoder_IRQHandler() {
+  
     FR_turn_pulses++;
     FR_speed_pulses++;
-  } 
-  // Back Right Encoder
-  else if(digitalRead(ENCODER_BR) == HIGH) {
+}
+void BR_encoder_IRQHandler() {
+
     BR_turn_pulses++;
     BR_speed_pulses++;
-  }  
+}
 
+float getMotorRPM(int mtr_index) {
+  return motor_RPM[mtr_index];
 }
 
 // Never use Serial.print inside this mbed ISR. Will hang the system
@@ -90,10 +86,10 @@ void TimerHandler(uint alarm_num) {
   // Always call this for MBED RP2040 before processing ISR
   TIMER_ISR_START(alarm_num);
 
-    FL_mtr_RPM = calculate_RPM(FL_speed_pulses);
-		BL_mtr_RPM = calculate_RPM(BL_speed_pulses);
-		FR_mtr_RPM = calculate_RPM(FR_speed_pulses);
-		BR_mtr_RPM = calculate_RPM(BR_speed_pulses);
+    motor_RPM[0] = calculate_RPM(FL_speed_pulses);
+		motor_RPM[1] = calculate_RPM(BL_speed_pulses);
+		motor_RPM[2] = calculate_RPM(FR_speed_pulses);
+		motor_RPM[3] = calculate_RPM(BR_speed_pulses);
 		
 		FL_speed_pulses = 0;
 		BL_speed_pulses = 0;

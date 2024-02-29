@@ -48,8 +48,8 @@ void drive_all_motors_init(uint8_t duty_cycle)
 /* This method to contol PWM */
 void set_pwm_duty_cycle(unsigned int pwm_pin, unsigned int duty_cycle)
 {
-  analogWrite(pwm_pin, (255 * duty_cycle) / 100); //set duty cycle to passed in value
-  check_and_set_pin(pwm_pin, duty_cycle);
+  analogWrite(pwm_pin, duty_cycle); //set duty cycle to passed in value
+  check_and_set_pin(pwm_pin,  (255 * duty_cycle) / 100);
 }
 
 

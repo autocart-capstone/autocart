@@ -23,5 +23,6 @@ void init_encoders();
 void init_RPM_timer();
 void reset_encoders();
 
+float getMotorRPM(int mtr_index);
 
 #endif
