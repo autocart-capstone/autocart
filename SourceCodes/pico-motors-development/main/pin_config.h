@@ -6,7 +6,8 @@ enum states {
 	PIVOT = 2, 
 	STRAIGHT = 3, 
 	STOPPED = 4,
-  RECEIVING = 5 // Default state
+  RECEIVING = 5, // Default state
+  BRAKING = 6
 };
 
 enum states state = RECEIVING;
@@ -63,6 +64,8 @@ int pivot_theta(float angle);
 int turn_theta(float angle);
 
 void setState(enum states newState);
+
+int get_pwm(unsigned int pwm_pin);
 
 states getState();
 

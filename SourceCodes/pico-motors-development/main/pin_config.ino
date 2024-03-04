@@ -15,6 +15,25 @@ void setup_pwm()
   pinMode(PWM_BR, OUTPUT);
 }
 
+int get_pwm(unsigned int pwm_pin)
+{
+  switch (pwm_pin)
+  {
+    case PWM_TL:
+      return duty_cycles.TL;
+      break;
+    case PWM_BL:
+      return duty_cycles.BL;
+      break;
+    case PWM_TR:
+      return duty_cycles.TR;
+      break;
+    case PWM_BR:
+      return duty_cycles.BR;
+      break;
+  } 
+}
+
 //Temp Function for storing PWM
 void check_and_set_pin(unsigned int pwm_pin, unsigned int duty_cycle)
 {
@@ -40,7 +59,7 @@ void drive_all_motors_init(uint8_t duty_cycle)
 {
   for (int i = 0; i < NUM_MOTORS; i++)
   {
-    set_pwm_duty_cycle(PWM[i], duty_cycle);  
+    set_pwm_duty_cycle(PWM[i], duty_cycle);
   }
 }
 

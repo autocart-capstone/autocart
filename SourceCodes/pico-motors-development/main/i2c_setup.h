@@ -9,7 +9,7 @@ void init_i2c();
 #define LSB_ANGLE_INDEX (2)
 #define DISTANCE_INDEX (3) //in cm
 
-#define STOP_SIGNAL (-1)
+#define OVER_DISTANCE_SIGNAL (-1)
 
 extern uint32_t turning_angle;
 extern int32_t turning_distance;

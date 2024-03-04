@@ -5,7 +5,6 @@
 static int turn_pulses = 0;
 static int pivot_pulses = 0; 
 
-
 static long prevT = 0;
 static int vt = 0; // target velocity 
 static float velFilt[4] = {0, 0, 0, 0};
@@ -121,14 +120,28 @@ void loop() {
           // Continue pivoting
       } else {
           // Pivot complete, move to the next state
-          setState(RECEIVING);
+          if (turning_distance == OVER_DISTANCE_SIGNAL)
+          {
+            setState(STRAIGHT);  
+          }
+          else
+          {
+            setState(RECEIVING);
+          }
       }
       break;
 
-    case 3: // Striaght 
+    case 3: // Straight 
       PID_controller();
       setTarget(80); // arg is RPM
       drive_straight(70);
+
+      //Keep looping going straight until the distance is no longer -1, i.e we are no longer over the threshold. 
+      if (turning_distance != OVER_DISTANCE_SIGNAL)
+      {
+        setState(RECEIVING);  
+      }
+
       //Serial.println(vel2);
 
 
@@ -159,6 +172,18 @@ void loop() {
 
     case 5: // Recieving
       // Todo
+      break;
+
+    case 6:
+      int current_pwm = get_pwm(PWM_TL); //Get the PWM of a random wheel, assuming they're all being driven the same at the moment. 
+
+      while (current_pwm > 0)
+      {
+        drive_all_motors_init(current_pwm -= 10);
+        delay(500);
+      }
+
+      setState(STOPPED);
       break;
 
     default:
