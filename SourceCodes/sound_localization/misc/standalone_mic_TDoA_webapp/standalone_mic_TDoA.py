@@ -203,6 +203,7 @@ constraints.channelCount = 1
 # These constraints could just do nothing...
 
 await stream.getAudioTracks()[0].applyConstraints(constraints)
+# Maybe try using https://dev.to/louisgv/quick-guide-to-audioworklet-30df
 recorder = window.MediaRecorder.new(stream)
 
 Fs = 48000
