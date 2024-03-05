@@ -109,7 +109,7 @@ void loop() {
           // Continue turning
       } else {
           // Turning complete, move to the next state
-          setState(RECEIVING);
+          setState(STOPPED);
       }
       break;
 
@@ -126,7 +126,7 @@ void loop() {
           }
           else
           {
-            setState(RECEIVING);
+            setState(STOPPED);
           }
       }
       break;
@@ -139,7 +139,7 @@ void loop() {
       //Keep looping going straight until the distance is no longer -1, i.e we are no longer over the threshold. 
       if (turning_distance != OVER_DISTANCE_SIGNAL)
       {
-        setState(RECEIVING);  
+        setState(BRAKING);  
       }
 
       //Serial.println(vel2);
