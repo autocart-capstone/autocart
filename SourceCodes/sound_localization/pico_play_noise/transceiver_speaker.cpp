@@ -1,6 +1,7 @@
 #include <RFM69.h>
 #include <SPI.h>
 #include "transceiver_speaker.h"
+#include "sound_transmit.h"
 
 RFM69 radio = RFM69(CS_PIN, INTRPT_PIN);
 String receivedData = "";
@@ -59,32 +60,33 @@ void receivePing() {
   }
 }
 
-void waitForTimeSync() {
-  unsigned long masterTimeBegin;
-  unsigned long timeDiff;
-  unsigned long nodeTimeBegin = micros();
-  Serial.printf("my node start time: %lu\n", nodeTimeBegin);
+void checkBroadcast() {
+  int rcvMsg = 0;
   
   receivePing();
   // Convert received data to unsigned long int
   char rcvbuf[receivedData.length() + 1];
   receivedData.toCharArray(rcvbuf, receivedData.length() + 1);
   rcvbuf[receivedData.length()] = '\0';
-  masterTimeBegin = strtoul(rcvbuf, NULL, 10);
-  Serial.printf("master start time: %lu\n", masterTimeBegin);
-  
-  // Get time difference
-  timeDiff = nodeTimeBegin - masterTimeBegin;
-  Serial.printf("time difference %d\n", timeDiff);
-  // Save this time difference value to adjust clock later
-  clockAdjust = timeDiff / 1000;  // change from micros to millis
-}
+  Serial.printf("Received message %s\n", rcvbuf);
+//  rcvMsg = strtoul(rcvbuf, NULL, 10);
+//  Serial.printf("Received message %lu\n", rcvMsg);
 
-void waitForStartSignal() {
-  unsigned long waitMs = 2000;
-  unsigned long waitBegin = millis() + clockAdjust;
-  while ( ((millis() + clockAdjust) - waitBegin) != waitMs ) {
-    Serial.print(".");
-  }
-  Serial.println();
+  Serial.println(rcvbuf);
+
+  if (isDigit(*rcvbuf)) {     // is the buffer recevied a digit?
+      rcvMsg = atoi(rcvbuf);  // Convert string to integer
+      Serial.println(rcvMsg);
+      if (rcvMsg == 0) {
+        stop_transmitting_sound();
+      }
+      else {
+        set_sound_divider(rcvMsg);
+        start_transmitting_sound();
+      } 
+  } 
+  else {
+      Serial.println("INVALID MESSAGE! Message must be an integer.");
+  } 
+  receivedData = "";
 }

@@ -14,5 +14,5 @@
 void setupRfm69();
 void sendPing(int target, char* msg);
 void receivePing();
-void sendBroadcast();
+void sendBroadcast(String in);
 #endif

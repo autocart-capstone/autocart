@@ -61,10 +61,9 @@ void receivePing() {
   }
 }
 
-void sendBroadcast() {
-  int divider = 64;
+void sendBroadcast(String in) {
   char buf[60];
-  sprintf(buf, "%lu", divider);
-  Serial.printf("Setting divider to: %s\n", buf);
+  strcpy(buf, in.c_str());
+  Serial.println(buf);
   sendPing(TOALLNODE, buf);
 }

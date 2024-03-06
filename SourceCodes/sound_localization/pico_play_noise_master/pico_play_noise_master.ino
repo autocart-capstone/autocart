@@ -12,15 +12,16 @@ void setup() {
 //  Serial.printf("Started! Clock speed: %i\n", rp2040.f_cpu());
   setupRfm69();
   setup_i2s_sound_out();
-  sendBroadcast();
-  unsigned long waitMs = 2000;
-  unsigned long waitBegin = millis() + clockAdjust;
-  while ( ((millis() + clockAdjust) - waitBegin) != waitMs ) {
-    Serial.print(".");
-  }
-  Serial.println();
-  // This will play the sound in a loop
-  start_transmitting_sound();
+  
+  String initial_div = "128";
+  sendBroadcast(initial_div);
 }
 
-void loop() {}
+void loop() {
+  if (Serial.available() > 0){
+    String in = Serial.readStringUntil('\n');
+    in.trim();
+    
+    sendBroadcast(in);
+  }
+}
