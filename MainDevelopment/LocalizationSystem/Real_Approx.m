@@ -13,6 +13,8 @@ distance = data(2,:);
 quality = data(3,:);
 
 distance = distance/1000;
+
+
 theta_fixed = mod((360 - theta_raw) - 91.5, 360);
 % Filter out data points with quality equal to 0
 idx = (quality ~= 0 & distance < 6);
@@ -67,7 +69,7 @@ disp(Real_Walls);
 %%Ex xa1 = walls(1,pidx) + abs(Real_Walls(3, 1)); %left wall
     % xa2 = walls(3,pidx) - abs(real_data(2,  1)); %%right wall
     % ya1 = walls(4,pidx) + abs(real_data(1, 1)); %% bottom wall
-    % ya2 = walls(2,pidx) - abs(real_data(4, 1)); %%top wall
+    %ya2 = walls(2,pidx) - abs(real_data(4, 1)); %%top wall 
 
 
 structures = {
@@ -87,13 +89,8 @@ structures = {
 };
 N_structures = length(structures);
 
-segs = [ structures{1}(1:end-1,:) structures{1}(2:end,:) ; structures{2}(1:end-1,:) structures{2}(2:end,:) ; structures{3}(1:end-1,:) structures{3}(2:end,:) ];
-dodraw = true;
-xoff = 24.63;
-yoff = 22.50;
-x = xoff + distance.*cosd(theta_fixed);
-y = yoff + distance.*sind(theta_fixed);
 
+segs = [ structures{1}(1:end-1,:) structures{1}(2:end,:) ; structures{2}(1:end-1,:) structures{2}(2:end,:) ; structures{3}(1:end-1,:) structures{3}(2:end,:) ];
 test_pos = makeTestGrid(0.1, structures);
 [measures,walls] = makeTestData(test_pos, segs);
 N_testpos = size(test_pos, 1);
@@ -101,6 +98,8 @@ N_testpos = size(test_pos, 1);
 real_data = zeros(2,36);
 angle_list = 0:10:359;
 total_count = 0;
+%loop to mainly count for how many iterations we have during 2 angle
+%tolerance for entire revolution
 for na = 1:length(angle_list)
     current_angle = angle_list(na);
     theta_range = [mod(current_angle-1,360), mod(current_angle+1,360)];
@@ -114,6 +113,7 @@ for na = 1:length(angle_list)
 
 end
 
+
 for nx = 1:length(angle_list)
      current_angle = angle_list(nx);
     theta_range = [mod(current_angle-1,360), mod(current_angle+1,360)];
@@ -122,34 +122,94 @@ for nx = 1:length(angle_list)
     else
        idx = (theta_fixed > theta_range(1) & theta_fixed < theta_range(2));
     end
-    mean_distance = mean(distance(idx));
-    %real_data(:,nx) = mean_distance;
-    weight = sum(idx)/total_count;
+    if sum(idx) > 0
+            mean_distance = mean(distance(idx));
+    else
+        continue;
+    end
+
+    real_data(:,nx) = mean_distance;
+    weight = sum(idx)/length(idx);
     %fprintf('Weight of %g degrees is %g%%\n', current_angle,weight*100);
     
     if current_angle == 0
-        mean_theta_rad = atan2(mean(sind(theta_fixed(idx))), mean(cosd(theta_fixed(idx))));
-        mean_theta_deg = rad2deg(mean_theta_rad);
-        mean_theta = mod(mean_theta_deg, 360);
+        mean_theta_rad = atan2(mean(sind(theta_fixed(idx))), mean(cosd(theta_fixed(idx)))); %%compute mean angle in radians, after computing mean sin and mean cos
+        mean_theta_deg = rad2deg(mean_theta_rad); %%conversion to deg from rad
+        mean_theta = mod(mean_theta_deg, 360); %% using modulus to handle wraparound
     else
        mean_theta = mean(mod(theta_fixed(idx),360));
 
     end
-    X_coord = mean_distance .*cosd(mean_theta);
+    %%computing X and Y is done to relate real_data to the measurement of
+    %%reference points on the map
+    X_coord = mean_distance .*cosd(mean_theta); 
     Y_coord = mean_distance .*sind(mean_theta);
     real_data(:,nx) = [X_coord; Y_coord];
+
+
 end
-return
+%%instead of error squared, error is multiplied by weight, why does
+%%sum_difference not have to be in loop due to changing weights, yields
+%%same results
+
+%%inner sum calculates along columns in matrix
+%%outer sum calculates sum of the elements of this row vector
+metric = squeeze(sum(sum((measures - real_data).*weight)));
+%metric = squeeze(sum_difference);
+metric(isnan(metric)) = [];
+[~,idx] = min(metric);
+fprintf('The lidar is closest to position %g,%g\n', test_pos(idx,:));
+
+[p,idx2] = sort(metric);
+pidx = idx2(1);
+
+
+xa1 = walls(1,pidx) - abs(real_data(1, 1)); %right wall
+xa2 = walls(3,pidx) + abs(real_data(1,  19)); %%left wall
+ya1 = walls(4,pidx) + abs(real_data(2, 28)); %% bottom wall
+ya2 = walls(2,pidx) - abs(real_data(2, 10)); %%top wall
+
+
+%%sequence of ifs to filter whether the main box angles are 0 or not, if 0
+%%will influence the xapprox badly
+if real_data(1,1) == 0
+    xapprox = xa2;
+end
+if real_data(1,19) == 0
+    xapprox = xa1;
+end 
+if real_data(2,28) == 0
+    yapprox = ya2;
+end
+if real_data(2,10) == 0
+    yapprox = ya1;
+end
+if ~(real_data(1,1) == 0 || real_data(1,19) == 0 || real_data(2,28) == 0 || real_data(2,10) == 0)    
+    xapprox = (xa1 + xa2) / 2;
+    yapprox = (ya1 + ya2) / 2;
+end
+
+xa = xapprox;
+ya = yapprox;
+fprintf('Our position is actually at %g, %g\n', xa,ya);
+dodraw = true;
+xoff = 24.63;
+yoff = 22.50;
+x_new = xoff + distance.*cosd(theta_fixed);
+y_new = yoff + distance.*sind(theta_fixed);
 if dodraw
     figure(1)
     plot(structures{1}(:,1), structures{1}(:,2), 'k'); % Plot walls
     hold on
     plot(structures{2}(:,1), structures{2}(:,2), 'k'); % Plot walls
     plot(structures{3}(:,1), structures{3}(:,2), 'k'); % Plot walls
-    plot(x,y,'r.');
-    in1 = inpolygon(x, y, structures{1}(:,1), structures{1}(:,2));
-    in2 = inpolygon(x, y, structures{2}(:,1), structures{2}(:,2));
-    in3 = inpolygon(x, y, structures{3}(:,1), structures{3}(:,2));
+    plot(x_new,y_new,'r.');
+    plot(test_pos(idx,1),test_pos(idx,2),'go');
+    plot(xa,ya,'mo');
+
+    in1 = inpolygon(x_new, y_new, structures{1}(:,1), structures{1}(:,2));
+    in2 = inpolygon(x_new, y_new, structures{2}(:,1), structures{2}(:,2));
+    in3 = inpolygon(x_new, y_new, structures{3}(:,1), structures{3}(:,2));
     bad = (~in1 | in2 | in3);
     % in1 = inpolygon(test_pos(:,1), test_pos(:,2), structures{1}(:,1), structures{1}(:,2));
     % in2 = inpolygon(test_pos(:,1), test_pos(:,2), structures{2}(:,1), structures{2}(:,2));
@@ -162,7 +222,6 @@ if dodraw
     axis equal;
     hold off
 end
-
 function test_pos = makeTestGrid(space, structures)
     %%% Make the test grid
     %     space: separation between points in the test grid (in metres)
