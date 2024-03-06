@@ -3,9 +3,6 @@
 
 #include <RFM69.h>
 
-#define BROADCAST     true  
-#define NUM_PICO      3       // Change if necessary
-
 #define NETWORKID     0   // Must be the same for all nodes (0 to 255)
 #define MYNODEID      100   // My node ID (0 to 255)
 #define TOALLNODE     0   // Destination node ID (0 to 254, 0 = broadcast)
@@ -17,6 +14,5 @@
 void setupRfm69();
 void sendPing(int target, char* msg);
 void receivePing();
-void doTimeSync();
-void waitForStartSignal();
+void sendBroadcast();
 #endif

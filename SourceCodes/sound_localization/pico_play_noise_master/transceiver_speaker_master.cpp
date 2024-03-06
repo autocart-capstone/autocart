@@ -61,31 +61,10 @@ void receivePing() {
   }
 }
 
-void doTimeSync() {
-  unsigned long masterTimeBegin; //4 bytes
-  masterTimeBegin = micros();
-
-  if (BROADCAST) {  
-    char buf[100];
-    sprintf(buf, "%lu", masterTimeBegin);
-    Serial.printf("master start time: %s\n", buf);
-    sendPing(TOALLNODE, buf);
-  }
-  else {
-    for (int i = 1; i <= NUM_PICO; i++) {
-      char buf[60];
-      sprintf(buf, "%lu", masterTimeBegin);
-      Serial.printf("master start time: %s\n", buf);
-      sendPing(i, buf);
-    }
-  }
-}
-
-void waitForStartSignal() {
-  unsigned long waitMs = 2000;
-  unsigned long startTime = millis();
-  while ( (millis() - startTime) != waitMs ) {
-    Serial.print('.');
-  }
-  Serial.println();  
+void sendBroadcast() {
+  int divider = 64;
+  char buf[60];
+  sprintf(buf, "%lu", divider);
+  Serial.printf("Setting divider to: %s\n", buf);
+  sendPing(TOALLNODE, buf);
 }

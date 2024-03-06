@@ -12,9 +12,13 @@ void setup() {
 //  Serial.printf("Started! Clock speed: %i\n", rp2040.f_cpu());
   setupRfm69();
   setup_i2s_sound_out();
-  Serial.println("Setting up time sync..");
-  doTimeSync();
-  waitForStartSignal(); 
+  sendBroadcast();
+  unsigned long waitMs = 2000;
+  unsigned long waitBegin = millis() + clockAdjust;
+  while ( ((millis() + clockAdjust) - waitBegin) != waitMs ) {
+    Serial.print(".");
+  }
+  Serial.println();
   // This will play the sound in a loop
   start_transmitting_sound();
 }
