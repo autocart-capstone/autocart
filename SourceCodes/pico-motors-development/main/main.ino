@@ -23,32 +23,31 @@ void PID_controller() {
 
     // Get current velocity in RPM (udpates every second on RPM calc interrupt)
     float vel = getMotorRPM(i); 
-  
 
     // Low-pass filter (25 Hz cutoff)
     velFilt[i] = 0.854*velFilt[i] + 0.0728*vel + 0.0728*velPrev[i];
     velPrev[i] = vel;
 
-    /* -------- Proportional Controller -------- */
+    /* -------- Proportional Component -------- */
     float kp = 0.28; // proportional constant, needs to be tuned. increasing provides more power
     float e = vt - velFilt[i]; // error
 
-
-    /* -------- Integral Controller -------- */
+    /* -------- Integral Component -------- */
     float ki = 0.7; // Integral constant. increasing provides more power
     eintegral[i] = eintegral[i] + e*deltaT; // Update integral with difference
 
-
     float u = kp*e + ki*eintegral[i]; // Control signal
 
-    // Serial.print("U: ");
-    // Serial.println(u);
     // Set motor speed
     int adjusted_PWM = (int) fabs(u);
     if(adjusted_PWM > 255) {
       adjusted_PWM = 255;
     }
 
+    Serial.print(i);
+    Serial.print(" ");
+    Serial.print(adjusted_PWM);
+    Serial.print(" ");
     // Set the PWM, and update struct
     set_pwm_duty_cycle(PWM[i], adjusted_PWM);
     
@@ -88,6 +87,10 @@ void loop() {
   Serial.print(", ");
   Serial.print(-10);
   Serial.print(", ");
+
+  Serial.println(getMotorRPM(0));
+  Serial.println(FL_speed_pulses);
+
   if (Serial.available() > 0) {
       char command = Serial.read();
       handleSerialCommand(command);

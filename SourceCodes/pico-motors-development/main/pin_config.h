@@ -31,7 +31,7 @@ enum states state = RECEIVING;
 
 // Encoder Pins
 // Board Left Side
-#define ENCODER_FL (9)
+#define ENCODER_FL (10)
 #define ENCODER_BL (11)
 // Board Right Side
 #define ENCODER_FR (21)
