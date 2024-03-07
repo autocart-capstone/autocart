@@ -25,4 +25,7 @@ void reset_encoders();
 
 float getMotorRPM(int mtr_index);
 
+int getAvgPulsesLeft();
+int getAvgPulsesRight();
+
 #endif

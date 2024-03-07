@@ -6,22 +6,34 @@ enum states {
 	PIVOT = 2, 
 	STRAIGHT = 3, 
 	STOPPED = 4,
-  RECEIVING = 5 // Default state
+  RECEIVING = 5, // Default state
+  LEFT = 6,
+  RIGHT = 7, 
+  FORWARD = 8,
+  BACKWARD = 9
 };
 
 enum states state = RECEIVING;
 
-// PWM-Drive
-// Board Left Side
-#define PWM_TL 6
-#define PWM_BL 7
-// Board Right Side
-#define PWM_BR 26
-#define PWM_TR 27
-
 // FWD of the board is USB connection
 
-// PWM-direction
+// PWM-Drive
+// Board Left Side Forwards
+#define PWM_FWD_FL 6
+#define PWM_FWD_BL 7
+// Board Left Side Backwards
+#define PWM_BWD_FL 5
+#define PWM_BWD_BL 13
+
+// Board Right Side Forwards
+#define PWM_FWD_FR 27
+#define PWM_FWD_BR 26
+// Board Right Side Backwards
+#define PWM_BWD_FR 28
+#define PWM_BWD_BR 18
+
+
+// PWM-direction -- NOT NEEDED WITH NEW DRIVERS
 // Board Left Side
 #define DIRECTION_FL (13) // x- Forwards
 #define DIRECTION_BL (12) // -x Backwards
@@ -41,7 +53,8 @@ enum states state = RECEIVING;
 #define NUM_MOTORS 4 
 
 const int encoders[4] = {ENCODER_FL, ENCODER_BL, ENCODER_FR, ENCODER_BR};
-const int PWM[4] = {PWM_TL, PWM_BL, PWM_TR, PWM_BR};
+const int PWM_FWD[4] = {PWM_FWD_FL, PWM_FWD_BL, PWM_FWD_FR, PWM_FWD_BR};
+const int PWM_BWD[4] = {PWM_BWD_FL, PWM_BWD_BL, PWM_BWD_FR, PWM_BWD_BR};
 const int directions[4] = {DIRECTION_FL, DIRECTION_BL, DIRECTION_FR, DIRECTION_BR};
 
 void setup_pwm();
@@ -50,7 +63,13 @@ void drive_all_motors_init(uint8_t duty_cycle);
 
 void set_pwm_duty_cycle(unsigned int pwm_pin, unsigned int duty_cycle);
 
-void drive_straight(int PWM);
+void drive_forwards();
+
+void drive_backwards();
+
+void drive_left(); 
+
+void drive_right();
 
 void stop_motors();
 

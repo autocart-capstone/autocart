@@ -5,7 +5,6 @@
 static int turn_pulses = 0;
 static int pivot_pulses = 0; 
 
-
 static long prevT = 0;
 static int vt = 0; // target velocity 
 static float velFilt[4] = {0, 0, 0, 0};
@@ -43,35 +42,26 @@ void PID_controller() {
     if(adjusted_PWM > 255) {
       adjusted_PWM = 255;
     }
-
-    Serial.print(i);
-    Serial.print(" ");
-    Serial.print(adjusted_PWM);
-    Serial.print(" ");
     // Set the PWM, and update struct
-    set_pwm_duty_cycle(PWM[i], adjusted_PWM);
+    set_pwm_duty_cycle(PWM_FWD[i], adjusted_PWM);
+    set_pwm_duty_cycle(PWM_BWD[i], adjusted_PWM);
+
+    // Encoder for FL motor broken, set to the same speed as BL motor
+    if(i == 1) {
+      set_pwm_duty_cycle(PWM_FWD[i-1], adjusted_PWM);
+      set_pwm_duty_cycle(PWM_BWD[i-1], adjusted_PWM);
+    }
     
   }
 
-  Serial.print(vt);
-  Serial.print(" ");
-  Serial.print(velFilt[0]);
-  Serial.print(" ");
-  Serial.print(velFilt[1]);
-  Serial.print(" ");
-  Serial.print(velFilt[2]);
-  Serial.print(" ");
-  Serial.print(velFilt[3]);
-  Serial.println();
   delay(1);
 }
 
 void setup() {
   Serial.begin(115200);
   // Setup SPI inteFRace
-  setup_pwm(); 
+  // setup_pwm(); 
   init_i2c();
-  setState(STOPPED);
   init_encoders();
   init_RPM_timer();
 }
@@ -81,15 +71,6 @@ void setup1() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-  //drive_all_motors_init(100);
-  Serial.print(200);
-  Serial.print(", ");
-  Serial.print(-10);
-  Serial.print(", ");
-
-  Serial.println(getMotorRPM(0));
-  Serial.println(FL_speed_pulses);
 
   if (Serial.available() > 0) {
       char command = Serial.read();
@@ -107,62 +88,60 @@ void loop() {
   //float vel2 = getMotorRPM(2); 
   switch(getState()) {
     case 1: // Turning
+      PID_controller();
       reset_encoders();
       turn_pulses = turn_theta(10);
-      if (FL_turn_pulses != turn_pulses) {
+      if (abs(getAvgPulsesLeft() - getAvgPulsesRight()) < turn_pulses ) {
           // Continue turning
       } else {
           // Turning complete, move to the next state
-          setState(RECEIVING);
       }
       break;
 
     case 2: // Pivoting
+      PID_controller();
       reset_encoders();
       pivot_pulses = pivot_theta(turning_angle) / 2;
-      if (FL_turn_pulses != pivot_pulses) {
+      if (getAvgPulsesLeft() < pivot_pulses && getAvgPulsesRight() < pivot_pulses) {
           // Continue pivoting
       } else {
           // Pivot complete, move to the next state
-          setState(RECEIVING);
       }
       break;
 
     case 3: // Striaght 
       PID_controller();
-      setTarget(80); // arg is RPM
-      drive_straight();
-      //Serial.println(vel2);
-
-
-      // Serial.print(digitalRead(ENCODER_FL));
-      // Serial.print(digitalRead(ENCODER_FR));
-      // Serial.print(digitalRead(ENCODER_BL));
-      // Serial.print(digitalRead(ENCODER_BR));
-
-      // Serial.print("Front Left ");
-      // Serial.print(FL_speed_pulses);
-      // Serial.print(" ");
-      // Serial.print("Back Left ");
-      // Serial.print(BL_speed_pulses);
-      // Serial.print(" ");
-      // Serial.print("Front Right ");
-      // Serial.print(FR_speed_pulses);
-      // Serial.print(" ");
-      // Serial.print("Back Right ");
-      // Serial.println(BR_speed_pulses);
-
+      setTarget(30); // arg is RPM
       break;
 
     case 4: // Stopped
-      PID_controller();
-      setTarget(0);
       stop_motors();
       break;
 
     case 5: // Recieving
-      // Todo
       break;
+
+    case 6: // Left
+      setTarget(30);
+      PID_controller();
+      break;
+
+    case 7: // Right
+      setTarget(30);
+      PID_controller();
+      break;
+
+    case 8: // Forward
+      setTarget(30);
+      PID_controller();
+      break;
+
+    case 9: // Backward
+      setTarget(30);
+      PID_controller();
+      break;
+
+      
 
     default:
       // Todo
@@ -177,24 +156,59 @@ void setTarget(int target) {
 void handleSerialCommand(char command) {
     switch (command) {
         case '1':
-            setState(ANGLE);
-            Serial.println("Set state to ANGLE");
-            break;
+          setState(ANGLE);
+          Serial.println("Set state to ANGLE");
+          break;
 
         case '2':
-            setState(PIVOT);
-            Serial.println("Set state to PIVOT");
-            break;
+          setState(PIVOT);
+          Serial.println("Set state to PIVOT");
+          break;
 
         case '3':
-            setState(STRAIGHT);
-            Serial.println("Set state to STRAIGHT");
-            break;
+          setState(STRAIGHT);
+          Serial.println("Set state to STRAIGHT");
+          break;
 
         case '4':
-            setState(STOPPED);
-            Serial.println("Set state to STOPPED");
-            break;
+          setState(STOPPED);
+          Serial.println("Set state to STOPPED");
+          break;
+
+        case '5':
+          setState(RECEIVING);
+          Serial.println("Set state to RECEIVING");
+          break;
+
+        case '6':
+          setState(LEFT);
+          drive_left();
+          Serial.println("Set state to LEFT");
+          break;
+
+        case '7':
+          setState(RIGHT);
+          drive_right();
+          Serial.println("Set state to RIGHT");
+          break;
+
+        case '8':
+          setState(FORWARD);
+          drive_forwards();
+          Serial.println("Set state to FORWARD");
+          break;
+
+        case '9':
+          setState(BACKWARD);
+          drive_backwards();
+          Serial.println("Set state to BACKWARD");
+          break;
+       
+        case '0':
+          setState(STOPPED);
+          drive_backwards();
+          Serial.println("Set state to STOPPED");
+          break;
 
         default:
             Serial.println("Invalid command. Available commands: 1, 2, 3, 4");

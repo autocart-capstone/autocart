@@ -80,6 +80,14 @@ float getMotorRPM(int mtr_index) {
   return motor_RPM[mtr_index];
 }
 
+int getAvgPulsesLeft() {
+  return (FL_turn_pulses + BL_turn_pulses) / 2;
+}
+
+int getAvgPulsesRight() {
+  return (FR_turn_pulses + BR_turn_pulses) / 2;
+}
+
 // Never use Serial.print inside this mbed ISR. Will hang the system
 void TimerHandler(uint alarm_num) {
 
