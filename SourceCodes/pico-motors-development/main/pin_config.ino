@@ -184,11 +184,11 @@ void control_right_motors(float T_PWM, float B_PWM) {
 
 
 // Getter function for the 'state' variable
-enum states getState() {
+States getState() {
   return state;
 }
 
 // Setter function for the 'state' variable
-void setState(enum states newState) {
+void setState(States newState) {
   state = newState;
 }

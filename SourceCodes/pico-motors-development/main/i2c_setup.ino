@@ -21,38 +21,26 @@ int received_data[3];
 
 // Function to receive data
 void receiveEvent(int bytes) {
-  int index = 0;
+  int c = 0;
   while (mywire.available()) {
     // Read received byte
-    int c = mywire.read();
-    // Store received byte in array
-    received_data[index++] = c;
+    c = mywire.read();
   }
 
   // Process received data
-  processMessage(received_data); // Assuming 3 elements in tuple
+  processMessage((States) c);
 }
 
-void processMessage(int* data) {
+void processMessage(States state) {
   // Print received tuple elements
 
-  turning_angle = (data[MSB_ANGLE_INDEX] << 8) | (data[LSB_ANGLE_INDEX]);
-  Serial.print("Angle: ");
-  Serial.println(turning_angle);
-  
-  turning_distance = data[DISTANCE_INDEX];
-
-  Serial.print("Distance: ");
-  Serial.println(turning_distance);
-  Serial.println();
-
-  if (turning_distance == STOP_SIGNAL)
+  if (state > BACKWARD)
   {
-    setState(STOPPED);
+    Serial.print("Invalid state input");
+    Serial.print(state);
   }
   else
   {
-    drive_straight(70);
-    setState(PIVOT);
+    setState(state);
   }
 }

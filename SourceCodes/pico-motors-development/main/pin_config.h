@@ -1,19 +1,19 @@
 #ifndef PIN_CONFIG_H
 #define PIN_CONFIG_H
 
-enum states {
-	ANGLE = 1, 
-	PIVOT = 2, 
-	STRAIGHT = 3, 
-	STOPPED = 4,
-  RECEIVING = 5, // Default state
-  LEFT = 6,
-  RIGHT = 7, 
-  FORWARD = 8,
-  BACKWARD = 9
-};
+typedef enum{
+	STOP = 0,
+  LEFT,
+  RIGHT,
+  FORWARD,
+  BACKWARD,
+  ANGLE,
+  PIVOT,
+  STRAIGHT,
+  RECEIVING
+} States ;
 
-enum states state = RECEIVING;
+States state = STOP;
 
 // FWD of the board is USB connection
 
@@ -81,8 +81,8 @@ int pivot_theta(float angle);
 
 int turn_theta(float angle);
 
-void setState(enum states newState);
+void setState(States newState);
 
-states getState();
+States getState();
 
 #endif

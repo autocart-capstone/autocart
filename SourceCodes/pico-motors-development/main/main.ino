@@ -87,63 +87,24 @@ void loop() {
 
   //float vel2 = getMotorRPM(2); 
   switch(getState()) {
-    case 1: // Turning
-      PID_controller();
-      reset_encoders();
-      turn_pulses = turn_theta(10);
-      if (abs(getAvgPulsesLeft() - getAvgPulsesRight()) < turn_pulses ) {
-          // Continue turning
-      } else {
-          // Turning complete, move to the next state
-      }
-      break;
-
-    case 2: // Pivoting
-      PID_controller();
-      reset_encoders();
-      pivot_pulses = pivot_theta(turning_angle) / 2;
-      if (getAvgPulsesLeft() < pivot_pulses && getAvgPulsesRight() < pivot_pulses) {
-          // Continue pivoting
-      } else {
-          // Pivot complete, move to the next state
-      }
-      break;
-
-    case 3: // Striaght 
-      setTarget(30); // arg is RPM
-      break;
-
-    case 4: // Stopped
+    case STOP:
       stop_motors();
       break;
 
-    case 5: // Recieving
+    case LEFT:
+      drive_left();
       break;
 
-    case 6: // Left
-      setTarget(30);
-      PID_controller();
+    case RIGHT:
+      drive_right();
       break;
 
-    case 7: // Right
-      setTarget(30);
-      PID_controller();
+    case FORWARD:
+      drive_forwards();
       break;
 
-    case 8: // Forward
-      setTarget(30);
-      PID_controller();
-      break;
-
-    case 9: // Backward
-      setTarget(30);
-      PID_controller();
-      break;
-
-      
-
-    default:
-      // Todo
+    case BACKWARD:
+      drive_backwards();
       break;
   }
 }
@@ -170,7 +131,7 @@ void handleSerialCommand(char command) {
           break;
 
         case '4':
-          setState(STOPPED);
+          setState(STOP);
           Serial.println("Set state to STOPPED");
           break;
 
@@ -204,7 +165,7 @@ void handleSerialCommand(char command) {
           break;
        
         case '0':
-          setState(STOPPED);
+          setState(STOP);
           drive_backwards();
           Serial.println("Set state to STOPPED");
           break;
