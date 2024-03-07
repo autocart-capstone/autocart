@@ -1,7 +1,7 @@
 #include "sound_transmit.h"
 #include <I2S.h>
-//#include "src/sound_/samples/sound_samplesA.h"
-#include "src/sound_samples/sound_samplesB.h"
+#include "src/sound_samples/sound_samplesA.h"
+//#include "src/sound_samples/sound_samplesB.h"
 //#include "src/sound_samples/sound_samplesC.h"
 
 I2S i2s_out(OUTPUT);
