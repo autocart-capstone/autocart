@@ -110,7 +110,6 @@ void loop() {
       break;
 
     case 3: // Striaght 
-      PID_controller();
       setTarget(30); // arg is RPM
       break;
 

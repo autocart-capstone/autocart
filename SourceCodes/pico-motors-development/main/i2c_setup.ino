@@ -52,6 +52,7 @@ void processMessage(int* data) {
   }
   else
   {
+    drive_straight(70);
     setState(PIVOT);
   }
 }
