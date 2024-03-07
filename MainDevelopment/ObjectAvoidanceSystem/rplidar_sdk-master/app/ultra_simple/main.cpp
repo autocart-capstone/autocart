@@ -101,7 +101,13 @@ void ctrlc(int)
 }
 
 int main(int argc, const char * argv[]) {
-    createConnection();
+    ClientSocket python_socket = createConnection("127.0.0.1", "8080");
+    char* matlab_ip = getenv("MATLAB_PC_IP");
+    if (!matlab_ip) {
+        printf("MATLAB_PC_IP environment variable enmpty!\n");
+        exit(1);
+    }
+    ClientSocket matlab_socket = createConnection(matlab_ip, "8081");
 
 	const char * opt_is_channel = NULL; 
 	const char * opt_channel = NULL;
@@ -295,7 +301,8 @@ int main(int argc, const char * argv[]) {
                     datapoint.degrees = (nodes[pos].angle_z_q14 * 90.f) / 16384.f;
                     datapoint.distance = nodes[pos].dist_mm_q2/4.0f;
                     datapoint.quality = 47;
-                    sendValues(datapoint);
+                    sendValues(&python_socket, datapoint);
+                    sendValues(&matlab_socket, datapoint);
 		    
 		    printf("%s theta: %03.2f Dist: %08.2f Q: %d \n", 
                     (nodes[pos].flag & SL_LIDAR_RESP_HQ_FLAG_SYNCBIT) ?"S ":"  ", 
@@ -323,7 +330,8 @@ on_finished:
         delete drv;
         drv = NULL;
     }
-    closeConnection();
+    closeConnection(python_socket);
+    closeConnection(matlab_socket);
     return 0;
 }
 
