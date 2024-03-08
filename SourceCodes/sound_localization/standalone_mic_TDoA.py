@@ -4,8 +4,8 @@ import sounddevice as sd
 import asyncio
 from websockets.server import serve
 
-noiseA = np.load("misc/filtered_noiseA.npy") 
-noiseB = np.load("misc/filtered_noiseB.npy") 
+noiseA = np.load("misc/filtered_noiseA.npy")
+noiseB = np.load("misc/filtered_noiseB.npy")
 noiseC = np.load("misc/filtered_noiseC.npy")
 # 172.17.185.143
 # A = 29.25 inch
@@ -20,6 +20,7 @@ assert A[0] == 0 and A[1] == 0
 assert B[0] > 0 and B[1] == 0
 assert C[1] > 0
 
+
 def correlate_and_find_delay(rec, noise, name):
     # rec_padded = np.pad(rec, (len(noise), 0), 'constant', constant_values=0)
     # print(rec)
@@ -30,10 +31,10 @@ def correlate_and_find_delay(rec, noise, name):
     # print(rec_fft.shape, noise_fft_conj.shape)
     cross_corr_freq = noise_fft_conj * rec_fft
     cross_corr = np.abs(np.fft.irfft(cross_corr_freq))
-    
-    #valid_len = diff + 1
-    #cross_corr = cross_corr[:valid_len]
-    
+
+    # valid_len = diff + 1
+    # cross_corr = cross_corr[:valid_len]
+
     # print(cross_corr)
     plt.plot(cross_corr)
     plt.title("correlation " + name)
@@ -46,13 +47,12 @@ def correlate_and_find_delay(rec, noise, name):
 
 
 def fangs_algorithm_TDoA(ta, tb, tc):
-
     Nw = len(noiseA)
     # The correlation wraps around, this can cause issues when 1 val is close to index 0, and the other close to Nw
     # assume the tdoa is always less than Nw/2, if not then substract 1 val Nw, this should bring substraction back in the range
     # substracting the largest value by Nw makes it negative
-    #tab = min([ta-tb, ta-tb-Nw, ta-tb+Nw], key=lambda x: abs(x))
-    #tac = min([ta-tc, ta-tc-Nw, ta-tc+Nw], key=lambda x: abs(x))
+    # tab = min([ta-tb, ta-tb-Nw, ta-tb+Nw], key=lambda x: abs(x))
+    # tac = min([ta-tc, ta-tc-Nw, ta-tc+Nw], key=lambda x: abs(x))
 
     ## Fang's algorithm, gotten from the PDF (in the repo or at https://ieeexplore.ieee.org/document/102710)
     c = 343  # speed of wave in medium, speed of sound=343 m/s
@@ -68,10 +68,10 @@ def fangs_algorithm_TDoA(ta, tb, tc):
 
     Rab = cTa - cTb
     Rac = cTa - cTc
-    #Rab = c*tab
-    #Rac = c*tac
+    # Rab = c*tab
+    # Rac = c*tac
 
-    #avoid division by zero, just make em real small
+    # avoid division by zero, just make em real small
     if Rab == 0.0:
         Rab = 1e-5
     if Rac == 0.0:
@@ -88,12 +88,12 @@ def fangs_algorithm_TDoA(ta, tb, tc):
 
     z = 0
     x = np.roots([d, e, f - z**2])  # eq 9a
-    x = x[abs(x.imag) < 1e-5] #ignore imaginary roots
+    x = x[abs(x.imag) < 1e-5]  # ignore imaginary roots
     y = g * x + h  # eq 13
-    #print(x, y)
+    # print(x, y)
 
     guesses = np.transpose([x, y])
-    #print(guesses)
+    # print(guesses)
 
     def err(g):
         # calculate what sort of time deltas would be seen with this guess
@@ -105,17 +105,19 @@ def fangs_algorithm_TDoA(ta, tb, tc):
         rac = deltaA - deltaC
         mse = ((rab - Rab) ** 2 + (rac - Rac) ** 2) / 2
         return mse
-    
+
     if len(guesses) == 0:
         return None
-    
+
     best_guess = min(guesses, key=err)
     return best_guess
+
 
 positions_lock = asyncio.Lock()
 positions = {}
 
 audio_buffer_record_index = 0
+
 
 async def main_task():
     Nw = len(noiseA)
@@ -136,33 +138,50 @@ async def main_task():
 
         if audio_buffer_full_event.is_set() or audio_buffer_record_index >= Nw:
             return
-        
+
         length = min(Nw - audio_buffer_record_index, frames)
-        audio_buffer[audio_buffer_record_index: audio_buffer_record_index+length] = indata[:length].flatten()
+        audio_buffer[audio_buffer_record_index : audio_buffer_record_index + length] = (
+            indata[:length].flatten()
+        )
         audio_buffer_record_index += length
 
         if audio_buffer_record_index >= Nw:
-            loop.call_soon_threadsafe(audio_buffer_full_event.set) # signal to other thread it can start processing
+            loop.call_soon_threadsafe(
+                audio_buffer_full_event.set
+            )  # signal to other thread it can start processing
 
-    stream = sd.InputStream(channels=1, samplerate=48000, callback=audio_callback)
+    stream = sd.InputStream(
+        channels=1, samplerate=48000, callback=audio_callback, device="micnode usb"
+    )
     with stream:
         while True:
             await audio_buffer_full_event.wait()
-            
+
             plt.ion()
             plt.figure(1)
             plt.clf()
             ax1 = plt.subplot(231)
-            found_delay1, max1, avg1 = correlate_and_find_delay(audio_buffer, noiseA, "A")
+            found_delay1, max1, avg1 = correlate_and_find_delay(
+                audio_buffer, noiseA, "A"
+            )
             plt.subplot(232, sharey=ax1)
-            found_delay2, max2, avg2 = correlate_and_find_delay(audio_buffer, noiseB, "B")
-            plt.tick_params('y', labelleft=False)
+            found_delay2, max2, avg2 = correlate_and_find_delay(
+                audio_buffer, noiseB, "B"
+            )
+            plt.tick_params("y", labelleft=False)
             plt.subplot(233, sharey=ax1)
-            found_delay3, max3, avg3 = correlate_and_find_delay(audio_buffer, noiseC, "C")
-            plt.tick_params('y', labelleft=False)
+            found_delay3, max3, avg3 = correlate_and_find_delay(
+                audio_buffer, noiseC, "C"
+            )
+            plt.tick_params("y", labelleft=False)
 
             plt.subplot(212)
-            plt.scatter([A[0], B[0], C[0]], [A[1], B[1], C[1]], label="base stations", marker="o")
+            plt.scatter(
+                [A[0], B[0], C[0]],
+                [A[1], B[1], C[1]],
+                label="base stations",
+                marker="o",
+            )
             a = plt.gca()
             a.set_aspect("equal")
             a.set_xlim(a.get_xlim())
@@ -173,36 +192,37 @@ async def main_task():
             tc = found_delay3 / 48000
 
             guessed_position = fangs_algorithm_TDoA(ta, tb, tc)
-            
+
             async with positions_lock:
                 if guessed_position is not None:
-                    positions['self'] = guessed_position
+                    positions["self"] = guessed_position
                 print(positions)
-                for (name, position) in positions.items():
+                for name, position in positions.items():
                     plt.scatter(position[0], position[1], label=name)
-            
+
             plt.legend(loc="center left", bbox_to_anchor=(1.0, 0.5))
             plt.show()
             plt.pause(0.01)
-            
+
             audio_buffer_record_index = 0
             audio_buffer_full_event.clear()
 
+
 async def echo(websocket):
     async for message in websocket:
-        #print("msg: ", message)
+        # print("msg: ", message)
         if websocket.remote_address is not None:
             async with positions_lock:
                 positions[websocket.remote_address] = np.frombuffer(message)
-        
+
 
 async def serve_task():
     async with serve(echo, "0.0.0.0", 8765):
         await asyncio.Future()  # run forever
 
+
 async def yes():
     await asyncio.gather(serve_task(), main_task())
 
+
 asyncio.run(yes())
-
-
