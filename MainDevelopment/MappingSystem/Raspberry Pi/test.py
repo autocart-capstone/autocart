@@ -2,9 +2,12 @@
 import socket
 import sys
 import errno
+import time
 
 HOST = ''                 # Symbolic name meaning all available interfaces
 PORT = 50008           # Arbitrary non-privileged port
+txtfile = "19thjan.txt"
+
 
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -20,17 +23,14 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         with conn:
             print('Connected by', addr)
             
-            data = "HELLO AHMED"
-            conn.sendall(data.encode('utf-8'))        
+            time.sleep(0.8)
             
-            while True:
-                    
-                d = conn.recv(1024)            
-                
-                # If data is not received
-                if d:
-                    print(d.decode())
-                    print(sys.getsizeof(d))
+            for i in range(10):
+                print("sending")
+                data = "   theta: 0.26 Dist: 09528.00 Q: 47 \n"
+                print(data)         
+                conn.sendall(data.encode('utf-8'))  
+                time.sleep(0.8)
                 
     except IOError as e:
         if e.errno == errno.EPIPE:

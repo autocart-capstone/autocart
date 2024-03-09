@@ -5,21 +5,14 @@ import time
 import matplotlib.pyplot as plt
 import math
 
-PORT, HOST_IP = 8080, '127.0.0.1'
+PORT_SDK, HOST_IP_SDK = 8080, '127.0.0.1'
+PORT_matlab, HOST_IP_matlab = 50007, ''
 
 angle_distance_pairs = []
-x_points = []
-y_points = []
-
-plt.ion()
-fig = plt.figure()
-#figure, ax = plt.subplots(figsize=(10,8))
-#line1, = ax.plot(x_points, y_points)
-
 
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.bind((HOST_IP, PORT))
+    s.bind((HOST_IP_SDK, PORT_SDK))
     s.listen()
     print("starting to listen")
     conn, addr = s.accept()
@@ -55,10 +48,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                         distance = values[1]
                         angle = round(values[0])
                         angle_distance_pairs.append((angle, distance))
-                        
-                        x_points.append(distance * math.cos(angle))
-                        y_points.append(distance * math.sin(angle))
-                                                
+    
                         current_time = time.time()
                         measuring_time = current_time - measure_start
                         
@@ -66,28 +56,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     print(angle_distance_pairs)
                     print("-------------")
                         
-                    plt.scatter(x_points, y_points, s=10)
-                    plt.show()
-                    
-                    
-                    fig.canvas.draw()
-                    fig.canvas.flush_events()
-                    
-                        
                     angle_distance_pairs = []
-                    x_points = []
-                    y_points = []
-                        
                     start_time = time.time()
-
-                
-                else:
-                    print(angle_distance_pairs)
-                    angle_distance_pairs = []
-                    print{"------------"}
-
-                    
-                start_time = time.time()
        
                 
                 
