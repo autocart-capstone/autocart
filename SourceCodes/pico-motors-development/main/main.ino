@@ -18,7 +18,7 @@ void PID_controller() {
   prevT = currT; 
 
   //  Apply controller to each motor
-  for (int i = 0; i < 4; i++) {
+  for (int i = 1; i < 4; i++) {
 
     // Get current velocity in RPM (udpates every second on RPM calc interrupt)
     float vel = getMotorRPM(i); 
@@ -46,6 +46,10 @@ void PID_controller() {
     set_pwm_duty_cycle(PWM_FWD[i], adjusted_PWM);
     set_pwm_duty_cycle(PWM_BWD[i], adjusted_PWM);
 
+    Serial.print(i);
+    Serial.print("   |   ");
+    Serial.println(adjusted_PWM);
+
     // Encoder for FL motor broken, set to the same speed as BL motor
     if(i == 1) {
       set_pwm_duty_cycle(PWM_FWD[i-1], adjusted_PWM);
@@ -53,7 +57,16 @@ void PID_controller() {
     }
     
   }
-
+  Serial.print(vt);
+  Serial.print(" ");
+  Serial.print(velFilt[0]);
+  Serial.print(" ");
+  Serial.print(velFilt[1]);
+  Serial.print(" ");
+  Serial.print(velFilt[2]);
+  Serial.print(" ");
+  Serial.print(velFilt[3]);
+  Serial.println();
   delay(1);
 }
 
@@ -71,7 +84,6 @@ void setup1() {
 }
 
 void loop() {
-
   if (Serial.available() > 0) {
       char command = Serial.read();
       handleSerialCommand(command);
@@ -85,25 +97,30 @@ void loop() {
       to after turning is finsihed 
   */
 
-  //float vel2 = getMotorRPM(2); 
+  setTarget(100); 
   switch(getState()) {
+   
     case STOP:
       stop_motors();
       break;
 
     case LEFT:
+      PID_controller();
       drive_left();
       break;
 
     case RIGHT:
+      PID_controller();
       drive_right();
       break;
 
     case FORWARD:
+      PID_controller();
       drive_forwards();
       break;
 
     case BACKWARD:
+      PID_controller();
       drive_backwards();
       break;
   }
@@ -166,8 +183,8 @@ void handleSerialCommand(char command) {
        
         case '0':
           setState(STOP);
-          drive_backwards();
-          Serial.println("Set state to STOPPED");
+          stop_motors();
+          Serial.println("Set state to STOP");
           break;
 
         default:

@@ -7,7 +7,7 @@
 #include "MBED_RPi_Pico_TimerInterrupt.h"
 
 // Period for timer in usec
-#define TIMER_PERIOD 250000L // 1000000L
+#define TIMER_PERIOD 100000L // 1000000L
 
 /* variables to track encoder pulses elapsed for turning */
 volatile int FL_turn_pulses = 0;

@@ -13,11 +13,6 @@ static struct duty_cycles {
 
 static int disabled_gpio_pins[MAX_DISABLED_PINS];
 
-void setup_pwm() {
-  pinMode(PWM_FWD_FL, OUTPUT);
-  set_pwm_duty_cycle(PWM_FWD_FL, 30);
-}
-
 //Temp Function for storing PWM
 void check_and_set_pin(unsigned int pwm_pin, unsigned int duty_cycle) {
   switch (pwm_pin) {
@@ -62,7 +57,7 @@ void set_pwm_duty_cycle(unsigned int pwm_pin, unsigned int duty_cycle) {
   if (check_pin_disabled(pwm_pin)) {
     analogWrite(pwm_pin, 0);
   } else {
-    analogWrite(pwm_pin, duty_cycle/10);  //set duty cycle to passed in value
+    analogWrite(pwm_pin, duty_cycle);  //set duty cycle to passed in value
   }
   check_and_set_pin(pwm_pin, (100 * duty_cycle) / 255);
 }
