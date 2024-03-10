@@ -2,7 +2,6 @@
 //  socket.hpp
 //
 
-
 #ifndef socket_hpp
 #define socket_hpp
 
@@ -13,28 +12,21 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-struct values {
+struct values
+{
     float degrees;
     float distance;
     int quality;
 };
 
-
-struct ClientSocket {
+struct ClientSocket
+{
     int sockfd;
     struct sockaddr_in serv_addr;
 };
 
-
-ClientSocket createConnection(char* ip, char* port);
-int sendValues(ClientSocket* sock, struct values a);
+ClientSocket createConnection(char *ip, char *port);
+void sendValues(ClientSocket *sock, void *a, int size);
 void closeConnection(ClientSocket sock);
 
-
 #endif /* socket_hpp */
-
-
-
-
-
-
