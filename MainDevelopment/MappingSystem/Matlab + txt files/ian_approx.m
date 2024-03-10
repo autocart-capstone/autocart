@@ -3,16 +3,19 @@
 % t = tcpip('172.20.10.11', 50008);
 % fopen(t);
 
-filename = "test475.txt";
-xoff = 24.63;
-yoff = 22.50;
-%angle = 91.5
-angle = 0;
+% filename = "test475.txt";
+% xoff = 24.63;
+% yoff = 22.50;
+% %angle = 91.5
+% angle = 0;
 
-%filename = "test425.txt";
-%xoff = 24.63;
-%yoff = 20.98;
-%angle = 89.5
+
+
+
+filename = "test425.txt";
+xoff = 24.63;
+yoff = 20.98;
+angle = 89.5
 
 %filename = "19thjantest2.txt";
 %xoff = 24.63;
@@ -70,9 +73,10 @@ structures = {
 N_structures = length(structures);
 
 
-segs = [ structures{1}(1:end-1,:) structures{1}(2:end,:) ; structures{2}(1:end-1,:) structures{2}(2:end,:) ; structures{3}(1:end-1,:) structures{3}(2:end,:) ];
-test_pos = makeTestGrid(0.1, structures);
-[measures,walls] = makeTestData(test_pos, segs);
+% segs = [ structures{1}(1:end-1,:) structures{1}(2:end,:) ; structures{2}(1:end-1,:) structures{2}(2:end,:) ; structures{3}(1:end-1,:) structures{3}(2:end,:) ];
+% test_pos = makeTestGrid(0.1, structures);
+% [measures,walls] = makeTestData(test_pos, segs);
+load('ahmed.mat');
 N_testpos = size(test_pos, 1);
 
 angle_list = 0:10:359;
@@ -159,7 +163,6 @@ end
 
 xa = xapprox;
 ya = yapprox;
-% tic
 % 
 % for i = 1:20
 %     message = sprintf('[%.2f, %.2f]', xa, ya);
@@ -227,68 +230,5 @@ function test_pos = makeTestGrid(space, structures)
     test_pos = [ xall(good) yall(good) ];
 end
 
-function [measures,walls] = makeTestData(test_pos, segs)
-    %%% Generate the expected lidar output at each test position
-    N_testpos = size(test_pos, 1);
-
-    measures = zeros(2, 36, N_testpos);
-    walls = zeros(4, N_testpos);
-    for np = 1:N_testpos
-        xt = test_pos(np,1);    % test position x-value
-        yt = test_pos(np,2);    % test position y-value
-
-        measures(:,:,np) = getLidarMeasures(xt, yt, segs);
-
-        walls(1,np) = measures(1, 1,np) + xt; % right wall
-        walls(2,np) = measures(2,10,np) + yt; % top wall
-        walls(3,np) = measures(1,19,np) + xt; % left wall
-        walls(4,np) = measures(2,28,np) + yt; % bottom wall
-    end
-end
-
-function measures = getLidarMeasures(xs, ys, segs)
-    % Get xy-coordinates of the point where each lidar beam hits an object
-    angle_deg = 0:10:359;
-    angle_rad = deg2rad(angle_deg);
-
-    % Find the distance to the nearest intersection point with the structures
-    d = myintersect(xs,ys, cos(angle_rad),sin(angle_rad), segs);
-    measures = [ d.*cos(angle_rad) ; ...
-                 d.*sin(angle_rad) ];
-end
-
-function d = myintersect(xs,ys, dx,dy, segs)
-    % Find distance to where line from (xs,ys) in direction (dx,dy)
-    % intersects the line segment from p1=(x1,y1) to p2=(x2,y2)
-    % Returns infinity if they do not intersect.
-
-    % Shift origin and shape into column vectors
-    x1 = reshape(segs(:,1), [], 1) - xs;
-    y1 = reshape(segs(:,2), [], 1) - ys;
-    x2 = reshape(segs(:,3), [], 1) - xs;
-    y2 = reshape(segs(:,4), [], 1) - ys;
-
-    % Convert beam directions into row vectors
-    dx = reshape(dx, 1, []); %%ROW VECTOR [dx1 dx2 dx3..... dxN]
-    dy = reshape(dy, 1, []); %%ROW VECTOR [dy1 dy2 dy3..... dyN]
-
-    % Calculate projections
-    d1 = x1.*dx + y1.*dy;       % distance along beam to closest point to p1 %%multiply column by row
-    d2 = x2.*dx + y2.*dy;       % distance along beam to closest point to p2
-
-    % Calculate projection error
-    b1 = y1.*dx - x1.*dy;       % distance from beam to p1
-    b2 = y2.*dx - x2.*dy;       % distance from beam to p2
-
-    % Calculate distance to intersection point
-    r = abs(b2) ./ (abs(b1) + abs(b2));
-    d = d2 + r.*(d1-d2);
-    d(b1.*b2 > 0) = inf;        % beam misses if errors have same sign
-    d(d < 0) = inf;             % beam misses if distance is negative
-
-    % Find nearest intersection point for each beam
-    d = min(d);
-    %disp(d);
-end
 
 

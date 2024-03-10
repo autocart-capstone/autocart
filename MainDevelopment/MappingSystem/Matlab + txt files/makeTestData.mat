@@ -1,0 +1,18 @@
+function [measures,walls] = makeTestData(test_pos, segs)
+    %%% Generate the expected lidar output at each test position
+    N_testpos = size(test_pos, 1);
+
+    measures = zeros(2, 36, N_testpos);
+    walls = zeros(4, N_testpos);
+    for np = 1:N_testpos
+        xt = test_pos(np,1);    % test position x-value
+        yt = test_pos(np,2);    % test position y-value
+
+        measures(:,:,np) = getLidarMeasures(xt, yt, segs);
+
+        walls(1,np) = measures(1, 1,np) + xt; % right wall
+        walls(2,np) = measures(2,10,np) + yt; % top wall
+        walls(3,np) = measures(1,19,np) + xt; % left wall
+        walls(4,np) = measures(2,28,np) + yt; % bottom wall
+    end
+end
