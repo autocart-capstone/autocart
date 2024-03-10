@@ -1,18 +1,19 @@
 #include "sound_transmit.h"
 #include <I2S.h>
 #include "src/sound_samples/sound_samplesA.h"
-//#include "src/sound_samples/sound_samplesB.h"
-//#include "src/sound_samples/sound_samplesC.h"
+// #include "src/sound_samples/sound_samplesB.h"
+// #include "src/sound_samples/sound_samplesC.h"
 
 I2S i2s_out(OUTPUT);
-const int sampleRate = 48000;
+const int sampleRate = 50000;
 
 size_t sound_out_ind = SOUND_SAMPLES_LEN; // silence at first
 uint64_t last_interrupt_ticks = 0;        // Number of CPU cycles since the last "onTransmit" interrupt
 uint32_t samples_to_skip = 0;             // amount of samples to skip before sending samples
-int32_t divider = 1; // makes sound less loud
+int32_t divider = 1;                      // makes sound less loud
 
-void set_sound_divider(int div) {
+void set_sound_divider(int div)
+{
   divider = div;
 }
 
@@ -78,15 +79,16 @@ void start_transmitting_sound()
   // [s s s s] [s s s s] [s s s s] [e e e e]
   //    ^                             ^
   //    cur time                      start transmitting here
-  // want to start transmitting at cur time, but empty samples (0s) already submitted for the next few buffer. 
+  // want to start transmitting at cur time, but empty samples (0s) already submitted for the next few buffer.
   // In the next available buffer, delay sound transmission by 2 samples
   // This is for consistency, this way we always transmit x samples late (x=numbuffers*numsamplesinbuffer).
   float skip = ((float)tick_diff * ((float)sampleRate / (float)rp2040.f_cpu()));
   samples_to_skip = (uint32_t)skip;
-  //Serial.printf("delaying by %i samples\n", samples_to_skip);
+  // Serial.printf("delaying by %i samples\n", samples_to_skip);
 }
 
-void stop_transmitting_sound(){
+void stop_transmitting_sound()
+{
   sound_out_ind = SOUND_SAMPLES_LEN; // silence at first
 }
 
