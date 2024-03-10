@@ -97,11 +97,13 @@ void loop() {
       to after turning is finsihed 
   */
 
-  setTarget(100); 
+  setTarget(100);
+
   switch(getState()) {
    
     case STOP:
-      stop_motors();
+      setTarget(0);
+      PID_controller(); 
       break;
 
     case LEFT:
