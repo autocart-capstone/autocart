@@ -48,6 +48,7 @@ bool check_pin_disabled(unsigned int pin) {
 void drive_all_motors_init(uint8_t duty_cycle) {
   for (int i = 0; i < NUM_MOTORS; i++) {
     set_pwm_duty_cycle(PWM_FWD[i], duty_cycle);
+    set_pwm_duty_cycle(PWM_BWD[i], duty_cycle);
   }
 }
 
@@ -96,29 +97,16 @@ void stop_motors() {
 
 
 void pivot_left() {
+  int pins_to_disable[] = { PWM_FWD_FL, PWM_FWD_BL, PWM_BWD_FR, PWM_BWD_BR };
+  memcpy(disabled_gpio_pins, pins_to_disable, sizeof(pins_to_disable));
 
-  /* Drive left side backwards*/
-  digitalWrite(DIRECTION_FL, LOW);
-  digitalWrite(DIRECTION_BL, HIGH);
-
-  /* Drive right side forwards*/
-  digitalWrite(DIRECTION_FR, HIGH);
-  digitalWrite(DIRECTION_BR, LOW);
-
-  // Stub for detecting when we have turned 90 deg
 }
 
 
 void pivot_right() {
-  /* Drive left side forwards*/
-  digitalWrite(DIRECTION_FL, HIGH);
-  digitalWrite(DIRECTION_BL, LOW);
+  int pins_to_disable[] = { PWM_FWD_FR, PWM_FWD_BR, PWM_BWD_FL, PWM_BWD_BL };
+  memcpy(disabled_gpio_pins, pins_to_disable, sizeof(pins_to_disable));
 
-  /* Drive right side backwards*/
-  digitalWrite(DIRECTION_FR, LOW);
-  digitalWrite(DIRECTION_BR, HIGH);
-
-  // Stub for detecting when we have turned 90 deg
 }
 
 
@@ -185,5 +173,6 @@ States getState() {
 
 // Setter function for the 'state' variable
 void setState(States newState) {
+  reset_encoders();
   state = newState;
 }

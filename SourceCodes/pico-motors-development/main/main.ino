@@ -84,6 +84,16 @@ void setup1() {
 }
 
 void loop() {
+
+  //drive_all_motors_init(100);
+  Serial.print(200);
+  Serial.print(", ");
+  Serial.print(-10);
+  Serial.print(", ");
+
+  Serial.println(getMotorRPM(0));
+  Serial.println(FL_speed_pulses);
+  
   if (Serial.available() > 0) {
       char command = Serial.read();
       handleSerialCommand(command);
@@ -102,27 +112,49 @@ void loop() {
   switch(getState()) {
    
     case STOP:
+      stop_motors();
       setTarget(0);
-      PID_controller(); 
+     // PID_controller(); 
       break;
 
     case LEFT:
-      PID_controller();
+    /*
+     // PID_controller();
+      drive_all_motors_init(120);
       drive_left();
       break;
+      */
+      drive_all_motors_init(120);
+      pivot_pulses = pivot_theta(90) / 2;
+      pivot_left();
+      if (getAvgPulsesLeft() < pivot_pulses && getAvgPulsesRight() < pivot_pulses) {
+          // Continue pivoting
+      } else {
+          setState(STOP);
+      }
+      break;
+
 
     case RIGHT:
-      PID_controller();
-      drive_right();
+      drive_all_motors_init(120);
+      pivot_pulses = pivot_theta(90) / 2;
+      pivot_right();
+      if (getAvgPulsesLeft() < pivot_pulses && getAvgPulsesRight() < pivot_pulses) {
+          // Continue pivoting
+      } else {
+          setState(STOP);
+      }
       break;
 
     case FORWARD:
-      PID_controller();
+      //PID_controller();
+      drive_all_motors_init(120);
       drive_forwards();
       break;
 
     case BACKWARD:
-      PID_controller();
+      //PID_controller();
+      drive_all_motors_init(120);
       drive_backwards();
       break;
   }
