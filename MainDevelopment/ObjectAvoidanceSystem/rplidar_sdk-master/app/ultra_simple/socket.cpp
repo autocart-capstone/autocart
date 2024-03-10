@@ -44,6 +44,11 @@ ClientSocket createConnection(char *ip, char *port)
     return sock;
 }
 
+int sendValuesPY(ClientSocket* sock, struct values a) {
+    int n = send(sock->sockfd, &a, sizeof(a), 0);
+    return 0;
+}
+
 void sendValues(ClientSocket *sock, void *a, int size)
 {
     int n = send(sock->sockfd, a, size, 0);

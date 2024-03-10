@@ -46,7 +46,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     data_to_send = (msb,lsb, round(lowestDistance/10))
                     data = bytes(data_to_send)
                     print(list(data))
-                    bus.write_i2c_block_data(address, 0, list(data))
+                    #bus.write_i2c_block_data(address, 0, list(data))
                     
                     start_time = time.time()
                     lowestDistance = -1

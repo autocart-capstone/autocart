@@ -316,6 +316,7 @@ int main(int argc, const char *argv[])
                 datapoint.degrees = (nodes[pos].angle_z_q14 * 90.f) / 16384.f;
                 datapoint.distance = nodes[pos].dist_mm_q2 / 4.0f;
                 datapoint.quality = nodes[pos].quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT;
+                
                 bool flag = nodes[pos].flag & SL_LIDAR_RESP_HQ_FLAG_SYNCBIT;
 
                 printf("%s theta: %03.2f Dist: %08.2f Q: %d \n",
@@ -324,13 +325,13 @@ int main(int argc, const char *argv[])
                        datapoint.distance,
                        datapoint.quality);
 
-                if (datapoint.quality > 0 && datapoint.distance < 6.0f) // Ahmed says anything above 6m is bad
+                if (datapoint.quality > 0 && datapoint.distance < 6000.f) // Ahmed says anything above 6m is bad
                 {
                     datapoints.push_back(datapoint);
+                    sendValuesPY(&python_socket, datapoint);
                 }
             }
-            sendValues(&python_socket, static_cast<void *>(datapoints.data()), datapoints.size());
-            sendValues(&matlab_socket, static_cast<void *>(datapoints.data()), datapoints.size());
+            sendValues(&matlab_socket, static_cast<void *>(datapoints.data()), 12 * datapoints.size());
         }
 
         if (ctrl_c_pressed)

@@ -27,6 +27,7 @@ struct ClientSocket
 
 ClientSocket createConnection(char *ip, char *port);
 void sendValues(ClientSocket *sock, void *a, int size);
+int sendValuesPY(ClientSocket* sock, struct values a);
 void closeConnection(ClientSocket sock);
 
 #endif /* socket_hpp */
