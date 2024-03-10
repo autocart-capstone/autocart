@@ -17,7 +17,7 @@ structures = {
 segs = [ structures{1}(1:end-1,:) structures{1}(2:end,:) ; structures{2}(1:end-1,:) structures{2}(2:end,:) ; structures{3}(1:end-1,:) structures{3}(2:end,:) ];
 test_pos = makeTestGrid(0.1, structures);
 [measures,walls] = makeTestData(test_pos, segs);
-save('ahmed.mat','measures','walls','test_pos');
+save('ahmed.mat','measures','walls','test_pos','structures');
 function test_pos = makeTestGrid(space, structures)
     %%% Make the test grid
     %     space: separation between points in the test grid (in metres)
