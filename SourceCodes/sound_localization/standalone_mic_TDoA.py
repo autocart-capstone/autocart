@@ -3,6 +3,28 @@ import matplotlib.pyplot as plt
 import sounddevice as sd
 import asyncio
 from websockets.server import serve
+import socket
+import struct
+
+# Host and port of the server (Raspberry Pi)
+SERVER_HOST = '127.0.0.1'
+SERVER_PORT = 8080
+# Create a socket object
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# Connect to the server
+s.connect((SERVER_HOST, SERVER_PORT))
+
+def send_position_via_socket(position):
+    try:
+        # Convert position to bytes
+        data_to_send = struct.pack('ff', float(position[0]), float(position[1]))
+
+        # Send position data
+        s.sendall(data_to_send)
+    except Exception as e:
+        print("Error sending position via socket:", e)
+
+#################################################################################
 
 noiseA = np.load("misc/filtered_noiseA.npy")
 noiseB = np.load("misc/filtered_noiseB.npy")
@@ -151,7 +173,7 @@ async def main_task():
             )  # signal to other thread it can start processing
 
     stream = sd.InputStream(
-        channels=1, samplerate=48000, callback=audio_callback, device="micnode usb"
+        channels=1, samplerate=48000, callback=audio_callback
     )
     with stream:
         while True:
@@ -196,6 +218,7 @@ async def main_task():
             async with positions_lock:
                 if guessed_position is not None:
                     positions["self"] = guessed_position
+                    send_position_via_socket(guessed_position)  #Send to simplesocket.py
                 print(positions)
                 for name, position in positions.items():
                     plt.scatter(position[0], position[1], label=name)
