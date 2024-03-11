@@ -12,6 +12,12 @@ void setup()
   digitalWrite(LED_BUILTIN, 1);
   while (!Serial)
     ; // delay long enough for serial to get set up
+  String str = Serial.readStringUntil('\n');
+  str.trim();
+  if (str != "freq") {
+    Serial.println("did not get freq");
+    while (true);
+  }
   int fs = Serial.readStringUntil('\n').toInt();
   fs = std::clamp(fs, 8000, 50000);
 
@@ -26,7 +32,13 @@ void loop()
 {
   if (Serial.available() > 0)
   {
-    int num_samples = Serial.readStringUntil('\n').toInt();
+    String str = Serial.readStringUntil('\n');
+    str.trim();
+    if (str == "freq") {
+      String _freq = Serial.readStringUntil('\n'); // skip freq reading
+      return;
+    }
+    int num_samples = str.toInt();
     for (int i = 0; i < num_samples; i++)
     {
       int16_t sample = get_sample();
