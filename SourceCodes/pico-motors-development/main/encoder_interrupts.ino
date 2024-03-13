@@ -22,7 +22,7 @@ volatile int FR_speed_pulses = 0;
 volatile int BR_speed_pulses = 0;
 
 // FL, BL, FR, BR
-float motor_RPM[4] = {0, 0, 0, 0};
+float motor_RPM[NUM_MOTORS] = {0, 0, 0, 0};
 
 void init_encoders() {
 
@@ -78,6 +78,15 @@ void BR_encoder_IRQHandler() {
 
 float getMotorRPM(int mtr_index) {
   return motor_RPM[mtr_index];
+}
+
+bool check_all_motor_RPM(int RPM) {
+  for(int i = 1; i < NUM_MOTORS; i++) {
+    if(getMotorRPM(i) != RPM) {
+      return false;
+    }
+  }
+  return true;
 }
 
 int getAvgPulsesLeft() {

@@ -24,6 +24,7 @@ void init_RPM_timer();
 void reset_encoders();
 
 float getMotorRPM(int mtr_index);
+bool check_all_motor_RPM(int RPM);
 
 int getAvgPulsesLeft();
 int getAvgPulsesRight();

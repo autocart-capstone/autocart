@@ -63,8 +63,6 @@ void set_pwm_duty_cycle(unsigned int pwm_pin, unsigned int duty_cycle) {
   check_and_set_pin(pwm_pin, (100 * duty_cycle) / 255);
 }
 
-  // PROBLEM IS WITH SETTING THEM TO INPUT OR OUTPUT TO DISABLE, NEED TO FIND ANOTHER WAY TO CONTROL THIS
-
 void drive_forwards() {
   int pins_to_disable[] = { PWM_BWD_FL, PWM_BWD_BL, PWM_BWD_FR, PWM_BWD_BR }; 
   memcpy(disabled_gpio_pins, pins_to_disable, sizeof(pins_to_disable));
@@ -77,8 +75,6 @@ void drive_backwards() {
 }
 
 void drive_left() {
-  Serial.println("Disabled Pins are: PWM_FWD_FL, PWM_FWD_BR, PWM_BWD_BL, PWM_BWD_FR ");
-  
   int pins_to_disable[] = { PWM_FWD_FL, PWM_FWD_BR, PWM_BWD_BL, PWM_BWD_FR };
   memcpy(disabled_gpio_pins, pins_to_disable, sizeof(pins_to_disable));
 }
@@ -99,19 +95,14 @@ void stop_motors() {
 void pivot_left() {
   int pins_to_disable[] = { PWM_FWD_FL, PWM_FWD_BL, PWM_BWD_FR, PWM_BWD_BR };
   memcpy(disabled_gpio_pins, pins_to_disable, sizeof(pins_to_disable));
-
 }
-
 
 void pivot_right() {
   int pins_to_disable[] = { PWM_FWD_FR, PWM_FWD_BR, PWM_BWD_FL, PWM_BWD_BL };
   memcpy(disabled_gpio_pins, pins_to_disable, sizeof(pins_to_disable));
-
 }
 
-
 int pivot_theta(float angle) {
-
   bool turning_right = false;
 
   if (angle > 270) {
@@ -131,7 +122,6 @@ int pivot_theta(float angle) {
 
 // Calculations for two wheels (prototype)
 int turn_theta(float angle) {
-
   bool turning_right = false;
 
   if (angle > 270) {
@@ -153,18 +143,15 @@ int turn_theta(float angle) {
   return pulses;
 }
 
-
 void control_left_motors(float T_PWM, float B_PWM) {
   set_pwm_duty_cycle(PWM_FWD_FL, T_PWM);
   set_pwm_duty_cycle(PWM_FWD_BL, B_PWM);
 }
 
-
 void control_right_motors(float T_PWM, float B_PWM) {
   set_pwm_duty_cycle(PWM_FWD_FR, T_PWM);
   set_pwm_duty_cycle(PWM_FWD_BR, B_PWM);
 }
-
 
 // Getter function for the 'state' variable
 States getState() {

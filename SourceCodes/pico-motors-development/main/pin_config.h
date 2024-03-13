@@ -6,7 +6,9 @@ typedef enum{
   LEFT,
   RIGHT,
   FORWARD,
-  BACKWARD,
+  BACKWARD,  
+  PLEFT,  // pivot
+  PRIGHT, // pivot
   ANGLE,
   PIVOT,
   STRAIGHT,
