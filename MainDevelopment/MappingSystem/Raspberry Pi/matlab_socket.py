@@ -2,9 +2,13 @@
 import socket
 import sys
 import errno
+import struct
 
-HOST = ''                 # Symbolic name meaning all available interfaces
-PORT = 50008           # Arbitrary non-privileged port
+HOST = '0.0.0.0'                 # Symbolic name meaning all available interfaces
+PORT = 8003          # Arbitrary non-privileged port
+
+array = [1.3,2.0, 1.3,3.9]
+size = len(array)
 
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -16,26 +20,17 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     
     conn, addr = s.accept()
     
-    try:
-        with conn:
-            print('Connected by', addr)
+    
+    with conn:
+        print('Connected by', addr)
             
-            data = "HELLO AHMED"
-            conn.sendall(data.encode('utf-8'))        
-            
-            while True:
-                    
-                d = conn.recv(1024)            
+        z = struct.pack('I', size)
+        conn.sendall(z)
+        conn.sendall(struct.pack(f'{len(array)}f', *array))
+
+        print(z)
                 
-                # If data is not received
-                if d:
-                    print(d.decode())
-                    print(sys.getsizeof(d))
-                
-    except IOError as e:
-        if e.errno == errno.EPIPE:
-            pass
                 
     
                 
-conn.close()
+
