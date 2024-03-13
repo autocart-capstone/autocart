@@ -16,13 +16,18 @@
 struct values {
     float degrees;
     float distance;
-    int quality;
 };
 
 
-void createConnection();
-int sendValues(struct values a);
-void closeConnection();
+struct ClientSocket {
+    int sockfd;
+    struct sockaddr_in serv_addr;
+};
+
+
+ClientSocket createConnection(char* ip, char* port);
+int sendValues(ClientSocket* sock, struct values a);
+void closeConnection(ClientSocket sock);
 
 
 #endif /* socket_hpp */

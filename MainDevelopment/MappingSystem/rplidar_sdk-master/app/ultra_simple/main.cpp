@@ -101,7 +101,8 @@ void ctrlc(int)
 }
 
 int main(int argc, const char * argv[]) {
-    createConnection();
+    ClientSocket python_socket = createConnection("127.0.0.1", "8080");
+    
 
 	const char * opt_is_channel = NULL; 
 	const char * opt_channel = NULL;
@@ -284,18 +285,17 @@ int main(int argc, const char * argv[]) {
         if (SL_IS_OK(op_result)) {
             drv->ascendScanData(nodes, count);
             for (int pos = 0; pos < (int)count ; ++pos) {
-		    printf("%s theta: %03.2f Dist: %08.2f Q: %d \n", 
+		printf("%s theta: %03.2f Dist: %08.2f Q: %d \n", 
                     (nodes[pos].flag & SL_LIDAR_RESP_HQ_FLAG_SYNCBIT) ?"S ":"  ", 
                     (nodes[pos].angle_z_q14 * 90.f) / 16384.f,
                     nodes[pos].dist_mm_q2/4.0f,
                     nodes[pos].quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT);
-	    
-                if(((((nodes[pos].angle_z_q14 * 90.f) / 16384.f) > 270) || (((nodes[pos].angle_z_q14 * 90.f) / 16384.f) <60)) && (nodes[pos].quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT == 47)) {
+		int quality = nodes[pos].quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT;
+                if(quality > 0) {
                     struct values datapoint;
                     datapoint.degrees = (nodes[pos].angle_z_q14 * 90.f) / 16384.f;
                     datapoint.distance = nodes[pos].dist_mm_q2/4.0f;
-                    datapoint.quality = 47;
-                    sendValues(datapoint);
+                    sendValues(&python_socket, datapoint);
 		    
 		    printf("%s theta: %03.2f Dist: %08.2f Q: %d \n", 
                     (nodes[pos].flag & SL_LIDAR_RESP_HQ_FLAG_SYNCBIT) ?"S ":"  ", 
@@ -323,7 +323,7 @@ on_finished:
         delete drv;
         drv = NULL;
     }
-    closeConnection();
+    closeConnection(python_socket);
     return 0;
 }
 
