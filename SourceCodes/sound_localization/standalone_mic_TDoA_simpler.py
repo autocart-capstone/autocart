@@ -1,4 +1,5 @@
 import numpy as np
+import scipy as sp
 import matplotlib.pyplot as plt
 import serial
 
@@ -13,8 +14,9 @@ noiseC = np.load("misc/filtered_noiseC.npy")
 # Cx = 108 - 29.25 = 78.75 = 2.00025 meters
 # Cy = 188 = 4.7752 meters
 A = np.array([0, 0])
-B = np.array([0.8382, 0])
-C = np.array([0.8382 / 2, 0.7112])
+
+B = np.array([0.82, 0])
+C = np.array([0.82/2, 0.551])
 
 assert A[0] == 0 and A[1] == 0
 assert B[0] > 0 and B[1] == 0
@@ -113,6 +115,12 @@ def fangs_algorithm_TDoA(ta, tb, tc):
     best_guess = min(guesses, key=err)
     return best_guess
 
+def plot_spect(sound):
+  f, t, Sxx = sp.signal.spectrogram(sound, 50000)
+  plt.pcolormesh(t, f, Sxx, shading='gouraud')
+  plt.ylabel('Frequency [Hz]')
+  plt.xlabel('Time [sec]')
+  plt.ylim((1000, 5000))
 
 positions = {}
 
@@ -155,22 +163,22 @@ def main_task():
             plt.ion()
             plt.figure(1)
             plt.clf()
-            ax1 = plt.subplot(231)
+            ax1 = plt.subplot(431)
             found_delay1, max1, avg1 = correlate_and_find_delay(
                 sound, noiseA, "A"
             )
-            plt.subplot(232, sharey=ax1)
+            plt.subplot(432, sharey=ax1)
             found_delay2, max2, avg2 = correlate_and_find_delay(
                 sound, noiseB, "B"
             )
             plt.tick_params("y", labelleft=False)
-            plt.subplot(233, sharey=ax1)
+            plt.subplot(433, sharey=ax1)
             found_delay3, max3, avg3 = correlate_and_find_delay(
                 sound, noiseC, "C"
             )
             plt.tick_params("y", labelleft=False)
 
-            plt.subplot(212)
+            plt.subplot(412)
             plt.scatter(
                 [A[0], B[0], C[0]],
                 [A[1], B[1], C[1]],
@@ -217,6 +225,14 @@ def main_task():
 
             plt.gca().set_aspect("equal")
             plt.legend(loc="center left", bbox_to_anchor=(1.0, 0.5))
+            plt.subplot(437)
+            plot_spect(noiseA)
+            plt.subplot(438)
+            plot_spect(noiseB)
+            plt.subplot(439)
+            plot_spect(noiseC)
+            plt.subplot(4,3,11)
+            plot_spect(sound)
             plt.show()
             plt.pause(0.01)
 
