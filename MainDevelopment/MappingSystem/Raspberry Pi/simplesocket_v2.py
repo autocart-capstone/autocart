@@ -19,7 +19,7 @@ class SimpleSocketRpi():
         self.buf = []
 
     def connect_socket(self):
-        self.m.bind(('0.0.0.0', 8003))
+        self.m.bind(('0.0.0.0', 8002))
         self.m.listen(1)
         
         print("starting to listen to matlab")
@@ -73,6 +73,7 @@ def main():
 
     while True:
         data = ss.receive_data_from_lidar()
+        data = values = struct.unpack('ff', data)
 
         curr_angle = data[0]    # Assuming first elem is angle
 
@@ -81,16 +82,16 @@ def main():
         matlab_pos = ss.receive_data_from_matlab()
         if matlab_pos:
             matlab_ready = True
-            a = matlab_pos.decode().split()
+            a = matlab_pos.decode().strip().split()
             x = float(a[0])
             y = float(a[1])
-            print(x,y)
+            print(f"received (x,y): ({x},{y})")
 
         if curr_angle < prev_angle: # If we finish one revolution
-            print("matlab ready:", matlab_ready)
             if matlab_ready:
                 #Send buffer to matlab socket
-                print(ss.get_buffer())
+                #print(ss.get_buffer())
+                print("sent data to Matlab")
                 ss.send_data_to_matlab()
                 matlab_ready = False
 
