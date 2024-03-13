@@ -2,6 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import serial
 
+guessed_positions = []
+
 noiseA = np.load("misc/filtered_noiseA.npy")
 noiseB = np.load("misc/filtered_noiseB.npy")
 noiseC = np.load("misc/filtered_noiseC.npy")
@@ -12,7 +14,7 @@ noiseC = np.load("misc/filtered_noiseC.npy")
 # Cy = 188 = 4.7752 meters
 A = np.array([0, 0])
 B = np.array([0.8382, 0])
-C = np.array([0.8382/2, 0.7112])
+C = np.array([0.8382 / 2, 0.7112])
 
 assert A[0] == 0 and A[1] == 0
 assert B[0] > 0 and B[1] == 0
@@ -78,19 +80,20 @@ def fangs_algorithm_TDoA(ta, tb, tc):
     # variable names correspond to those in the paper
 
     g = (Rac * b / Rab - cx) / cy
-    h = (c**2 - Rac**2 + Rac * Rab * (1 - (b / Rab) ** 2)) / (2 * cy)
+    h = (c ** 2 - Rac ** 2 + Rac * Rab * (1 - (b / Rab) ** 2)) / (2 * cy)
 
-    d = -(1 - (b / Rab) ** 2 + g**2)
+    d = -(1 - (b / Rab) ** 2 + g ** 2)
     e = b * (1 - (b / Rab) ** 2) - 2 * g * h
-    f = (Rab**2 / 4) * (1 - (b / Rab) ** 2) ** 2 - h**2
+    f = (Rab ** 2 / 4) * (1 - (b / Rab) ** 2) ** 2 - h ** 2
 
     z = 0
-    x = np.roots([d, e, f - z**2])  # eq 9a
+    x = np.roots([d, e, f - z ** 2])  # eq 9a
     x = x[abs(x.imag) < 1e-5]  # ignore imaginary roots
     y = g * x + h  # eq 13
     # print(x, y)
 
     guesses = np.transpose([x, y])
+
     # print(guesses)
 
     def err(g):
@@ -113,22 +116,41 @@ def fangs_algorithm_TDoA(ta, tb, tc):
 
 positions = {}
 
+
 def main_task():
     Nw = len(noiseA)
     sound = np.zeros(Nw)
 
-    with serial.Serial("/dev/ttyACM0", 115200) as ser:
+    with serial.Serial("COM11", 115200) as ser:
         # ser.set_buffer_size(rx_size = 8192)
         ser.write(b"freq\n")
-        #print(ser.readline())
+        # print(ser.readline())
         ser.write(f"{50000}\n".encode())
-        #print(ser.readline())
-        #num_samples = int(Fs)
+        # print(ser.readline())
+        # num_samples = int(Fs)
         while True:
+            draw_button_on = 0
+            clear_button_on = 0
+
             ser.write(f"{Nw}\n".encode())
-            #print(size)
-            num_bytes = Nw*2 # 2 bytes per sample
+            # print(size)
+
+            a = ser.readline()  # For draw button
+            a_dec = a.decode('utf-8').strip()
+
+            a1 = ser.readline()  # For clear button
+            a1_dec = a1.decode('utf-8').strip()
+
+            num_bytes = Nw * 2  # 2 bytes per sample
             b = ser.read(num_bytes)
+
+            # Button stuff
+            if a_dec == "press":
+                draw_button_on = 1
+
+            if a1_dec == "cleared":
+                clear_button_on = 1
+
             sound = np.frombuffer(b, dtype="<i2")
             plt.ion()
             plt.figure(1)
@@ -170,11 +192,33 @@ def main_task():
                 positions["self"] = guessed_position
             print(positions)
             for name, position in positions.items():
+                plt.figure(1)
                 plt.scatter(position[0], position[1], label=name)
 
+            if draw_button_on == 1:
+                print("THE DRAWING BUTTON IS WORKING!!")
+                guessed_positions.append(guessed_position)
+                print(guessed_positions)
+
+                x_elem = [x[0] for x in guessed_positions]
+                y_elem = [x[1] for x in guessed_positions]
+
+                plt.figure(2)
+                plt.scatter(x_elem, y_elem)
+                # plt.gca().set_aspect("equal")
+                # plt.legend(loc="center left", bbox_to_anchor=(1.0, 0.5))
+                plt.show()
+                plt.pause(0.01)
+
+            if clear_button_on == 1:
+                print("THE CLEAR BUTTON IS WORKING!!")
+                plt.figure(2)
+                plt.clf()
+
+            plt.gca().set_aspect("equal")
             plt.legend(loc="center left", bbox_to_anchor=(1.0, 0.5))
             plt.show()
             plt.pause(0.01)
-    
+
 
 main_task()
