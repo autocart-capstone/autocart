@@ -1,7 +1,7 @@
 """
 Pseudocode:
 Setup c++ socket connection to the C++ SDK
-Read data coming from the SDK whenever current angle is less than previous angle:
+Read data coming from t)e SDK whenever current angle is less than previous angle:
 Store it in buffer(dynamic buffer) (1 revolution has 1200 samples)
 Make sure matlab is done processing and ready to grab new data values
 Send buffer contents (data: angle, distance) to matlab socket connection
@@ -19,7 +19,7 @@ class SimpleSocketRpi():
         self.buf = []
 
     def connect_socket(self):
-        self.m.bind(('0.0.0.0', 8004))
+        self.m.bind(('0.0.0.0', 8003))
         self.m.listen(1)
         
         print("starting to listen to matlab")
@@ -39,8 +39,8 @@ class SimpleSocketRpi():
 
 
     def send_data_to_matlab(self):
-        self.matlab_conn.sendall(struct.pack('I', len(dataList)))
-        self.matlab_conn.sendall(struct.pack(f'{len(dataList)}f', *dataList))
+        self.matlab_conn.sendall(struct.pack('I', len(self.buf)))
+        self.matlab_conn.sendall(struct.pack(f'{len(self.buf)}f', *self.buf))
 
     def receive_data_from_matlab(self):
         try:
@@ -56,7 +56,7 @@ class SimpleSocketRpi():
         return d
 
     def save_data_to_buffer(self, data: tuple):
-        self.buf += [data]
+        self.buf += data
 
     def get_buffer(self):
         return self.buf
@@ -69,7 +69,7 @@ def main():
     ss.connect_socket()
     curr_angle = 0
     prev_angle = curr_angle
-    matlab_ready = False
+    matlab_ready = True
 
     while True:
         data = ss.receive_data_from_lidar()
@@ -87,6 +87,7 @@ def main():
             print(x,y)
 
         if curr_angle < prev_angle: # If we finish one revolution
+            print("matlab ready:", matlab_ready)
             if matlab_ready:
                 #Send buffer to matlab socket
                 print(ss.get_buffer())
