@@ -1,5 +1,39 @@
-%!python echoserver.py &
+1;
 
+function [distance, theta, quality] = parse_data1(filename)
+    data = fileread(filename);
+
+    % Read data file, and skip header and blank line at end
+    loadedData = strsplit(data, newline);
+    loadedData = loadedData(7:end-1);
+    %display(loadedData);
+
+    % Extract angle, distance, and quality
+    data = cellfun(@(S) sscanf(S, "%*[^:]: %g %*[^:]: %g %*[^:]: %g %*[^\n]"), ...
+        loadedData, 'UniformOutput', false);
+    data = reshape(cell2mat(data), 3, []);
+    theta = data(1,:);
+    distance = data(2,:);
+    quality = data(3,:);
+    distance = distance/1000;
+end
+
+function [distance, theta, quality] = parse_data2(filename)
+    fileID = fopen(filename);
+
+    % Read data file, and skip header and blank line at end
+    %loadedData = strsplit(data, newline);
+    %loadedData = loadedData(7:end-1);
+    %display(loadedData);
+
+    data = textscan(fileID, '%*s%f%*s%f%*s%d', 'HeaderLines', 7);
+    fclose(fileID);
+
+    theta = data{1};
+    distance = data{2};
+    quality = data{3};
+    distance = distance/1000;
+end
 % t = tcpip('172.20.10.11', 50008);
 % fopen(t);
 
@@ -18,31 +52,17 @@ angle = 89.5
 %xoff = 24.63;
 %yoff =  7.98;
 %angle = 0;
-
-% Read data file, and skip header and blank line at end
-file = fopen(filename);
-
-% Read data file, and skip header and blank line at end
-loadedData = textscan(file, "%s", 'delimiter', '\n'){1};
-loadedData = loadedData(7:end-1);
-%display(loadedData);
-fclose(file);
-
-% Extract angle, distance, and quality
-data = cellfun(@(S) sscanf(S, "%*[^:]: %g %*[^:]: %g %*[^:]: %g %*[^\n]"), ...
-    loadedData, 'UniformOutput', false);
-data = reshape(cell2mat(data), 3, []);
-theta_raw = data(1,:);
-distance = data(2,:);
-quality = data(3,:);
-distance = distance/1000;
-theta_fixed = mod((360 - theta_raw) - 91.5, 360);
+display("Data parse time:");
+tic
+[distance, theta, quality] = parse_data2(filename);
+toc
+theta_fixed = mod((360 - theta) - 91.5, 360);
 % Filter out data points with quality equal to 0
 idx = (quality ~= 0 & distance < 6);
 theta_fixed = theta_fixed(idx);
 distance = distance(idx);
 
-
+tic
 % Sort theta values
 [theta_fixed, idx] = sort(theta_fixed);
 distance = distance(idx);
@@ -88,9 +108,9 @@ for nx = 1:length(angle_list)
         mean_distance(nx) = mean(distance(idx));
     end
 end
-
 minmetric = zeros(1, 36);
 minidx = zeros(1, 36);
+tic
 for na = 1:length(angle_list)
     new_counts = circshift(counts, na-1);
     new_mean_distance = circshift(mean_distance, na-1);
@@ -101,12 +121,10 @@ for na = 1:length(angle_list)
     end
 
     weights = new_counts ./ sum(new_counts);
-
     metric = squeeze(sum(sum((measures - real_data).^2).*weights));
-
     [minmetric(na),minidx(na)] = min(metric);
 end
-
+toc
 [~,fidx] = min(minmetric);
 
 pidx = minidx(fidx);
@@ -165,7 +183,7 @@ ya = yapprox;
 % char(bytes3)
 % fclose(t);
 
-dodraw = true;
+dodraw = false;
 x_new = xoff + distance.*cosd(theta_fixed+angle_list(fidx));
 y_new = yoff + distance.*sind(theta_fixed+angle_list(fidx));
 if dodraw
@@ -195,4 +213,4 @@ if dodraw
     hold off
 end
 
-
+toc

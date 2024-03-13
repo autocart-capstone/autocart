@@ -3,19 +3,19 @@
 % t = tcpip('172.20.10.11', 50008);
 % fopen(t);
 
-% filename = "test475.txt";
-% xoff = 24.63;
-% yoff = 22.50;
-% %angle = 91.5
-% angle = 0;
-
-
-
-
-filename = "test425.txt";
+filename = "test475.txt";
 xoff = 24.63;
-yoff = 20.98;
-angle = 89.5
+yoff = 22.50;
+%angle = 91.5
+angle = 0;
+
+
+
+
+% filename = "test425.txt";
+% xoff = 24.63;
+% yoff = 20.98;
+% angle = 89.5;
 
 %filename = "19thjantest2.txt";
 %xoff = 24.63;
@@ -33,13 +33,18 @@ data = reshape(cell2mat(data), 3, []);
 theta_raw = data(1,:);
 distance = data(2,:);
 quality = data(3,:);
+% idx = find(diff(theta_raw));
+% idx = idx(1):idx(2);
+% theta_raw = data(1,idx);
+% distance = data(2,idx);
+% quality = data(3,idx);
+
 distance = distance/1000;
-theta_fixed = mod((360 - theta_raw) - 91.5, 360);
+theta_fixed = mod((360 - theta_raw) - angle, 360);
 % Filter out data points with quality equal to 0
 idx = (quality ~= 0 & distance < 6);
 theta_fixed = theta_fixed(idx);
 distance = distance(idx);
-
 
 % Sort theta values
 [theta_fixed, idx] = sort(theta_fixed);
