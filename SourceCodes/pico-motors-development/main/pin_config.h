@@ -3,16 +3,11 @@
 
 typedef enum{
 	STOP = 0,
-  LEFT,
-  RIGHT,
+  PIVOT_LEFT,
+  PIVOT_RIGHT,
   FORWARD,
-  BACKWARD,  
-  PLEFT,  // pivot
-  PRIGHT, // pivot
-  ANGLE,
-  PIVOT,
-  STRAIGHT,
-  RECEIVING
+  BACKWARD,
+  ADJUST
 } States ;
 
 States state = STOP;

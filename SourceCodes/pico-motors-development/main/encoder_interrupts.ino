@@ -103,15 +103,15 @@ void TimerHandler(uint alarm_num) {
   // Always call this for MBED RP2040 before processing ISR
   TIMER_ISR_START(alarm_num);
 
-    motor_RPM[0] = calculate_RPM(FL_speed_pulses);
-		motor_RPM[1] = calculate_RPM(BL_speed_pulses);
-		motor_RPM[2] = calculate_RPM(FR_speed_pulses);
-		motor_RPM[3] = calculate_RPM(BR_speed_pulses);
-		
-		FL_speed_pulses = 0;
-		BL_speed_pulses = 0;
-		FR_speed_pulses = 0;
-		BR_speed_pulses = 0;
+  motor_RPM[0] = calculate_RPM(FL_speed_pulses);
+	motor_RPM[1] = calculate_RPM(BL_speed_pulses);
+	motor_RPM[2] = calculate_RPM(FR_speed_pulses);
+	motor_RPM[3] = calculate_RPM(BR_speed_pulses);
+	
+	FL_speed_pulses = 0;
+	BL_speed_pulses = 0;
+	FR_speed_pulses = 0;
+	BR_speed_pulses = 0;
 		
   // Always call this for MBED RP2040 after processing ISR
   TIMER_ISR_END(alarm_num);

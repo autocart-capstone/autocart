@@ -120,47 +120,28 @@ void loop() {
       }
       break;
 
-    case PLEFT:
-    /*
-     // PID_controller();
+    case PIVOT_LEFT:
       drive_all_motors_init(120);
-      drive_left();
-      break;
-      */
-      // drive_all_motors_init(120);
-      pivot_pulses = pivot_theta(90) / 2;
+      pivot_pulses = pivot_theta(90) / 2; /*TODO: ADJUST ALGORITHM FOR TURNING*/
       pivot_left();
       if (getAvgPulsesLeft() < pivot_pulses && getAvgPulsesRight() < pivot_pulses) {
           // Continue pivoting
       } else {
-          setState(STOP);
+          setState(FORWARD);
       }
       break;
 
-
-    case PRIGHT:
-      // drive_all_motors_init(120);
-      pivot_pulses = pivot_theta(90) / 2;
+    case PIVOT_RIGHT:
+      drive_all_motors_init(120);
+      pivot_pulses = pivot_theta(90) / 2; /*TODO: ADJUST ALGORITHM FOR TURNING*/
       pivot_right();
       if (getAvgPulsesLeft() < pivot_pulses && getAvgPulsesRight() < pivot_pulses) {
           // Continue pivoting
       } else {
-          setState(STOP);
+          setState(FORWARD);
       }
       break;
 
-    case LEFT:
-      PID_controller();
-      setTarget(30);
-      //drive_all_motors_init(120);
-      drive_left();
-      break;
-    case RIGHT:
-      PID_controller();
-      setTarget(30);
-      //drive_all_motors_init(120);
-      drive_right();
-      break;
     case FORWARD:
       PID_controller();
       setTarget(30);
@@ -174,6 +155,13 @@ void loop() {
       //drive_all_motors_init(120);
       drive_backwards();
       break;
+
+    case ADJUST:
+      //On-the-fly adjustment with received angle. 
+      turn_theta(get_turning_angle());
+      setState(FORWARD);
+      break;
+      
   }
 }
 
@@ -196,37 +184,47 @@ void handleSerialCommand(char command) {
           break;
 
         case '4':
+          //Adjust in the right direction 30 degrees.
+          set_turning_angle(30);
+          break;
+
+        case '5':
+          //Adjust in the left direction 30 degrees. 
+          set_turning_angle(330);
+          break;
+
+        case '6':
           setState(STOP);
           Serial.println("Set state to STOPPED");
           break;
 
-        case '5':
-          setState(RECEIVING);
-          Serial.println("Set state to RECEIVING");
-          break;
-
-        case '6':
-          setState(LEFT);
-          drive_left();
-          Serial.println("Set state to LEFT");
-          break;
-
         case '7':
-          setState(RIGHT);
-          drive_right();
-          Serial.println("Set state to RIGHT");
+          setState(PIVOT_LEFT);
+          drive_left();
+          Serial.println("Set state to PIVOT_LEFT");
           break;
 
         case '8':
+          setState(PIVOT_RIGHT);
+          drive_right();
+          Serial.println("Set state to PIVOT_RIGHT");
+          break;
+
+        case '9':
           setState(FORWARD);
           drive_forwards();
           Serial.println("Set state to FORWARD");
           break;
 
-        case '9':
+        case '10':
           setState(BACKWARD);
           drive_backwards();
           Serial.println("Set state to BACKWARD");
+          break;
+
+        case '11':
+          setState(ADJUST);
+          Serial.println("Set state to ADJUST");
           break;
        
         case '0':
@@ -235,7 +233,7 @@ void handleSerialCommand(char command) {
           break;
 
         default:
-            Serial.println("Invalid command. Available commands: 1, 2, 3, 4");
+            Serial.println("Invalid command. Available commands: 0, 1, 2, 3, 4, ... 11");
             break;
     }
 }
