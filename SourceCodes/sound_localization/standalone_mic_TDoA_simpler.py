@@ -17,6 +17,7 @@ A = np.array([0, 0])
 
 B = np.array([0.82, 0])
 C = np.array([0.82/2, 0.551])
+Z_MIC_RELATIVE_TO_SPEAKERS = 0.195
 
 assert A[0] == 0 and A[1] == 0
 assert B[0] > 0 and B[1] == 0
@@ -88,7 +89,7 @@ def fangs_algorithm_TDoA(ta, tb, tc):
     e = b * (1 - (b / Rab) ** 2) - 2 * g * h
     f = (Rab ** 2 / 4) * (1 - (b / Rab) ** 2) ** 2 - h ** 2
 
-    z = 0
+    z = Z_MIC_RELATIVE_TO_SPEAKERS
     x = np.roots([d, e, f - z ** 2])  # eq 9a
     x = x[abs(x.imag) < 1e-5]  # ignore imaginary roots
     y = g * x + h  # eq 13
@@ -163,22 +164,22 @@ def main_task():
             plt.ion()
             plt.figure(1)
             plt.clf()
-            ax1 = plt.subplot(431)
+            ax1 = plt.subplot(231)
             found_delay1, max1, avg1 = correlate_and_find_delay(
                 sound, noiseA, "A"
             )
-            plt.subplot(432, sharey=ax1)
+            plt.subplot(232, sharey=ax1)
             found_delay2, max2, avg2 = correlate_and_find_delay(
                 sound, noiseB, "B"
             )
             plt.tick_params("y", labelleft=False)
-            plt.subplot(433, sharey=ax1)
+            plt.subplot(233, sharey=ax1)
             found_delay3, max3, avg3 = correlate_and_find_delay(
                 sound, noiseC, "C"
             )
             plt.tick_params("y", labelleft=False)
 
-            plt.subplot(412)
+            plt.subplot(212)
             plt.scatter(
                 [A[0], B[0], C[0]],
                 [A[1], B[1], C[1]],
@@ -215,24 +216,23 @@ def main_task():
                 plt.scatter(x_elem, y_elem)
                 # plt.gca().set_aspect("equal")
                 # plt.legend(loc="center left", bbox_to_anchor=(1.0, 0.5))
-                plt.show()
-                plt.pause(0.01)
 
             if clear_button_on == 1:
                 print("THE CLEAR BUTTON IS WORKING!!")
+                guessed_positions.clear()
                 plt.figure(2)
                 plt.clf()
 
             plt.gca().set_aspect("equal")
             plt.legend(loc="center left", bbox_to_anchor=(1.0, 0.5))
-            plt.subplot(437)
+            """ plt.subplot(437)
             plot_spect(noiseA)
             plt.subplot(438)
             plot_spect(noiseB)
             plt.subplot(439)
             plot_spect(noiseC)
             plt.subplot(4,3,11)
-            plot_spect(sound)
+            plot_spect(sound) """
             plt.show()
             plt.pause(0.01)
 
