@@ -54,6 +54,8 @@ const int PWM_FWD[4] = {PWM_FWD_FL, PWM_FWD_BL, PWM_FWD_FR, PWM_FWD_BR};
 const int PWM_BWD[4] = {PWM_BWD_FL, PWM_BWD_BL, PWM_BWD_FR, PWM_BWD_BR};
 const int directions[4] = {DIRECTION_FL, DIRECTION_BL, DIRECTION_FR, DIRECTION_BR};
 
+extern bool stateChange;
+
 void setup_pwm();
 
 void drive_all_motors_init(uint8_t duty_cycle);

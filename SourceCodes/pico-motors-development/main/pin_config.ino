@@ -161,5 +161,6 @@ States getState() {
 // Setter function for the 'state' variable
 void setState(States newState) {
   reset_encoders();
+  stateChange = true;
   state = newState;
 }

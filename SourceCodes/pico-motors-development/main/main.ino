@@ -12,6 +12,10 @@ static float velPrev[4] = {0, 0, 0, 0};
 static float eintegral[4] = {0, 0, 0, 0}; 
 static float uPrevious[4] = {0, 0, 0, 0};
 
+static int adjusted_PWMs[4] = {0, 0, 0, 0};
+
+bool stateChange = true;
+
 /* Method needs to be tested to ensure that we can hit 0 RPM and target RPM on each motor */
 void PID_controller() {
   long currT = micros();
@@ -20,30 +24,26 @@ void PID_controller() {
 
   //  Apply controller to each motor
   for (int i = 1; i < 4; i++) {
-    float u;
-    
-    if(vt == 0) {
-      u = 0;
-    } else {
-      // Get current velocity in RPM (udpates every second on RPM calc interrupt)
-      float vel = getMotorRPM(i); 
+    // Get current velocity in RPM (udpates every second on RPM calc interrupt)
+    noInterrupts();
+    float vel = getMotorRPM(i); 
+    interrupts();
 
-      // Low-pass filter (25 Hz cutoff)
-      velFilt[i] = 0.854*velFilt[i] + 0.0728*vel + 0.0728*velPrev[i];
-      velPrev[i] = vel;
+    // Low-pass filter (25 Hz cutoff)
+    velFilt[i] = 0.854*velFilt[i] + 0.0728*vel + 0.0728*velPrev[i];
+    velPrev[i] = vel;
 
-      /* -------- Proportional Component -------- */
-      float kp = 0.28; // proportional constant, needs to be tuned. increasing provides more power
-      float e = vt - velFilt[i]; // error
+    /* -------- Proportional Component -------- */
+    float kp = 0.7; // proportional constant, needs to be tuned. increasing provides more power
+    float e = vt - velFilt[i]; // error
 
-      /* -------- Integral Component -------- */
-      float ki = 2; // Integral constant. increasing provides more power
-      eintegral[i] = eintegral[i] + e*deltaT; // Update integral with difference
+    /* -------- Integral Component -------- */
+    float ki = 2; // Integral constant. increasing provides more power
+    eintegral[i] = eintegral[i] + e*deltaT; // Update integral with difference
 
-      u = (kp*e) + (ki*eintegral[i]); // Control signal
-    }
-    
+    float u = (kp*e) + (ki*eintegral[i]); // Control signal
     uPrevious[i] = u;  
+    
     int adjusted_PWM = (int) u;
     // u is positive, meaning we need to speed up
     if(adjusted_PWM > 0) {
@@ -52,17 +52,20 @@ void PID_controller() {
       adjusted_PWM = uPrevious[i] - u;
     }
 
-    // Set the PWM, and update struct
-    set_pwm_duty_cycle(PWM_FWD[i], adjusted_PWM);
-    set_pwm_duty_cycle(PWM_BWD[i], adjusted_PWM);
+    adjusted_PWMs[i] = adjusted_PWM;
+  }
+
+  for(int i = 1; i < NUM_MOTORS; i++) {
+    set_pwm_duty_cycle(PWM_FWD[i], adjusted_PWMs[i]);
+    set_pwm_duty_cycle(PWM_BWD[i], adjusted_PWMs[i]);
 
     // Encoder for FL motor broken, set to the same speed as BL motor
     if(i == 1) {
-      set_pwm_duty_cycle(PWM_FWD[i-1], adjusted_PWM);
-      set_pwm_duty_cycle(PWM_BWD[i-1], adjusted_PWM);
+      set_pwm_duty_cycle(PWM_FWD[i-1], adjusted_PWMs[i]);
+      set_pwm_duty_cycle(PWM_BWD[i-1], adjusted_PWMs[i]);
     }
-    
   }
+
   Serial.print(vt);
   Serial.print(", ");
   Serial.print(velFilt[0]);
@@ -84,13 +87,9 @@ void setup() {
   init_RPM_timer();
 }
 
-void setup1() {
-  Serial.begin(115200);
-}
-
 void loop() {
 
-  // //drive_all_motors_init(100);
+  //drive_all_motors_init(100);
   Serial.print(200);
   Serial.print(", ");
   Serial.print(-10);
@@ -112,8 +111,11 @@ void loop() {
   switch(getState()) {
    
     case STOP:
+      stateChange = false;
+
       if(check_all_motor_RPM(0)) {
         stop_motors();
+        PID_controller(); 
       } else {
         PID_controller(); 
         setTarget(0);
@@ -121,7 +123,8 @@ void loop() {
       break;
 
     case PIVOT_LEFT:
-      drive_all_motors_init(120);
+      stateChange = false;
+
       pivot_pulses = pivot_theta(90) / 2; /*TODO: ADJUST ALGORITHM FOR TURNING*/
       pivot_left();
       if (getAvgPulsesLeft() < pivot_pulses && getAvgPulsesRight() < pivot_pulses) {
@@ -132,7 +135,8 @@ void loop() {
       break;
 
     case PIVOT_RIGHT:
-      drive_all_motors_init(120);
+      stateChange = false;
+
       pivot_pulses = pivot_theta(90) / 2; /*TODO: ADJUST ALGORITHM FOR TURNING*/
       pivot_right();
       if (getAvgPulsesLeft() < pivot_pulses && getAvgPulsesRight() < pivot_pulses) {
@@ -143,23 +147,37 @@ void loop() {
       break;
 
     case FORWARD:
-      PID_controller();
-      setTarget(30);
-      //drive_all_motors_init(120);
+      if(stateChange) {
+        kickStartMotors();
+        stateChange = false;
+      }
       drive_forwards();
+      PID_controller();
+      setTarget(60);
+      //drive_all_motors_init(120);
       break;
 
     case BACKWARD:
-      PID_controller();
-      setTarget(30);
-      //drive_all_motors_init(120);
+      if(stateChange) {
+        kickStartMotors();
+        stateChange = false;
+      }
       drive_backwards();
+      PID_controller();
+      setTarget(60);
+      //drive_all_motors_init(120);
       break;
 
     case ADJUST:
-      //On-the-fly adjustment with received angle. 
-      turn_theta(get_turning_angle());
-      setState(FORWARD);
+      stateChange = false;
+      // On-the-fly adjustment with received angle. 
+      // Might need to move this to set state method for integration so we dont keep reading new updates 
+      turn_pulses = turn_theta(get_turning_angle()); 
+      if (fabs(getAvgPulsesLeft() - getAvgPulsesRight()) < turn_pulses) {
+        // Continue turning
+      } else {
+          setState(FORWARD);
+      }
       break;
       
   }
@@ -169,60 +187,56 @@ void setTarget(int target) {
   vt = target;
 }
 
+void kickStartMotors() {
+  drive_all_motors_init(120);
+  delay(25);
+}
+
 void handleSerialCommand(char command) {
     switch (command) {
         case '1':
-          setTarget(100);
-          break;
-
-        case '2':
           setTarget(0);
           break;
 
-        case '3':
+        case '2':
           setTarget(60);
           break;
 
-        case '4':
+        case '3':
           //Adjust in the right direction 30 degrees.
           set_turning_angle(30);
           break;
 
-        case '5':
+        case '4':
           //Adjust in the left direction 30 degrees. 
           set_turning_angle(330);
           break;
 
-        case '6':
-          setState(STOP);
-          Serial.println("Set state to STOPPED");
-          break;
-
-        case '7':
+        case '5':
           setState(PIVOT_LEFT);
           drive_left();
           Serial.println("Set state to PIVOT_LEFT");
           break;
 
-        case '8':
+        case '6':
           setState(PIVOT_RIGHT);
           drive_right();
           Serial.println("Set state to PIVOT_RIGHT");
           break;
 
-        case '9':
+        case '7':
           setState(FORWARD);
           drive_forwards();
           Serial.println("Set state to FORWARD");
           break;
 
-        case '10':
+        case '8':
           setState(BACKWARD);
           drive_backwards();
           Serial.println("Set state to BACKWARD");
           break;
 
-        case '11':
+        case '9':
           setState(ADJUST);
           Serial.println("Set state to ADJUST");
           break;
@@ -233,11 +247,7 @@ void handleSerialCommand(char command) {
           break;
 
         default:
-            Serial.println("Invalid command. Available commands: 0, 1, 2, 3, 4, ... 11");
+            Serial.println("Invalid command. Available commands: 0, 1, 2, 3, 4, ... 9");
             break;
     }
 }
-
-
-void loop1()
-{}
