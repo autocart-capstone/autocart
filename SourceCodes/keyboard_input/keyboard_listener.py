@@ -21,7 +21,11 @@ while True:
             split = msg.split()
             pressed = split[0] == "pressed"
             if not pressed:
-                bus.write_i2c_block_data(address, 0, list(int.to_bytes(0)))
+                print("Sending STOP")
+                extra_bytes_MSB = list(int.to_bytes(0)) 
+                extra_bytes_LSB = list(int.to_bytes(0)) 
+                data_to_send = extra_bytes_MSB + extra_bytes_LSB + list(int.to_bytes(0))
+                bus.write_i2c_block_data(address, 0, data_to_send)
                 continue
             
             key = split[1] # Key.up/down/left/right
@@ -33,13 +37,25 @@ while True:
             # 0 = stop
             if "up" in key:
                 print(f"up pressed:{pressed}")
-                bus.write_i2c_block_data(address, 0, list(int.to_bytes(3)))
+                extra_bytes_MSB = list(int.to_bytes(0)) 
+                extra_bytes_LSB = list(int.to_bytes(0)) 
+                data_to_send = extra_bytes_MSB + extra_bytes_LSB + list(int.to_bytes(3))
+                bus.write_i2c_block_data(address, 0, data_to_send)
             if "down" in key:
-                print(f"down pressed:{pressed}")
-                bus.write_i2c_block_data(address, 0, list(int.to_bytes(4)))
+                print(f"down pressed:{pressed}")                
+                extra_bytes_MSB = list(int.to_bytes(0)) 
+                extra_bytes_LSB = list(int.to_bytes(0)) 
+                data_to_send = extra_bytes_MSB + extra_bytes_LSB + list(int.to_bytes(4))
+                bus.write_i2c_block_data(address, 0, data_to_send)
             if "right" in key:
                 print(f"right pressed:{pressed}")
-                bus.write_i2c_block_data(address, 0, list(int.to_bytes(2)))
+                extra_bytes_MSB = list(int.to_bytes(0)) 
+                extra_bytes_LSB = list(int.to_bytes(30)) 
+                data_to_send = extra_bytes_MSB + extra_bytes_LSB + list(int.to_bytes(2))
+                bus.write_i2c_block_data(address, 0, data_to_send)
             if "left" in key:
                 print(f"left pressed:{pressed}")
-                bus.write_i2c_block_data(address, 0, list(int.to_bytes(1)))
+                extra_bytes_MSB = list(int.to_bytes(1)) 
+                extra_bytes_LSB = list(int.to_bytes(74)) 
+                data_to_send = extra_bytes_MSB + extra_bytes_LSB + list(int.to_bytes(1))
+                bus.write_i2c_block_data(address, 0, data_to_send)

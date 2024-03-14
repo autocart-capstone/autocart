@@ -66,16 +66,16 @@ void PID_controller() {
     }
   }
 
-  Serial.print(vt);
-  Serial.print(", ");
-  Serial.print(velFilt[0]);
-  Serial.print(", ");
-  Serial.print(velFilt[1]);
-  Serial.print(", ");
-  Serial.print(velFilt[2]);
-  Serial.print(", ");
-  Serial.print(velFilt[3]);
-  Serial.println();
+  // Serial.print(vt);
+  // Serial.print(", ");
+  // Serial.print(velFilt[0]);
+  // Serial.print(", ");
+  // Serial.print(velFilt[1]);
+  // Serial.print(", ");
+  // Serial.print(velFilt[2]);
+  // Serial.print(", ");
+  // Serial.print(velFilt[3]);
+  // Serial.println();
 }
 
 void setup() {
@@ -89,11 +89,11 @@ void setup() {
 
 void loop() {
 
-  //drive_all_motors_init(100);
-  Serial.print(200);
-  Serial.print(", ");
-  Serial.print(-10);
-  Serial.print(", ");
+  // //drive_all_motors_init(100);
+  // Serial.print(200);
+  // Serial.print(", ");
+  // Serial.print(-10);
+  // Serial.print(", ");
   
   if (Serial.available() > 0) {
       char command = Serial.read();
@@ -108,7 +108,7 @@ void loop() {
       to after turning is finsihed 
   */
 
-  switch(getState()) {
+  switch(getState()) {    
    
     case STOP:
       stateChange = false;

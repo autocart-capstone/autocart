@@ -43,23 +43,27 @@ void processMessage(int* data) {
   received_angle = (data[MSB_ANGLE_INDEX] << 8) | (data[LSB_ANGLE_INDEX]);
   Serial.print("Angle: ");
   Serial.println(received_angle);
+  Serial.println(data[STATE_INDEX]);
   Serial.println();
 
   States state = (States)data[STATE_INDEX];
 
-  if (state > BACKWARD)
+  if (state <= BACKWARD)
   {
-    Serial.print("Invalid state input: ");
+    Serial.print("changed state to  ");
     Serial.println(state);
+    setState(state);  
   }
   else if ((received_angle < (previous_angle - 5)) || (received_angle > (previous_angle + 5)))
   {
     //Angle has changed significantly, set state to adjusting. 
+    Serial.println("changed state to ADJUST ");
     setState(ADJUST);  
   }
   else
   {
-    setState(state);  
+    Serial.print("Invalid state input: ");
+    Serial.println(state);
   }
 }
 
