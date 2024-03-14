@@ -2,7 +2,7 @@
 !python echoserver.py &
 
 % connect to the server
-t = tcpclient('192.168.171.12', 8002, "Timeout", 100000);
+t = tcpclient('192.168.171.12', 8003, "Timeout", 100000);
 % t = tcpip('192.168.72.12', 31175);
 %fopen(t);
 %connect(t);
@@ -13,12 +13,11 @@ while true
     size = read(t,1, "int32");
     disp(size);
 
+
+
     floats = read(t,size,'single')
     theta = floats(1:2:end)
     distances = floats(2:2:end)
-
-
-    write(t,'5 3')
 
 end
 
