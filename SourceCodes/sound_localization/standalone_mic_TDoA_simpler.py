@@ -204,25 +204,6 @@ def main_task():
                 plt.figure(1)
                 plt.scatter(position[0], position[1], label=name)
 
-            if draw_button_on == 1:
-                print("THE DRAWING BUTTON IS WORKING!!")
-                guessed_positions.append(guessed_position)
-                print(guessed_positions)
-
-                x_elem = [x[0] for x in guessed_positions]
-                y_elem = [x[1] for x in guessed_positions]
-
-                plt.figure(2)
-                plt.scatter(x_elem, y_elem)
-                # plt.gca().set_aspect("equal")
-                # plt.legend(loc="center left", bbox_to_anchor=(1.0, 0.5))
-
-            if clear_button_on == 1:
-                print("THE CLEAR BUTTON IS WORKING!!")
-                guessed_positions.clear()
-                plt.figure(2)
-                plt.clf()
-
             plt.gca().set_aspect("equal")
             plt.legend(loc="center left", bbox_to_anchor=(1.0, 0.5))
             """ plt.subplot(437)
@@ -233,6 +214,43 @@ def main_task():
             plot_spect(noiseC)
             plt.subplot(4,3,11)
             plot_spect(sound) """
+
+            # Draw button
+            if draw_button_on == 1:
+                #if guessed_position is not None:
+                    #positions["self"] = guessed_position
+
+                print("THE DRAWING BUTTON IS WORKING!!")
+                if guessed_position is not None:
+                    guessed_positions.append(guessed_position)
+                print(guessed_positions)
+
+                x_elem = [x[0] for x in guessed_positions]
+                y_elem = [x[1] for x in guessed_positions]
+
+                plt.figure(2)
+
+                plt.scatter(
+                    [A[0], B[0], C[0]],
+                    [A[1], B[1], C[1]],
+                    #label="base stations",
+                    marker="o",
+                )
+                a = plt.gca()
+                a.set_aspect("equal")
+                a.set_xlim(a.get_xlim())
+                a.set_ylim(a.get_ylim())
+
+                plt.scatter(x_elem, y_elem)
+                # plt.gca().set_aspect("equal")
+                # plt.legend(loc="center left", bbox_to_anchor=(1.0, 0.5))
+
+            if clear_button_on == 1:
+                print("THE CLEAR BUTTON IS WORKING!!")
+                guessed_positions.clear()
+                plt.figure(2)
+                plt.clf()
+
             plt.show()
             plt.pause(0.01)
 
