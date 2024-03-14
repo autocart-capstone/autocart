@@ -130,7 +130,7 @@ def main_task():
     Nw = len(noiseA)
     sound = np.zeros(Nw)
 
-    with serial.Serial("COM11", 115200) as ser:
+    with serial.Serial("/dev/ttyACM0", 115200) as ser:
         # ser.set_buffer_size(rx_size = 8192)
         ser.write(b"freq\n")
         # print(ser.readline())
