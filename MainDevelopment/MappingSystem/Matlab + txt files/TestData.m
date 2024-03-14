@@ -45,7 +45,7 @@ structures = {
     % [17.15, 22.10; 23.56, 22.10; 23.56, 19.44; 24.00, 19.44; 24.00, 17.68;
     % 17.15, 17.68; 17.15, 22.10]
 };
-segs = [ structures{1}(1:end-1,:) structures{1}(2:end,:) ; structures{2}(1:end-1,:) structures{2}(2:end,:) ; structures{3}(1:end-1,:) structures{3}(2:end,:) ];
+segs = [ structures{1}(1:end-1,:) structures{1}(2:end,:) ; structures{2}(1:end-1,:) structures{2}(2:end,:)];
 test_pos = makeTestGrid(0.1, structures);
 [measures,walls] = makeTestData(test_pos, segs);
 save('ahmed.mat','measures','walls','test_pos','structures');
@@ -67,8 +67,7 @@ function test_pos = makeTestGrid(space, structures)
     % Find valid test points (must be in a hallway)
     in1 = inpolygon(xall, yall, structures{1}(:,1), structures{1}(:,2));
     in2 = inpolygon(xall, yall, structures{2}(:,1), structures{2}(:,2));
-    in3 = inpolygon(xall, yall, structures{3}(:,1), structures{3}(:,2));
-    good = (in1 & ~in2 & ~in3);
+    good = (in1 & ~in2);
 
     % Keep only valid test points
     test_pos = [ xall(good) yall(good) ];

@@ -25,7 +25,7 @@ plot(structures{3}(:,1), structures{3}(:,2), 'k'); % Plot walls
 X_meas = measures(1,:,:);
 Y_meas = measures(2,:,:);
 D_meas = sqrt(X_meas.^2 + Y_meas.^2);
-t = tcpclient('172.17.154.113', 8001, "Timeout", 100000);
+t = tcpclient('172.17.154.113', 8002, "Timeout", 100000);
 % t = tcpip('192.168.72.12', 31175);
 %fopen(t);
 %connect(t);
@@ -191,11 +191,12 @@ function [xa,ya,h] = position(theta, distances,structures,test_pos,measures,wall
         
         %plot(x_new,y_new,'r.');
         h = plot(xa,ya,'go')
+       
         %plot(xa,ya,'mo');
         %plot(xoff,yoff,'bo');
         %delete h
     
         axis equal;
-        hold off
+        %hold off
         end
 end
