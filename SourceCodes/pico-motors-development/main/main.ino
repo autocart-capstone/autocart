@@ -4,11 +4,15 @@
 
 /*  Problems : 
       - Pluses for rotation are not correct in practice, need to increase them for more accurate turns
+
       - for some reason, when we keep getting signals from the pi, the code breaks where the wheels dont 
         turn at all, and seems to constantly go back into the stopped state (but dont actually as seen in debugging)
         can replicate it by using pi to send signals, and holding down an arrow key. 
       
       - sometimes have an issue where the wheels start of spinning really fast on first run (might be because of inrush current)
+
+      - motors stop bring them all to a stop, but because we call PID_controller, they enable again and we end up with the motors not moving
+        but continuing to make sounds
 */ 
 
 static int turn_pulses = 0;
@@ -33,8 +37,8 @@ void PID_controller() {
 
   //  Apply controller to each motor
   for (int i = 1; i < 4; i++) {
-    // Get current velocity in RPM (udpates every second on RPM calc interrupt)
-    noInterrupts();
+    // Get current velocity in RPM (udpates every second on RPM calc interrupt) 
+    noInterrupts(); // for syncronization
     float vel = getMotorRPM(i); 
     interrupts();
 
