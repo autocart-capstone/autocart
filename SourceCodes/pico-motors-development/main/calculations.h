@@ -1,11 +1,12 @@
 #ifndef CALCULATIONS_H
 #define CALCULATIONS_H
 
-#define WHEEL_DIAM 9.7f
-#define PIVOT_DIAM 18.67f
+// verify the measurements (should be in cm)
+#define WHEEL_DIAM 9.7f   // cm   
+#define PIVOT_DIAM 38.1f  // cm 
 
-//Width middle of wheel: 21.59
-//Height middle of wheel: 30.48
+// Width middle of wheel: 21.59 cm 
+// length middle of wheel: 30.48 cm 
 
 int calculate_pulses_for_angle(float angle);
 

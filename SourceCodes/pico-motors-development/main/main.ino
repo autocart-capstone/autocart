@@ -2,6 +2,15 @@
 #include "i2c_setup.h"
 #include "encoder_interrupts.h"
 
+/*  Problems : 
+      - Pluses for rotation are not correct in practice, need to increase them for more accurate turns
+      - for some reason, when we keep getting signals from the pi, the code breaks where the wheels dont 
+        turn at all, and seems to constantly go back into the stopped state (but dont actually as seen in debugging)
+        can replicate it by using pi to send signals, and holding down an arrow key. 
+      
+      - sometimes have an issue where the wheels start of spinning really fast on first run (might be because of inrush current)
+*/ 
+
 static int turn_pulses = 0;
 static int pivot_pulses = 0; 
 
@@ -173,6 +182,8 @@ void loop() {
       // On-the-fly adjustment with received angle. 
       // Might need to move this to set state method for integration so we dont keep reading new updates 
       turn_pulses = turn_theta(get_turning_angle()); 
+      Serial.print("TURN PULSES: ");
+      Serial.println(turn_pulses);
       if (fabs(getAvgPulsesLeft() - getAvgPulsesRight()) < turn_pulses) {
         // Continue turning
       } else {
@@ -247,7 +258,7 @@ void handleSerialCommand(char command) {
           break;
 
         default:
-            Serial.println("Invalid command. Available commands: 0, 1, 2, 3, 4, ... 9");
-            break;
+          Serial.println("Invalid command. Available commands: 0, 1, 2, 3, 4, ... 9");
+          break;
     }
 }
