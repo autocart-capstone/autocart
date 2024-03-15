@@ -9,6 +9,12 @@ Send buffer contents (data: angle, distance) to matlab socket connection
 """
 import socket
 import struct
+import os
+
+MATLAB_PORT = 8001
+if "MATLAB_PORT" in os.environ:
+    MATLAB_PORT = int(os.environ["MATLAB_PORT"])
+    print(f"Using matlab port: {MATLAB_PORT}")
 
 class SimpleSocketRpi():
     def __init__(self):
@@ -19,7 +25,7 @@ class SimpleSocketRpi():
         self.buf = []
 
     def connect_socket(self):
-        self.m.bind(('0.0.0.0', 8002))
+        self.m.bind(('0.0.0.0', MATLAB_PORT))
         self.m.listen(1)
         
         print("starting to listen to matlab")
