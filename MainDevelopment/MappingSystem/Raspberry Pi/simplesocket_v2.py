@@ -10,6 +10,7 @@ Send buffer contents (data: angle, distance) to matlab socket connection
 import socket
 import struct
 import os
+import subprocess
 
 MATLAB_PORT = 8001
 if "MATLAB_PORT" in os.environ:
@@ -37,8 +38,11 @@ class SimpleSocketRpi():
         
         self.s.bind((self.HOST_IP, self.PORT))
         self.s.listen(1)
-        
         print("starting to listen to sdk")
+
+        print("executing sdk")
+        self.sdk_subp = subprocess.Popen(["../rplidar_sdk-master/output/Linux/Release/ultra_simple", "--channel", "--serial", "/dev/ttyUSB0", "115200"], stdout=subprocess.DEVNULL)
+        #os.system("../rplidar_sdk-master/output/Linux/Release/ultra_simple  --channel --serial /dev/ttyUSB0 115200")
         conn, addr = self.s.accept()
         print('Connected by', addr)
         self.sdk_conn = conn
