@@ -11,6 +11,7 @@ import socket
 import struct
 import os
 import subprocess
+import time
 
 MATLAB_PORT = 8001
 if "MATLAB_PORT" in os.environ:
@@ -80,6 +81,7 @@ def main():
     curr_angle = 0
     prev_angle = curr_angle
     matlab_ready = True
+    matlab_sent_timestamp = time.time()
 
     while True:
         data = ss.receive_data_from_lidar()
@@ -96,6 +98,7 @@ def main():
             x = float(a[0])
             y = float(a[1])
             print(f"received (x,y): ({x},{y})")
+            print(f"took {time.time() - matlab_sent_timestamp} seconds to get position from Matlab")
 
         if curr_angle < prev_angle: # If we finish one revolution
             if matlab_ready:
@@ -103,6 +106,7 @@ def main():
                 #print(ss.get_buffer())
                 print("sent data to Matlab")
                 ss.send_data_to_matlab()
+                matlab_sent_timestamp = time.time()
                 matlab_ready = False
 
             #Reset buffer - always do this after finishing 1 rev
