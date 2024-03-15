@@ -20,17 +20,16 @@ figure(1)
 plot(structures{1}(:,1), structures{1}(:,2), 'k'); % Plot walls
 hold on
 plot(structures{2}(:,1), structures{2}(:,2), 'k'); % Plot walls
-plot(structures{3}(:,1), structures{3}(:,2), 'k'); % Plot walls
 
 X_meas = measures(1,:,:);
 Y_meas = measures(2,:,:);
 D_meas = sqrt(X_meas.^2 + Y_meas.^2);
-t = tcpclient('172.17.154.113', 8002, "Timeout", 100000);
+t = tcpclient('172.17.152.43', 8003, "Timeout", 100000);
 % t = tcpip('192.168.72.12', 31175);
 %fopen(t);
 %connect(t);
 
-h = 0;
+% h = 0;
 % Continuously read messages
 while true
     size = read(t,1, "int32");
@@ -40,17 +39,21 @@ while true
     floats = reshape(floats, 2, []);
     theta = floats(1,:);
     distance = floats(2,:);
-    if h ~= 0
-         delete h;
-     end
+    % if h ~= 0
+    %      delete h;
+    %  end
 
-    [x, y, h] = position(theta,distance,structures,test_pos,measures,walls,D_meas);
+    [x, y] = position(theta,distance,structures,test_pos,measures,walls,D_meas);
+    h = plot(x,y,'ro');
+    
     write(t,[sprintf('%g %g',x,y) newline]);
+    delete(h);
     %write(t,[x y])
 
 end
 
-
+axis equal;
+hold off;
 
 
 % filename = "test425.txt";
@@ -63,7 +66,7 @@ end
 %yoff =  7.98;
 %angle = 0;
 
-function [xa,ya,h] = position(theta, distances,structures,test_pos,measures,walls,D_meas)
+function [xa,ya] = position(theta, distances,structures,test_pos,measures,walls,D_meas)
 % Read data file, and skip header and blank line at end
     xoff = 24.63;
     yoff = 22.50;
@@ -190,13 +193,13 @@ function [xa,ya,h] = position(theta, distances,structures,test_pos,measures,wall
     if dodraw
         
         %plot(x_new,y_new,'r.');
-        h = plot(xa,ya,'go')
+        %h = plot(xa,ya,'go');
+        %plot(h);
        
         %plot(xa,ya,'mo');
         %plot(xoff,yoff,'bo');
         %delete h
     
         axis equal;
-        %hold off
         end
 end
