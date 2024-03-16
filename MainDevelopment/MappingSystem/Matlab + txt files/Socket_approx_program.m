@@ -96,24 +96,29 @@ function [xa,ya] = position(theta, distances,test_pos,measures,walls,D_meas,last
         end
     end
     
+    test_pos_distance = sum((test_pos - last_pos).^2, 2);
+    % Find the indices of the test positions that are near the robot
+    near_test_pos_idx = find(test_pos_distance < 1);
+    % Discard all the non-near test positions
+    D_meas_near = D_meas(:,:,near_test_pos_idx);
+    % Calculate metrics
+    numNearTestPoints = length(near_test_pos_idx);
     minmetric = zeros(1, 36);
     minidx = zeros(1, 36);
     for na = 1:length(angle_list)
         new_counts = circshift(counts, na-1);
-        new_mean_distance = circshift(mean_distance, na-1);   
-    
+        new_mean_distance = circshift(mean_distance, na-1);
         %metric = squeeze(sum(((X_meas - X_coord).^2 + (Y_meas - Y_coord).^2).*new_counts));
-        metric = squeeze(sum(abs(D_meas - new_mean_distance).*new_counts));
-    
+        metric = squeeze(sum(abs(D_meas_near - new_mean_distance).*new_counts));
         [minmetric(na),minidx(na)] = min(metric);
        
 
     end
     
-    [~,Oo] = min(minmetric);
-    % sorted_minmetric = sort(minmetric);
+    [~,fidx] = min(minmetric); % find best orientation    % sorted_minmetric = sort(minmetric);
     % sorted_metric = sort(metric);
     pidx = minidx(fidx);
+    pidx_near = minidx(fidx);  % find index of best nearby test position
     % Attempt to find a position within 1 metre of the last
     found = false; % Flag to indicate if a suitable position has been found
     potential_pidx = find(minmetric == min(minmetric)); % Find indices with the minimum metric
