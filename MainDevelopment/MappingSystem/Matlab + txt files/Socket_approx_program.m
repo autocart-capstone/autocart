@@ -111,65 +111,12 @@ function [xa,ya] = position(theta, distances,test_pos,measures,walls,D_meas,last
         %metric = squeeze(sum(((X_meas - X_coord).^2 + (Y_meas - Y_coord).^2).*new_counts));
         metric = squeeze(sum(abs(D_meas_near - new_mean_distance).*new_counts));
         [minmetric(na),minidx(na)] = min(metric);
-       
 
     end
-    
-    [~,fidx] = min(minmetric); % find best orientation    % sorted_minmetric = sort(minmetric);
-    % sorted_metric = sort(metric);
-    pidx = minidx(fidx);
+    [~,fidx] = min(minmetric); % find best orientation
     pidx_near = minidx(fidx);  % find index of best nearby test position
+    pidx = near_test_pos_idx(pidx_near); % find corresponding test position
     % Attempt to find a position within 1 metre of the last
-    found = false; % Flag to indicate if a suitable position has been found
-    potential_pidx = find(minmetric == min(minmetric)); % Find indices with the minimum metric
-    
-    for i = 1:length(potential_pidx)
-        pidx = potential_pidx(i);
-        potential_x = test_pos(pidx, 1);
-        potential_y = test_pos(pidx, 2);
-        
-        % Check distance from the last point in last_two_points (which is the most recent point)
-        if ~isnan(last_two_points(2,1)) % Ensure there is a last point to compare to
-            last_x = last_two_points(2, 1);
-            last_y = last_two_points(2, 2);
-            distance = sqrt((potential_x - last_x)^2 + (potential_y - last_y)^2);
-            if distance <= 1
-                found = true;
-                break; % Exit loop if a suitable position is found
-            end
-        else
-            found = true; % If there's no last point, accept the first suitable position
-            break;
-        end
-    end
-    
-    if found
-        xa = potential_x;
-        ya = potential_y;
-        fprintf('Accepted position within 1 metre: %g,%g\n', xa, ya);
-    else
-        % Return NaN if no suitable position is found, we still need to
-        % figure out what to do about this
-        xa = NaN; 
-        ya = NaN;
-        fprintf('No position within 1 metre was found.\n');
-    end
-    
-    % Update the last_two_points array
-    % Shift the last point to the first slot and insert the new point at the end
-    last_two_points(1,:) = last_two_points(2,:);
-    last_two_points(2,:) = [xa, ya];
-    
-    fprintf('The lidar is closest to position %g,%g\n', test_pos(pidx,:));
-    
-    new_counts = circshift(counts, fidx-1);
-    new_mean_distance = circshift(mean_distance, fidx-1);
-    for nx = 1:length(angle_list)
-        X_coord = new_mean_distance(nx) .* cosd(angle_list(nx)); 
-        Y_coord = new_mean_distance(nx) .* sind(angle_list(nx));
-        real_data(:,nx) = [X_coord; Y_coord];
-    end
-   
     
     xa = test_pos(pidx,1);
     ya = test_pos(pidx,2);

@@ -66,6 +66,9 @@ distance = distance(idx);
 % test_pos = makeTestGrid(0.1, structures);
 % [measures,walls] = makeTestData(test_pos, segs);
 load('ahmed.mat');
+X_meas = measures(1,:,:);
+Y_meas = measures(2,:,:);
+D_meas = sqrt(X_meas.^2 + Y_meas.^2);
 N_testpos = size(test_pos, 1);
 N_structures = length(structures);
 
@@ -175,7 +178,6 @@ if dodraw
     plot(structures{1}(:,1), structures{1}(:,2), 'k'); % Plot walls
     hold on
     plot(structures{2}(:,1), structures{2}(:,2), 'k'); % Plot walls
-    plot(structures{3}(:,1), structures{3}(:,2), 'k'); % Plot walls
     plot(x_new,y_new,'r.');
     plot(test_pos(pidx,1),test_pos(pidx,2),'go');
     plot(xa,ya,'mo');
@@ -183,8 +185,7 @@ if dodraw
 
     in1 = inpolygon(x_new, y_new, structures{1}(:,1), structures{1}(:,2));
     in2 = inpolygon(x_new, y_new, structures{2}(:,1), structures{2}(:,2));
-    in3 = inpolygon(x_new, y_new, structures{3}(:,1), structures{3}(:,2));
-    bad = (~in1 | in2 | in3);
+    bad = (~in1 | in2 );
     % in1 = inpolygon(test_pos(:,1), test_pos(:,2), structures{1}(:,1), structures{1}(:,2));
     % in2 = inpolygon(test_pos(:,1), test_pos(:,2), structures{2}(:,1), structures{2}(:,2));
     % in3 = inpolygon(test_pos(:,1), test_pos(:,2), structures{3}(:,1), structures{3}(:,2));
