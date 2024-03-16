@@ -138,8 +138,9 @@ void loop() {
     case PIVOT_LEFT:
       stateChange = false;
 
-      pivot_pulses = pivot_theta(90) / 2; /*TODO: ADJUST ALGORITHM FOR TURNING*/
+      pivot_pulses = (pivot_theta(90) * 1.5); /*TODO: ADJUST ALGORITHM FOR TURNING*/
       pivot_left();
+      drive_all_motors_init(170);
       if (getAvgPulsesLeft() < pivot_pulses && getAvgPulsesRight() < pivot_pulses) {
           // Continue pivoting
       } else {
@@ -150,8 +151,9 @@ void loop() {
     case PIVOT_RIGHT:
       stateChange = false;
 
-      pivot_pulses = pivot_theta(90) / 2; /*TODO: ADJUST ALGORITHM FOR TURNING*/
+      pivot_pulses = (pivot_theta(90) * 1.5); /*TODO: ADJUST ALGORITHM FOR TURNING*/
       pivot_right();
+      drive_all_motors_init(170);
       if (getAvgPulsesLeft() < pivot_pulses && getAvgPulsesRight() < pivot_pulses) {
           // Continue pivoting
       } else {
@@ -185,13 +187,14 @@ void loop() {
       stateChange = false;
       // On-the-fly adjustment with received angle. 
       // Might need to move this to set state method for integration so we dont keep reading new updates 
-      turn_pulses = turn_theta(get_turning_angle()); 
+      turn_pulses = turn_theta(get_turning_angle()) * 5;  
       Serial.print("TURN PULSES: ");
       Serial.println(turn_pulses);
       if (fabs(getAvgPulsesLeft() - getAvgPulsesRight()) < turn_pulses) {
         // Continue turning
       } else {
           setState(FORWARD);
+          Serial.println("Done Adjustment!");
       }
       break;
       

@@ -80,7 +80,7 @@ void drive_left() {
 }
 
 void drive_right() {
-  int pins_to_disable[] = { PWM_BWD_FL, PWM_FWD_BL, PWM_FWD_FR, PWM_BWD_BR };
+  int pins_to_disable[] = { PWM_BWD_FL, PWM_FWD_BR, PWM_BWD_BL, PWM_FWD_FR };
   memcpy(disabled_gpio_pins, pins_to_disable, sizeof(pins_to_disable));
 }
 
@@ -98,7 +98,7 @@ void pivot_left() {
 }
 
 void pivot_right() {
-  int pins_to_disable[] = { PWM_FWD_FR, PWM_FWD_BR, PWM_BWD_FL, PWM_BWD_BL };
+  int pins_to_disable[] = { PWM_BWD_FL, PWM_BWD_BL, PWM_FWD_FR, PWM_FWD_BR };
   memcpy(disabled_gpio_pins, pins_to_disable, sizeof(pins_to_disable));
 }
 
@@ -124,6 +124,12 @@ int pivot_theta(float angle) {
 int turn_theta(float angle) {
   bool turning_right = false;
 
+  Serial.print("FR: ");
+  Serial.println(duty_cycles.FR);
+
+  Serial.print("BR: ");
+  Serial.println(duty_cycles.BR);
+
   if (angle > 270) {
     turning_right = true;
     angle = 360 - angle;
@@ -133,12 +139,24 @@ int turn_theta(float angle) {
   float RPM_factor = (pulses / PULSES_PER_REV);
 
   if (turning_right) {
-    control_right_motors(duty_cycles.FR - (duty_cycles.FR * RPM_factor),
-                         duty_cycles.BR - (duty_cycles.BR * RPM_factor));
+    control_left_motors(duty_cycles.FL + (duty_cycles.FL * RPM_factor),
+                        duty_cycles.BL + (duty_cycles.BL * RPM_factor));
   } else {
-    control_left_motors(duty_cycles.FL - (duty_cycles.FL * RPM_factor),
-                        duty_cycles.BL - (duty_cycles.BL * RPM_factor));
+    control_right_motors(duty_cycles.FR + (duty_cycles.FR * RPM_factor),
+                         duty_cycles.BR + (duty_cycles.BR * RPM_factor));
   }
+
+  Serial.print("FL: ");
+  Serial.println(duty_cycles.FL);
+
+    Serial.print("BL: ");
+  Serial.println(duty_cycles.BL);
+
+    Serial.print("FR: ");
+  Serial.println(duty_cycles.FR);
+
+    Serial.print("BR: ");
+  Serial.println(duty_cycles.BR);
 
   return pulses;
 }
