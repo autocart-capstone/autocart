@@ -2,6 +2,11 @@ from pynput.keyboard import Key, Listener
 import socket
 import sys
 
+# use with python3 keyboard_sender.py <ip> <port>
+
+if len(sys.argv) < 3:
+    print("use with `python3 keyboard_sender.py <ip> <port>`")
+
 ip = sys.argv[1]
 port = sys.argv[2]
 
