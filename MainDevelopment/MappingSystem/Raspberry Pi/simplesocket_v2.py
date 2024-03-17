@@ -144,30 +144,29 @@ def main():
                 matlab_ready = False
                 
             #MAR 17 CHANGES -------
-            if ((x >= 24.5 and x <= 25.5) and (y >= 0.5 and y <= 1.5)):
+             if ((x >= 24.5 and x <= 25.5) and (y >= 0.5 and y <= 1.5)):
                 #msb = (round(currentAngle) >> 8) & 0xFF
                 #lsb = (round(currentAngle)) & 0xFF
-                print("hit if statement")        
+                print("hit if statement")
                 data_to_send = (0,0,0) #STOP
                 data = bytes(data_to_send) #SEND
                 bus.write_i2c_block_data(address, 0, list(data))
-                
+
                 data_to_send = (0,0,1) #LEFT
                 data = bytes(data_to_send) #SEND
                 bus.write_i2c_block_data(address, 0, list(data))
 
-                data _to_send(0,0,0)
-                data = bytes(address, 0,list(data))
+                data_to_send = (0,0,0)
+                data = bytes(data_to_send)
                 bus.write_i2c_block_data(address, 0, list(data))
 
                 data_to_send = (0,0,3)
                 data= bytes(data_to_send)
                 bus.write_i2c_block_data(address, 0, list(data))
                 time.sleep(2)
+
             if ((x >= 24.5 and x <= 25.5) and (y >= 17.5 and y <= 18.5)):
-                #msb = (round(currentAngle) >> 8) & 0xFF
-                #lsb = (round(currentAngle)) & 0xFF
-                print("hit if statement")        
+                print("hit if statement")
                 data_to_send = (0,0,0) #STOP
                 data = bytes(data_to_send) #SEND
                 bus.write_i2c_block_data(address, 0, list(data))
