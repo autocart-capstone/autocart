@@ -17,6 +17,8 @@ D_meas = sqrt(X_meas.^2 + Y_meas.^2);
 last_pos = nan(1,2);
 t = tcpclient('172.17.152.43', 18003, "Timeout", 100000);
 
+pgon = polyshape(pol2cart([pi/2, pi/2+pi/3, pi/2+2/3*pi],[5,5,5]))
+
 while true
     size = read(t,1, "int32");
     disp(size);
@@ -29,12 +31,12 @@ while true
     %      delete h;
     %  end
     hold on
-    [x, y] = position(theta,distance,test_pos,measures,walls,D_meas,last_pos);
+    [x, y, angle] = position(theta,distance,test_pos,measures,walls,D_meas,last_pos);
     last_pos=[x y];
     if exist('n','var')
         delete(n);
     end
-    h = plot(x,y,'ro');
+    h = plot(rotate(translate(pgon, x, y), deg2rad(angle)));
     write(t,[sprintf('%g %g',x,y) newline]);
     hold off;
     n=h;
@@ -63,7 +65,7 @@ end
 %yoff =  7.98;
 %angle = 0;
 
-function [xa,ya] = position(theta, distances,test_pos,measures,walls,D_meas,last_pos)
+function [xa,ya, angle] = position(theta, distances,test_pos,measures,walls,D_meas,last_pos)
 % Read data file, and skip header and blank line at end
     xoff = 24.63;
     yoff = 22.50;
@@ -133,6 +135,7 @@ function [xa,ya] = position(theta, distances,test_pos,measures,walls,D_meas,last
         [~,fidx] = min(minmetric); % find best orientation
         pidx_near = minidx(fidx);  % find index of best nearby test position
         pidx = near_test_pos_idx(pidx_near); % find corresponding test position
+        angle = angle_list(fidx);
         % Attempt to find a position within 1 metre of the last
     end
     
