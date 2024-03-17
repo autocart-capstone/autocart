@@ -43,14 +43,12 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s1:
         start_time = time.time()
         
         while True:            
-            d = conn1.recv(12)
-            values = struct.unpack('ffi', d)
+            d = conn1.recv(8)
+            values = struct.unpack('ff', d)
             deg = values[0]
             dist = values[1]
-            quality = values[2]
             dataList.append(deg)
             dataList.append(dist)
-            assert(quality > 0)
             
             if((values[1] < 1000) and (values[1] < lowestDistance or lowestDistance == -1)):
                 lowestDistance = values[1]
