@@ -105,6 +105,9 @@ def main():
     matlab_ready = True
     matlab_sent_timestamp = time.time()
 
+    data_to_send = (0,0,3) #FORWARD
+    data = bytes(data_to_send) #SEND
+                
     while True:
         data = ss.receive_data_from_lidar()
         data = struct.unpack("ff", data)
