@@ -96,6 +96,7 @@ class SimpleSocketRpi:
     def reset_buffer(self):
         self.buf = []
 
+global x,y
 x = -1
 y = -1
 
