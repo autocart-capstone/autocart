@@ -13,12 +13,24 @@ import struct
 import os
 import subprocess
 import time
+import smbus
 
 MATLAB_PORT = 8001
 if "MATLAB_PORT" in os.environ:
     MATLAB_PORT = int(os.environ["MATLAB_PORT"])
 print(f"will listen for matlab on port: {MATLAB_PORT}")
 
+#MAR 17 CHANGES-------
+channel = 1
+address = 0x12
+
+bus = smbus.SMBus(channel)
+
+#Destination Values
+destination_x = 25
+destination_y = 1
+
+#MAR 17 CHANGES---------
 
 class SimpleSocketRpi:
     def __init__(self):
@@ -111,6 +123,18 @@ def main():
             print(
                 f"took {time.time() - matlab_sent_timestamp} seconds to get position from Matlab"
             )
+            
+            #MAR 17 CHANGES -------
+            if ((x >= 24.5 and x <= 25.5) and (y >= 0.5 and y <= 1.5)):
+                #msb = (round(currentAngle) >> 8) & 0xFF
+                #lsb = (round(currentAngle)) & 0xFF
+                        
+                data_to_send = (0,0,0) #STOP
+                data = bytes(data_to_send) #SEND
+            else:
+                data_to_send = (0,0,3) #FORWARD
+                data = bytes(data_to_send) #SEND
+            #MAR 17 CHANGES -------
 
         if curr_angle < prev_angle:  # If we finish one revolution
             if matlab_ready:
@@ -130,6 +154,8 @@ def main():
 
         # Update prev_angle
         prev_angle = curr_angle
+        
+        
 
     # Dummy data - solely for testing
     curr_angle = 0
