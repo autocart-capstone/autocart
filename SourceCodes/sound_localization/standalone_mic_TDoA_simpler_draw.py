@@ -140,6 +140,7 @@ def main_task():
         while True:
             draw_button_on = 0
             clear_button_on = 0
+            separate_draw = 0
 
             ser.write(f"{Nw}\n".encode())
             # print(size)
@@ -157,6 +158,10 @@ def main_task():
             if a_dec == "press":
                 draw_button_on = 1
 
+            # Separate characters
+            if a_dec == "yyyyy":
+                separate_draw = 1
+
             if a1_dec == "cleared":
                 clear_button_on = 1
 
@@ -164,20 +169,18 @@ def main_task():
             plt.ion()
             plt.figure(1)
             plt.clf()
-            # ax1 = plt.subplot(231)
+
             found_delay1, max1, avg1 = correlate_and_find_delay(
                 sound, noiseA, "A"
             )
-            # plt.subplot(232, sharey=ax1)
+
             found_delay2, max2, avg2 = correlate_and_find_delay(
                 sound, noiseB, "B"
             )
-            # plt.tick_params("y", labelleft=False)
-            # plt.subplot(233, sharey=ax1)
+
             found_delay3, max3, avg3 = correlate_and_find_delay(
                 sound, noiseC, "C"
             )
-            # plt.tick_params("y", labelleft=False)
 
             plt.subplot(212)
             plt.scatter(
@@ -201,20 +204,22 @@ def main_task():
                 positions["self"] = guessed_position
             print(positions)
             for name, position in positions.items():
-                plt.figure(1)
-                plt.subplot(212)
                 plt.scatter(position[0], position[1], label=name)
 
             plt.gca().set_aspect("equal")
             plt.legend(loc="center left", bbox_to_anchor=(1.0, 0.5))
-            """ plt.subplot(437)
-            plot_spect(noiseA)
-            plt.subplot(438)
-            plot_spect(noiseB)
-            plt.subplot(439)
-            plot_spect(noiseC)
-            plt.subplot(4,3,11)
-            plot_spect(sound) """
+
+            # Plot base stations
+            plt.subplot(211)
+            plt.scatter(
+                [A[0], B[0], C[0]],
+                [A[1], B[1], C[1]],
+                marker="o",
+            )
+            a = plt.gca()
+            a.set_aspect("equal")
+            a.set_xlim(a.get_xlim())
+            a.set_ylim(a.get_ylim())
 
             # Draw button
             if draw_button_on == 1:
@@ -232,33 +237,22 @@ def main_task():
                 y_elem = [x[1] for x in guessed_positions]
 
                 # Appending drawing to Figure 1
-                plt.figure(1)
                 plt.subplot(211)
 
-                # Plot base stations
-                plt.scatter(
-                    [A[0], B[0], C[0]],
-                    [A[1], B[1], C[1]],
-                    #label="base stations",
-                    marker="o",
-                )
-                a = plt.gca()
-                a.set_aspect("equal")
-                a.set_xlim(a.get_xlim())
-                a.set_ylim(a.get_ylim())
-
-                # plt.plot(x_elem, y_elem, marker='o', linestyle='-')
+                # Plot the point
                 plt.plot(x_elem, y_elem)
 
             if clear_button_on == 1:
                 print("THE CLEAR BUTTON IS WORKING!!")
                 guessed_positions.clear()
-                plt.figure(1)
                 plt.subplot(211)
                 plt.clf()
 
+            if separate_draw == 1:
+                if len(guessed_positions) != 0:
+                    guessed_positions.clear()
+
             plt.show()
             plt.pause(0.01)
-
 
 main_task()
