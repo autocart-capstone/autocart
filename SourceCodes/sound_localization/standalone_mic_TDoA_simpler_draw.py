@@ -248,7 +248,7 @@ def main_task():
                 a.set_ylim(a.get_ylim())
 
                 # plt.plot(x_elem, y_elem, marker='o', linestyle='-')
-                plt.scatter(x_elem, y_elem)
+                plt.plot(x_elem, y_elem)
 
             if clear_button_on == 1:
                 print("THE CLEAR BUTTON IS WORKING!!")
