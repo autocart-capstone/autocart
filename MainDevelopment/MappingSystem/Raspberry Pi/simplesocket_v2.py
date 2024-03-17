@@ -122,6 +122,7 @@ def main():
 
         matlab_pos = ss.receive_data_from_matlab()
         if matlab_pos:
+            print("Waiting to receive")
             matlab_ready = True
             a = matlab_pos.decode().strip().split()
             x = float(a[0])
