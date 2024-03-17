@@ -91,7 +91,7 @@ bool check_all_motor_RPM(int RPM) {
 
 int getAvgPulsesLeft() {
   // BL_turn_pulses replaced with FL_turn_pulses since motor encoder is broken  
-  return (FL_turn_pulses + FL_turn_pulses) / 2;
+  return (BL_turn_pulses + BL_turn_pulses) / 2;
 }
 
 int getAvgPulsesRight() {

@@ -18,6 +18,9 @@
 static int turn_pulses = 0;
 static int pivot_pulses = 0; 
 
+static const int MOVING_SPEED = 100;
+static const int TURNING_SPEED = 130;
+
 static long prevT = 0;
 static int vt = 0; // target velocity 
 static float velFilt[4] = {0, 0, 0, 0};
@@ -29,7 +32,6 @@ static int adjusted_PWMs[4] = {0, 0, 0, 0};
 
 bool stateChange = true;
 
-/* Method needs to be tested to ensure that we can hit 0 RPM and target RPM on each motor */
 void PID_controller() {
   long currT = micros();
   float deltaT = ((float) (currT-prevT)) / 1.0e6; 
@@ -78,17 +80,6 @@ void PID_controller() {
       set_pwm_duty_cycle(PWM_BWD[i-1], adjusted_PWMs[i]);
     }
   }
-
-  // Serial.print(vt);
-  // Serial.print(", ");
-  // Serial.print(velFilt[0]);
-  // Serial.print(", ");
-  // Serial.print(velFilt[1]);
-  // Serial.print(", ");
-  // Serial.print(velFilt[2]);
-  // Serial.print(", ");
-  // Serial.print(velFilt[3]);
-  // Serial.println();
 }
 
 void setup() {
@@ -102,45 +93,26 @@ void setup() {
 
 void loop() {
 
-  // //drive_all_motors_init(100);
-  // Serial.print(200);
-  // Serial.print(", ");
-  // Serial.print(-10);
-  // Serial.print(", ");
-  
   if (Serial.available() > 0) {
       char command = Serial.read();
       handleSerialCommand(command);
   }
-
-  /*  only straight and stopped states use PID controller, as the controller ensures that all the wheels operate 
-      at a given target RPM. turning requires one side to slow dowm, and as such would need different target for 
-      each side, which is extra. 
-
-      currently, the PID controller will set PWM in the struct, so it will be used in turning, and can be reverted
-      to after turning is finsihed 
-  */
 
   switch(getState()) {    
    
     case STOP:
       stateChange = false;
 
-      if(check_all_motor_RPM(0)) {
-        stop_motors();
-        PID_controller(); 
-      } else {
-        PID_controller(); 
-        setTarget(0);
-      }
+      drive_all_motors_init(0);
+      stop_motors();
       break;
 
     case PIVOT_LEFT:
       stateChange = false;
 
-      pivot_pulses = (pivot_theta(90) * 1.5); /*TODO: ADJUST ALGORITHM FOR TURNING*/
+      pivot_pulses = (pivot_theta(90) * 1.25); /*TODO: ADJUST ALGORITHM FOR TURNING*/
       pivot_left();
-      drive_all_motors_init(170);
+      drive_all_motors_init(TURNING_SPEED);
       if (getAvgPulsesLeft() < pivot_pulses && getAvgPulsesRight() < pivot_pulses) {
           // Continue pivoting
       } else {
@@ -151,9 +123,9 @@ void loop() {
     case PIVOT_RIGHT:
       stateChange = false;
 
-      pivot_pulses = (pivot_theta(90) * 1.5); /*TODO: ADJUST ALGORITHM FOR TURNING*/
+      pivot_pulses = (pivot_theta(90) * 1.4); /*TODO: ADJUST ALGORITHM FOR TURNING*/
       pivot_right();
-      drive_all_motors_init(170);
+      drive_all_motors_init(TURNING_SPEED);
       if (getAvgPulsesLeft() < pivot_pulses && getAvgPulsesRight() < pivot_pulses) {
           // Continue pivoting
       } else {
@@ -167,9 +139,7 @@ void loop() {
         stateChange = false;
       }
       drive_forwards();
-      PID_controller();
-      setTarget(60);
-      //drive_all_motors_init(120);
+      drive_all_motors_init(MOVING_SPEED);
       break;
 
     case BACKWARD:
@@ -178,23 +148,20 @@ void loop() {
         stateChange = false;
       }
       drive_backwards();
-      PID_controller();
-      setTarget(60);
-      //drive_all_motors_init(120);
+      drive_all_motors_init(MOVING_SPEED);
       break;
 
     case ADJUST:
-      stateChange = false;
+      if(stateChange) {
+        stateChange = false;
+        turn_pulses = turn_theta(get_turning_angle()) * 2.5;
+      }
       // On-the-fly adjustment with received angle. 
       // Might need to move this to set state method for integration so we dont keep reading new updates 
-      turn_pulses = turn_theta(get_turning_angle()) * 5;  
-      Serial.print("TURN PULSES: ");
-      Serial.println(turn_pulses);
       if (fabs(getAvgPulsesLeft() - getAvgPulsesRight()) < turn_pulses) {
         // Continue turning
       } else {
           setState(FORWARD);
-          Serial.println("Done Adjustment!");
       }
       break;
       
@@ -222,20 +189,22 @@ void handleSerialCommand(char command) {
 
         case '3':
           //Adjust in the right direction 30 degrees.
-          set_turning_angle(30);
+          Serial.println("SETTING ANGLE");
+          set_turning_angle(60);
           break;
 
         case '4':
           //Adjust in the left direction 30 degrees. 
-          set_turning_angle(330);
+          set_turning_angle(300);
           break;
-
+// overshoots (30 deg)
         case '5':
           setState(PIVOT_LEFT);
           drive_left();
           Serial.println("Set state to PIVOT_LEFT");
           break;
 
+// undershoots (5 deg)
         case '6':
           setState(PIVOT_RIGHT);
           drive_right();
@@ -262,6 +231,7 @@ void handleSerialCommand(char command) {
         case '0':
           setState(STOP);
           Serial.println("Set state to STOP");
+          stop_motors();
           break;
 
         default:

@@ -60,14 +60,13 @@ void set_pwm_duty_cycle(unsigned int pwm_pin, unsigned int duty_cycle) {
   } else {
     analogWrite(pwm_pin, duty_cycle);  //set duty cycle to passed in value
   }
-  check_and_set_pin(pwm_pin, (100 * duty_cycle) / 255);
+  check_and_set_pin(pwm_pin, duty_cycle);
 }
 
 void drive_forwards() {
   int pins_to_disable[] = { PWM_BWD_FL, PWM_BWD_BL, PWM_BWD_FR, PWM_BWD_BR }; 
   memcpy(disabled_gpio_pins, pins_to_disable, sizeof(pins_to_disable));
 }
-
 
 void drive_backwards() {
   int pins_to_disable[] = { PWM_FWD_FL, PWM_FWD_BL, PWM_FWD_FR, PWM_FWD_BR };
@@ -90,7 +89,6 @@ void stop_motors() {
     analogWrite(PWM_BWD[i], 0);
   }
 }
-
 
 void pivot_left() {
   int pins_to_disable[] = { PWM_FWD_FL, PWM_FWD_BL, PWM_BWD_FR, PWM_BWD_BR };
@@ -124,20 +122,22 @@ int pivot_theta(float angle) {
 int turn_theta(float angle) {
   bool turning_right = false;
 
-  Serial.print("FR: ");
-  Serial.println(duty_cycles.FR);
-
-  Serial.print("BR: ");
-  Serial.println(duty_cycles.BR);
-
   if (angle > 270) {
     turning_right = true;
     angle = 360 - angle;
   }
 
   int pulses = calculate_pulses_for_angle(angle);
-  float RPM_factor = (pulses / PULSES_PER_REV);
 
+  Serial.print("ANGLE ");
+  Serial.println(angle);
+
+  Serial.print("PULSES ");
+  Serial.println(pulses);
+  // ANGLE = 60, PULSES = 59, RPM_FACTOR = 0.00. might be a integer division, pulses per rev - 90
+  float RPM_factor = (pulses / PULSES_PER_REV);
+  Serial.print("RPM FACTOR ");
+  Serial.println(RPM_factor);
   if (turning_right) {
     control_left_motors(duty_cycles.FL + (duty_cycles.FL * RPM_factor),
                         duty_cycles.BL + (duty_cycles.BL * RPM_factor));
@@ -149,13 +149,13 @@ int turn_theta(float angle) {
   Serial.print("FL: ");
   Serial.println(duty_cycles.FL);
 
-    Serial.print("BL: ");
+  Serial.print("BL: ");
   Serial.println(duty_cycles.BL);
 
-    Serial.print("FR: ");
+  Serial.print("FR: ");
   Serial.println(duty_cycles.FR);
 
-    Serial.print("BR: ");
+  Serial.print("BR: ");
   Serial.println(duty_cycles.BR);
 
   return pulses;
