@@ -137,6 +137,23 @@ def main_task():
         ser.write(f"{50000}\n".encode())
         # print(ser.readline())
         # num_samples = int(Fs)
+
+        plt.ion()
+        plt.figure(1)
+        plt.clf()
+
+        plt.subplot(212)
+        plt.scatter(
+            [A[0], B[0], C[0]],
+            [A[1], B[1], C[1]],
+            label="base stations",
+            marker="o",
+        )
+        a = plt.gca()
+        a.set_aspect("equal")
+        a.set_xlim(a.get_xlim())
+        a.set_ylim(a.get_ylim())
+        
         while True:
             draw_button_on = 0
             clear_button_on = 0
@@ -166,9 +183,10 @@ def main_task():
                 clear_button_on = 1
 
             sound = np.frombuffer(b, dtype="<i2")
-            plt.ion()
-            plt.figure(1)
-            plt.clf()
+            # Keep this
+            # plt.ion()
+            # plt.figure(1)
+            # plt.clf()
 
             found_delay1, max1, avg1 = correlate_and_find_delay(
                 sound, noiseA, "A"
@@ -182,17 +200,18 @@ def main_task():
                 sound, noiseC, "C"
             )
 
-            plt.subplot(212)
-            plt.scatter(
-                [A[0], B[0], C[0]],
-                [A[1], B[1], C[1]],
-                label="base stations",
-                marker="o",
-            )
-            a = plt.gca()
-            a.set_aspect("equal")
-            a.set_xlim(a.get_xlim())
-            a.set_ylim(a.get_ylim())
+            # Keep this
+            # plt.subplot(212)
+            # plt.scatter(
+            #     [A[0], B[0], C[0]],
+            #     [A[1], B[1], C[1]],
+            #     label="base stations",
+            #     marker="o",
+            # )
+            # a = plt.gca()
+            # a.set_aspect("equal")
+            # a.set_xlim(a.get_xlim())
+            # a.set_ylim(a.get_ylim())
 
             ta = found_delay1 / 48000
             tb = found_delay2 / 48000
