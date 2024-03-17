@@ -140,7 +140,8 @@ def main_task():
 
         plt.ion()
         plt.figure(1)
-        plt.clf()
+        # plt.clf()
+        # Prianna
 
         plt.subplot(212)
         plt.scatter(
