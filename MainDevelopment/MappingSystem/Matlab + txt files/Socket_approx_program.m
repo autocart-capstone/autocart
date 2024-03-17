@@ -15,9 +15,9 @@ X_meas = measures(1,:,:);
 Y_meas = measures(2,:,:);
 D_meas = sqrt(X_meas.^2 + Y_meas.^2);
 last_pos = nan(1,2);
-t = tcpclient('172.17.152.43', 18003, "Timeout", 100000);
-
-pgon = polyshape(pol2cart([pi/2, pi/2+pi/3, pi/2+2/3*pi],[5,5,5]))
+t = tcpclient('172.17.152.43', 8001, "Timeout", 100000);
+[a,b] =pol2cart([pi/2, pi/2+2*pi/3, pi/2+4/3*pi],[.5,.5,.5]);
+pgon = polyshape(a,b);
 
 while true
     size = read(t,1, "int32");
@@ -84,6 +84,7 @@ function [xa,ya, angle] = position(theta, distances,test_pos,measures,walls,D_me
     real_data = zeros(2,36);
     counts = zeros(1, 36);
     mean_distance = zeros(1, 36);
+    fidx=1;
     
     for nx = 1:length(angle_list)
         current_angle = angle_list(nx);
@@ -135,10 +136,10 @@ function [xa,ya, angle] = position(theta, distances,test_pos,measures,walls,D_me
         [~,fidx] = min(minmetric); % find best orientation
         pidx_near = minidx(fidx);  % find index of best nearby test position
         pidx = near_test_pos_idx(pidx_near); % find corresponding test position
-        angle = angle_list(fidx);
+       
         % Attempt to find a position within 1 metre of the last
     end
-    
+    angle = angle_list(fidx);
     xa = test_pos(pidx,1);
     ya = test_pos(pidx,2);
 
