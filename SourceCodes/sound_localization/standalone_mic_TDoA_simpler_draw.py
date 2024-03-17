@@ -240,7 +240,7 @@ def main_task():
                 plt.subplot(211)
 
                 # Plot the point
-                plt.plot(x_elem, y_elem)
+                plt.plot(x_elem, y_elem, color='blue')
 
             if clear_button_on == 1:
                 print("THE CLEAR BUTTON IS WORKING!!")
@@ -249,8 +249,20 @@ def main_task():
                 plt.clf()
 
             if separate_draw == 1:
-                if len(guessed_positions) != 0:
-                    guessed_positions.clear()
+                # Only append to the list of guessed positions if is it not None
+                if guessed_position is not None:
+                    guessed_positions.append(guessed_position)
+                print(guessed_positions)
+
+                # Extract x, y coordinate from list
+                x_elem = [x[0] for x in guessed_positions]
+                y_elem = [x[1] for x in guessed_positions]
+
+                # Appending drawing to Figure 1
+                plt.subplot(211)
+
+                # Plot the point
+                plt.plot(x_elem, y_elem, color='white')
 
             plt.show()
             plt.pause(0.01)
