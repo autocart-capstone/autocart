@@ -45,7 +45,7 @@ bool check_pin_disabled(unsigned int pin) {
 }
 
 /* The initial PWM we want to start the motors at */
-void drive_all_motors_init(uint8_t duty_cycle) {
+void drive_all_motors(uint8_t duty_cycle) {
   for (int i = 0; i < NUM_MOTORS; i++) {
     set_pwm_duty_cycle(PWM_FWD[i], duty_cycle);
     set_pwm_duty_cycle(PWM_BWD[i], duty_cycle);
@@ -127,7 +127,7 @@ int turn_theta(float angle) {
     angle = 360 - angle;
   }
 
-  int pulses = calculate_pulses_for_angle(angle);
+  float pulses = calculate_pulses_for_angle(angle);
 
   Serial.print("ANGLE ");
   Serial.println(angle);

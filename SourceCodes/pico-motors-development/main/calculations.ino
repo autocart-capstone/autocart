@@ -7,11 +7,11 @@ static const float pivot_circ = PIVOT_DIAM * PI;
 
 static const float period = 0.10;
 
-int calculate_pulses_for_angle(float angle){
+float calculate_pulses_for_angle(float angle){
   float pulses_per_full_pivot = PULSES_PER_REV * (pivot_circ / wheel_circ);
   float pulses_for_theta = (angle / 360) * (pulses_per_full_pivot);
   
-  return round(pulses_for_theta);
+  return pulses_for_theta;
 }
 
 float calculate_RPM(int pulses_elapsed) {  

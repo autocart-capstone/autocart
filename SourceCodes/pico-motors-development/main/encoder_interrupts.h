@@ -2,7 +2,7 @@
 #define ENCODER_INTERRUPTS_H
 
 //Encoder, not 100% accurate, needs more testing 
-#define PULSES_PER_REV 90
+#define PULSES_PER_REV 90.0f
 
 extern volatile int FL_turn_pulses;
 extern volatile int BL_turn_pulses;

@@ -103,16 +103,16 @@ void loop() {
     case STOP:
       stateChange = false;
 
-      drive_all_motors_init(0);
+      drive_all_motors(0);
       stop_motors();
       break;
 
     case PIVOT_LEFT:
       stateChange = false;
 
-      pivot_pulses = (pivot_theta(90) * 1.25); /*TODO: ADJUST ALGORITHM FOR TURNING*/
+      pivot_pulses = (pivot_theta(90) * 2); /*TODO: ADJUST ALGORITHM FOR TURNING*/
       pivot_left();
-      drive_all_motors_init(TURNING_SPEED);
+      drive_all_motors(TURNING_SPEED);
       if (getAvgPulsesLeft() < pivot_pulses && getAvgPulsesRight() < pivot_pulses) {
           // Continue pivoting
       } else {
@@ -123,9 +123,9 @@ void loop() {
     case PIVOT_RIGHT:
       stateChange = false;
 
-      pivot_pulses = (pivot_theta(90) * 1.4); /*TODO: ADJUST ALGORITHM FOR TURNING*/
+      pivot_pulses = (pivot_theta(90) * 2); /*TODO: ADJUST ALGORITHM FOR TURNING*/
       pivot_right();
-      drive_all_motors_init(TURNING_SPEED);
+      drive_all_motors(TURNING_SPEED);
       if (getAvgPulsesLeft() < pivot_pulses && getAvgPulsesRight() < pivot_pulses) {
           // Continue pivoting
       } else {
@@ -139,7 +139,7 @@ void loop() {
         stateChange = false;
       }
       drive_forwards();
-      drive_all_motors_init(MOVING_SPEED);
+      drive_all_motors(MOVING_SPEED);
       break;
 
     case BACKWARD:
@@ -148,7 +148,7 @@ void loop() {
         stateChange = false;
       }
       drive_backwards();
-      drive_all_motors_init(MOVING_SPEED);
+      drive_all_motors(MOVING_SPEED);
       break;
 
     case ADJUST:
@@ -173,7 +173,7 @@ void setTarget(int target) {
 }
 
 void kickStartMotors() {
-  drive_all_motors_init(120);
+  drive_all_motors(120);
   delay(25);
 }
 
@@ -204,7 +204,7 @@ void handleSerialCommand(char command) {
           Serial.println("Set state to PIVOT_LEFT");
           break;
 
-// undershoots (5 deg)
+// undershoots (30)
         case '6':
           setState(PIVOT_RIGHT);
           drive_right();

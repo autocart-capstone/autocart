@@ -58,7 +58,7 @@ extern bool stateChange;
 
 void setup_pwm();
 
-void drive_all_motors_init(uint8_t duty_cycle);
+void drive_all_motors(uint8_t duty_cycle);
 
 void set_pwm_duty_cycle(unsigned int pwm_pin, unsigned int duty_cycle);
 

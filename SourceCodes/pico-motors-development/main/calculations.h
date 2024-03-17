@@ -8,7 +8,7 @@
 // Width middle of wheel: 21.59 cm 
 // length middle of wheel: 30.48 cm 
 
-int calculate_pulses_for_angle(float angle);
+float calculate_pulses_for_angle(float angle);
 
 float calculate_RPM(int pulses_elapsed);
 
