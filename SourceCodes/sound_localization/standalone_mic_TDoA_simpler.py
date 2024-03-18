@@ -141,15 +141,12 @@ class QueueMsg:
 
 
 def do_plot():
-    fig, axs = plt.subplots(ncols=3, nrows=2, sharey="row")
+    fig = plt.figure(1)
+    axA = plt.subplot(231)
+    axB = plt.subplot(232, sharey=axA)
+    axC = plt.subplot(233, sharey=axA)
 
-    axA = axs[0, 0]
-    axB = axs[0, 1]
-    # axB.tick_params("y", labelleft=False)
-    axC = axs[0, 2]
-    # axC.tick_params("y", labelleft=False)
-
-    axMap = axs[1, 1]
+    axMap = plt.subplot(212)
 
     def update_plot(frame):
         if thread_queue.empty():
@@ -163,10 +160,12 @@ def do_plot():
         axB.clear()
         axB.plot(msg.cross_corrB)
         axB.set_title("Correlation B")
+        axB.tick_params("y", labelleft=False)
 
         axC.clear()
         axC.plot(msg.cross_corrC)
         axC.set_title("Correlation C")
+        axC.tick_params("y", labelleft=False)
 
         axMap.clear()
         axMap.scatter(
@@ -346,8 +345,8 @@ def main_task_mic():
                 print("dropping frame")
 
 
-t1 = threading.Thread(target=main_task_pico)
-# t1 = threading.Thread(target=main_task_mic, daemon=True)
+# t1 = threading.Thread(target=main_task_pico)
+t1 = threading.Thread(target=main_task_mic, daemon=True)
 t1.start()
 
 do_plot()
