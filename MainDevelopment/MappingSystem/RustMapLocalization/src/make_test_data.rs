@@ -125,6 +125,7 @@ impl TestData {
     ) {
         use plotters::prelude::*;
         let root = BitMapBackend::new("img.png", (1000, 1000)).into_drawing_area();
+        //let root = SVGBackend::new("img.svg", (1000, 1000)).into_drawing_area();
         root.fill(&WHITE).unwrap();
 
         let mut chart = ChartBuilder::on(&root)

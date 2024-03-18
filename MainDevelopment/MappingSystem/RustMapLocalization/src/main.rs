@@ -5,6 +5,7 @@ use std::{
 
 use itertools::Itertools;
 use parry2d::na::{Point2, Vector2};
+use plotters::coord::ranged1d::IntoSegmentedCoord;
 
 use crate::make_test_data::TestData;
 
@@ -23,10 +24,41 @@ pub struct PolarPoint {
     distance: f32,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AvgPolarPoint {
     count: u32,
     distance: f32,
+}
+
+impl AvgPolarPoint {
+    pub fn from_points(points: &[PolarPoint]) -> [Self; 36] {
+        const ANGLE_AVG_RANGE: f32 = 10.0;
+        std::array::from_fn(|i| {
+            let center_angle_deg = i as f32 * ANGLE_AVG_RANGE;
+            let (count, distance_acc) = points
+                .iter()
+                .filter(|p| {
+                    [
+                        f32::abs(p.angle_deg - center_angle_deg),
+                        f32::abs(p.angle_deg - center_angle_deg - 360.0),
+                        f32::abs(p.angle_deg - center_angle_deg + 360.0),    
+                    ].into_iter()
+                    .min_by(f32::total_cmp).unwrap() <= ANGLE_AVG_RANGE/2.0
+                })
+                .fold((0, 0.0), |(count_acc, distance_acc), e| {
+                    (count_acc + 1, distance_acc + e.distance)
+                });
+            let avg_distance = if count == 0 {
+                0.0
+            } else {
+                distance_acc / count as f32
+            };
+            AvgPolarPoint {
+                count,
+                distance: avg_distance,
+            }
+        })
+    }
 }
 
 pub fn find_position(
@@ -34,26 +66,14 @@ pub fn find_position(
     data: &TestData,
     last_pos: Option<Point>,
 ) -> (Point, f32, f32) {
-    let avg_points: [AvgPolarPoint; 36] = std::array::from_fn(|i| {
-        let center_angle_deg = (i * 10) as f32;
-        let mut count = 0;
-        let distance_acc = points
-            .iter()
-            .filter(|p| f32::abs(p.angle_deg - center_angle_deg) < 10.0)
-            .fold(0.0, |acc, e| {
-                count += 1;
-                acc + e.distance
-            });
-        AvgPolarPoint {
-            count,
-            distance: distance_acc / count as f32,
-        }
-    });
+    let start_instant = std::time::Instant::now();
+    let avg_points: [AvgPolarPoint; 36] = AvgPolarPoint::from_points(points);
 
     let (min_point_position, metric, shift) = (0..36)
         .flat_map(|shift| {
             let mut points_shifted = avg_points.clone();
             points_shifted.rotate_left(shift);
+            //dbg!(&points_shifted);
             data.test_points
                 .iter()
                 .filter(|test_point| match last_pos {
@@ -72,9 +92,13 @@ pub fn find_position(
                     (test_point.pos, metric, shift)
                 })
         })
-        .min_by(|a, b| a.1.total_cmp(&b.1))
+        .min_by(|a, b| {
+            //dbg!(a, b);
+            a.1.partial_cmp(&b.1).unwrap()
+        })
         .unwrap();
     let angle = shift as f32 * 10.0; // in degrees
+    dbg!(start_instant.elapsed().as_secs_f64());
     (min_point_position, metric, angle)
 }
 
@@ -92,7 +116,7 @@ fn main() {
         let mut size_buf: [u8; 4] = Default::default();
         stream.read_exact(&mut size_buf).unwrap();
         let size = u32::from_le_bytes(size_buf);
-        dbg!(size);
+        //dbg!(size);
         let mut data_buf = vec![0_u8; size as usize * 4];
         stream.read_exact(&mut data_buf).unwrap();
         let points = (0..data_buf.len())
@@ -102,7 +126,7 @@ fn main() {
                 distance: f32::from_le_bytes(data_buf[i + 4..i + 8].try_into().unwrap()) / 1000.0,
             })
             .collect_vec();
-        dbg!(&points);
+        //dbg!(&points);
         let (min_point_position, metric, angle) = find_position(&points, &data, last_pos);
         dbg!(min_point_position, metric, angle);
         stream
