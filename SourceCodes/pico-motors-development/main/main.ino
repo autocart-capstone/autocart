@@ -15,10 +15,6 @@ bool stateChange = true;
 static int turn_pulses = 0;   // var to track pulses during a turn
 static int pivot_pulses = 0;  // var to track pulses during a pivot
 
-// PWM signal to send motors (0-255)
-static const int MOVING_SPEED = 100;
-static const int TURNING_SPEED = 130;
-
 /* Variables for PID Controller */
 static long prevT = 0;
 static int vt = 0;  // target velocity
@@ -96,7 +92,6 @@ void loop() {
   }
 
   switch (getState()) {
-
     case STOP:
       stateChange = false;
 
@@ -132,7 +127,6 @@ void loop() {
 
     case FORWARD:
       if (stateChange) {
-        kickStartMotors();
         stateChange = false;
       }
       drive_forwards();
@@ -141,7 +135,6 @@ void loop() {
 
     case BACKWARD:
       if (stateChange) {
-        kickStartMotors();
         stateChange = false;
       }
       drive_backwards();
@@ -151,6 +144,7 @@ void loop() {
     case ADJUST:
       if (stateChange) {
         stateChange = false;
+        drive_all_motors(MOVING_SPEED);
         turn_pulses = turn_theta(get_turning_angle()) * 2.5;
       }
       // On-the-fly adjustment with received angle.
@@ -167,11 +161,6 @@ void loop() {
 /* Method to set target RPM for PID Controller */
 void setTarget(int target) {
   vt = target;
-}
-
-void kickStartMotors() {
-  drive_all_motors(130);
-  delay(25);
 }
 
 void handleSerialCommand(char command) {

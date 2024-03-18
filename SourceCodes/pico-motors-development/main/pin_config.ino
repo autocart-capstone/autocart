@@ -100,7 +100,7 @@ void stop_motors() {
 int pivot_theta(float angle) {
   bool turning_right = false;
 
-  if (angle > 270) {
+  if (angle > 180) {
     turning_right = true;
     angle = 360 - angle;
   }
@@ -118,21 +118,21 @@ int pivot_theta(float angle) {
     returns pulses required for turn
   */
 int turn_theta(float angle) {
-  bool turning_right = false;
+  bool turning_left = false;
 
-  if (angle > 270) {
-    turning_right = true;
+  if (angle > 180) {
+    turning_left = true;
     angle = 360 - angle;
   }
   float pulses = calculate_pulses_for_angle(angle);
   float RPM_factor = (pulses / PULSES_PER_REV);
 
-  if (turning_right) {
-    control_left_motors(duty_cycles.FL + (duty_cycles.FL * RPM_factor),
-                        duty_cycles.BL + (duty_cycles.BL * RPM_factor));
-  } else {
+  if (turning_left) {
     control_right_motors(duty_cycles.FR + (duty_cycles.FR * RPM_factor),
                          duty_cycles.BR + (duty_cycles.BR * RPM_factor));
+  } else {
+    control_left_motors(duty_cycles.FL + (duty_cycles.FL * RPM_factor),
+                        duty_cycles.BL + (duty_cycles.BL * RPM_factor));
   }
   return pulses;
 }
@@ -156,6 +156,7 @@ States getState() {
 void setState(States newState) {
   // reset the encoders tracking turning on every state change
   reset_encoders();
+  drive_all_motors(MOVING_SPEED);
   stateChange = true;
   state = newState;
 }

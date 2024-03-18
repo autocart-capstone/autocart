@@ -44,6 +44,10 @@ const int encoders[4] = { ENCODER_FL, ENCODER_BL, ENCODER_FR, ENCODER_BR };
 const int PWM_FWD[4] = { PWM_FWD_FL, PWM_FWD_BL, PWM_FWD_FR, PWM_FWD_BR };
 const int PWM_BWD[4] = { PWM_BWD_FL, PWM_BWD_BL, PWM_BWD_FR, PWM_BWD_BR };
 
+// PWM signal to send motors (0-255)
+static const int MOVING_SPEED = 100;
+static const int TURNING_SPEED = 120;
+
 extern bool stateChange;
 
 void setup_pwm();

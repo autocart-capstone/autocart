@@ -19,7 +19,7 @@ void init_i2c() {
 }
 
 // Variables to store received tuple elements
-int received_data[3];
+int received_data[4];
 
 // Function to receive data
 void receiveEvent(int bytes) {
@@ -27,35 +27,49 @@ void receiveEvent(int bytes) {
   while (mywire.available()) {
     // Read received byte
     int c = mywire.read();
+    Serial.println(c);
     //Get 3 bytes
     // Interface: First two bytes are the angle, third byte is the state we want to be in.
     received_data[index++] = c;
+    if (index == 4) {
+      Serial.println("-------------");
+      processMessage(received_data);
+      index = 0;
+    }
   }
-
   // Process received data
-  processMessage(received_data);
 }
 
 void processMessage(int* data) {
   // Print received tuple elements
-
   // The angle to the point of interest.
+
   received_angle = (data[MSB_ANGLE_INDEX] << 8) | (data[LSB_ANGLE_INDEX]);
-  Serial.print("Angle: ");
-  Serial.println(received_angle);
-  Serial.println(data[STATE_INDEX]);
-  Serial.println();
-
   States state = (States)data[STATE_INDEX];
+  Serial.print("Recieved Angle: ");
+  Serial.println(received_angle);
 
-  if (state <= BACKWARD) {
-    Serial.print("changed state to  ");
-    Serial.println(state);
-    setState(state);
-  } else if ((received_angle < (previous_angle - 5)) || (received_angle > (previous_angle + 5))) {
+  Serial.print("Recieved State: ");
+  Serial.println(state);
+
+  if (received_angle > 10 && received_angle < 350) {
     //Angle has changed significantly, set state to adjusting.
-    Serial.println("changed state to ADJUST ");
-    setState(ADJUST);
+    if ((getState() == PIVOT_LEFT || getState() == PIVOT_RIGHT) && state != STOP) {
+      // Do Nothing
+    } else {
+      Serial.println("changed state to ADJUST ");
+      set_turning_angle(received_angle);
+      setState(ADJUST);
+    }
+  } else if (state <= BACKWARD) {
+    if ((getState() == PIVOT_LEFT || getState() == PIVOT_RIGHT) && state != STOP) {
+      Serial.println("currently pivoting");
+      // Do Nothing
+    } else {
+      Serial.print("changed state to  ");
+      Serial.println(state);
+      setState(state);
+    }
   } else {
     Serial.print("Invalid state input: ");
     Serial.println(state);
