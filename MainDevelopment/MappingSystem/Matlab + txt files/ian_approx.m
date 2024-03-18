@@ -4,9 +4,9 @@
 % fopen(t);
 
 filename = "test475.txt";
-xoff = 24.63;
-yoff = 22.50;
-%angle = 91.5
+%xoff = 24.63;
+%yoff = 22.50;
+%angle = 91.5;
 angle = 0;
 
 
@@ -15,7 +15,7 @@ angle = 0;
 % filename = "test425.txt";
 % xoff = 24.63;
 % yoff = 20.98;
-% angle = 89.5;
+% angle = 0;
 
 %filename = "19thjantest2.txt";
 %xoff = 24.63;
@@ -69,8 +69,6 @@ load('ahmed.mat');
 X_meas = measures(1,:,:);
 Y_meas = measures(2,:,:);
 D_meas = sqrt(X_meas.^2 + Y_meas.^2);
-N_testpos = size(test_pos, 1);
-N_structures = length(structures);
 
 
 angle_list = 0:10:359;
@@ -171,8 +169,8 @@ ya = yapprox;
 % fclose(t);
 
 dodraw = true;
-x_new = xoff + distance.*cosd(theta_fixed+angle_list(fidx));
-y_new = yoff + distance.*sind(theta_fixed+angle_list(fidx));
+x_new = xa + distance.*cosd(theta_fixed+angle_list(fidx));
+y_new = ya + distance.*sind(theta_fixed+angle_list(fidx));
 if dodraw
     figure(1)
     plot(structures{1}(:,1), structures{1}(:,2), 'k'); % Plot walls
