@@ -29,8 +29,11 @@ pub struct AvgPolarPoint {
     distance: f32,
 }
 
-pub fn find_position(points: &[PolarPoint], data: &TestData) -> (Point, f32, f32) {
-    println!("{}", points.len());
+pub fn find_position(
+    points: &[PolarPoint],
+    data: &TestData,
+    last_pos: Option<Point>,
+) -> (Point, f32, f32) {
     let avg_points: [AvgPolarPoint; 36] = std::array::from_fn(|i| {
         let center_angle_deg = (i * 10) as f32;
         let mut count = 0;
@@ -51,21 +54,27 @@ pub fn find_position(points: &[PolarPoint], data: &TestData) -> (Point, f32, f32
         .flat_map(|shift| {
             let mut points_shifted = avg_points.clone();
             points_shifted.rotate_left(shift);
-            data.test_points.iter().map(move |test_point| {
-                let metric = test_point
-                    .measurements
-                    .iter()
-                    .zip(points_shifted.iter())
-                    .fold(0.0, |acc, (test_distance, measurement)| {
-                        acc + f32::abs(test_distance - measurement.distance)
-                            * measurement.count as f32
-                    });
-                (test_point.pos, metric, shift)
-            })
+            data.test_points
+                .iter()
+                .filter(|test_point| match last_pos {
+                    Some(p) => (test_point.pos - p).magnitude() < 0.5, // only points close to last pos go through
+                    None => true,                                      // all points go through
+                })
+                .map(move |test_point| {
+                    let metric = test_point
+                        .measurements
+                        .iter()
+                        .zip(points_shifted.iter())
+                        .fold(0.0, |acc, (test_distance, measurement)| {
+                            acc + f32::abs(test_distance - measurement.distance)
+                                * measurement.count as f32
+                        });
+                    (test_point.pos, metric, shift)
+                })
         })
         .min_by(|a, b| a.1.total_cmp(&b.1))
         .unwrap();
-    let angle = shift as f32 * 10.0;
+    let angle = shift as f32 * 10.0; // in degrees
     (min_point_position, metric, angle)
 }
 
@@ -76,6 +85,8 @@ fn main() {
     let args = std::env::args().collect_vec();
     let addr = &args[1];
     let mut stream = TcpStream::connect(addr).unwrap();
+
+    let mut last_pos = None;
 
     loop {
         let mut size_buf: [u8; 4] = Default::default();
@@ -92,11 +103,12 @@ fn main() {
             })
             .collect_vec();
         dbg!(&points);
-        let (min_point_position, metric, angle) = find_position(&points, &data);
+        let (min_point_position, metric, angle) = find_position(&points, &data, last_pos);
         dbg!(min_point_position, metric, angle);
         stream
             .write_all(format!("{} {}", min_point_position.x, min_point_position.y).as_bytes())
             .unwrap();
+        last_pos = Some(min_point_position);
 
         let mut polar_points_rotated = points.clone();
         for p in polar_points_rotated.iter_mut() {
@@ -119,6 +131,20 @@ mod tests {
     };
 
     #[test]
+    fn plot_random_testpoint() {
+        let b = std::fs::read(TEST_DATA_PATH).unwrap();
+        let data = bincode::deserialize::<TestData>(&b).unwrap();
+        data.plot(true, false, true, None);
+    }
+
+    #[test]
+    fn plot_all_testpoint() {
+        let b = std::fs::read(TEST_DATA_PATH).unwrap();
+        let data = bincode::deserialize::<TestData>(&b).unwrap();
+        data.plot(true, true, false, None);
+    }
+
+    #[test]
     fn test475() {
         let b = std::fs::read(TEST_DATA_PATH).unwrap();
         let data = bincode::deserialize::<TestData>(&b).unwrap();
@@ -134,7 +160,7 @@ mod tests {
         let less_points = &points[0..1200];
         //dbg!(&points);
 
-        let (min_point_position, metric, angle) = find_position(less_points, &data);
+        let (min_point_position, metric, angle) = find_position(less_points, &data, None);
 
         dbg!(min_point_position, metric, angle);
 
