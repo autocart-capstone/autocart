@@ -13,24 +13,11 @@ import struct
 import os
 import subprocess
 import time
-import smbus
 
 MATLAB_PORT = 8002
 if "MATLAB_PORT" in os.environ:
     MATLAB_PORT = int(os.environ["MATLAB_PORT"])
 print(f"will listen for matlab on port: {MATLAB_PORT}")
-
-#MAR 17 CHANGES-------
-channel = 1
-address = 0x12
-
-bus = smbus.SMBus(channel)
-
-#Destination Values
-destination_x = 25
-destination_y = 1
-
-#MAR 17 CHANGES---------
 
 class SimpleSocketRpi:
     def __init__(self):
@@ -96,9 +83,42 @@ class SimpleSocketRpi:
     def reset_buffer(self):
         self.buf = []
 
-global x,y
-x = -1
-y = -1
+#global x,y,matlab_ready
+#x = -1
+#y = -1
+destinations = [ (25, 1),(25, 17)]
+
+channel = 1
+address = 0x12
+
+bus = smbus.SMBus(channel)
+
+data_to_send = (0,0,3) #FORWARD
+data = bytes(data_to_send) #SEND
+bus.write_i2c_block_data(address, 0, list(data))
+
+def got_position_from_matlab(x,y):
+    # need to work on this logic
+    if abs(x - destinations[0][0])<1 and abs(y - destinations[0][1])<1:
+        #msb = (round(currentAngle) >> 8) & 0xFF
+        #lsb = (round(currentAngle)) & 0xFF
+        data_to_send = (0,0,0) #STOP
+        data = bytes(data_to_send) 
+        bus.write_i2c_block_data(address, 0, list(data))
+
+        data_to_send = (0,0,1) #LEFT
+        data = bytes(data_to_send)
+        bus.write_i2c_block_data(address, 0, list(data))
+
+        data_to_send = (0,0,0) #STOP
+        data = bytes(data_to_send)
+        bus.write_i2c_block_data(address, 0, list(data))
+
+        data_to_send = (0,0,3) #FORWARD
+        data= bytes(data_to_send)
+        bus.write_i2c_block_data(address, 0, list(data))
+
+        destinations.append(destinations.pop(0)) # put reached destination at the end of the list
 
 def main():
     ss = SimpleSocketRpi()
@@ -108,10 +128,6 @@ def main():
     matlab_ready = True
     matlab_sent_timestamp = time.time()
 
-    data_to_send = (0,0,3) #FORWARD
-    data = bytes(data_to_send) #SEND
-    bus.write_i2c_block_data(address, 0, list(data))
-                
     while True:
         data = ss.receive_data_from_lidar()
         data = struct.unpack("ff", data)
@@ -122,83 +138,29 @@ def main():
 
         matlab_pos = ss.receive_data_from_matlab()
         if matlab_pos:
-            print("Waiting to receive")
             matlab_ready = True
             a = matlab_pos.decode().strip().split()
             x = float(a[0])
             y = float(a[1])
             print(f"received (x,y): ({x},{y})")
-            print(
-                f"took {time.time() - matlab_sent_timestamp} seconds to get position from Matlab"
-            )
+            print(f"took {time.time() - matlab_sent_timestamp} seconds to get position from Matlab")
+            got_position_from_matlab(x,y)
             
-            
-
         if curr_angle < prev_angle:  # If we finish one revolution
             if matlab_ready:
                 # Send buffer to matlab socket
                 # print(ss.get_buffer())
-                print("sent data to Matlab")
                 ss.send_data_to_matlab()
+                print("sent data to Matlab")
                 matlab_sent_timestamp = time.time()
                 matlab_ready = False
-                
-            #MAR 17 CHANGES -------
-             if ((x >= 24.5 and x <= 25.5) and (y >= 0.5 and y <= 1.5)):
-                #msb = (round(currentAngle) >> 8) & 0xFF
-                #lsb = (round(currentAngle)) & 0xFF
-                print("hit if statement")
-                data_to_send = (0,0,0) #STOP
-                data = bytes(data_to_send) #SEND
-                bus.write_i2c_block_data(address, 0, list(data))
-
-                data_to_send = (0,0,1) #LEFT
-                data = bytes(data_to_send) #SEND
-                bus.write_i2c_block_data(address, 0, list(data))
-
-                data_to_send = (0,0,0)
-                data = bytes(data_to_send)
-                bus.write_i2c_block_data(address, 0, list(data))
-
-                data_to_send = (0,0,3)
-                data= bytes(data_to_send)
-                bus.write_i2c_block_data(address, 0, list(data))
-                time.sleep(2)
-
-            if ((x >= 24.5 and x <= 25.5) and (y >= 17.5 and y <= 18.5)):
-                print("hit if statement")
-                data_to_send = (0,0,0) #STOP
-                data = bytes(data_to_send) #SEND
-                bus.write_i2c_block_data(address, 0, list(data))
-                
-            #MAR 17 CHANGES -------
-            
-            
             # Reset buffer - always do this after finishing 1 rev
             ss.reset_buffer()
             # Save first data from the new rev
             ss.save_data_to_buffer(data)
 
         # If we are not done with one rev yet, keep saving data (angle,dist) to buffer
-
         # Update prev_angle
         prev_angle = curr_angle
-        
-        
-
-    # Dummy data - solely for testing
-    curr_angle = 0
-    # prev_angle = curr_angle
-    # data_lst = [(356.7, 18), (358.2, 12), (359.5, 11), (0, 10), (1.2, 25), (3.6, 20), (5.0, 15)]
-    # for i in range(len(data_lst)):
-    #     curr_angle = data_lst[i][0]
-    #     ss.save_data_to_buffer(data_lst[i])
-    #     if curr_angle < prev_angle: # If we finish one revolution
-    #         ss.reset_buffer()
-    #         ss.save_data_to_buffer(data_lst[i]) # save first data from rev
-    #     print(ss.get_buffer())
-    #     prev_angle = curr_angle
-    return 0
-
 
 main()
