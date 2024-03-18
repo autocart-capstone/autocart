@@ -1,8 +1,4 @@
-use parry2d::{
-    na::{Point2, Vector2},
-    query::RayCast,
-    shape::Polyline,
-};
+use parry2d::{query::RayCast, shape::Polyline};
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Structures {
@@ -93,7 +89,7 @@ impl TestData {
         let max_y_int = (max_y / space).ceil() as i32;
         for x in (0..=max_x_int).map(|i| i as f32 * space) {
             for y in (0..=max_y_int).map(|i| i as f32 * space) {
-                let pt = Point2::new(x, y);
+                let pt = Point::new(x, y);
 
                 let in_s1 = structs
                     .s1

@@ -4,7 +4,7 @@ use crate::PolarPoint;
 
 pub fn get_points_from_file(path: &str) -> Vec<PolarPoint> {
     let string = std::fs::read_to_string(path).unwrap();
-    let mut out = string
+    string
         .lines()
         .skip(6)
         .flat_map(|line| {
@@ -26,6 +26,5 @@ pub fn get_points_from_file(path: &str) -> Vec<PolarPoint> {
                 None
             }
         })
-        .collect_vec();
-    out
+        .collect_vec()
 }

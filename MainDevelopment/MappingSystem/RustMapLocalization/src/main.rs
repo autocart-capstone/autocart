@@ -6,7 +6,7 @@ use std::{
 use itertools::Itertools;
 use parry2d::na::{Point2, Vector2};
 
-use crate::{get_points_from_file::get_points_from_file, make_test_data::TestData};
+use crate::make_test_data::TestData;
 
 pub mod get_points_from_file;
 pub mod make_test_data;
@@ -50,7 +50,7 @@ pub fn find_position(points: &[PolarPoint], data: &TestData) -> (Point, f32, f32
     let (min_point_position, metric, shift) = (0..36)
         .flat_map(|shift| {
             let mut points_shifted = avg_points.clone();
-            points_shifted.rotate_right(shift);
+            points_shifted.rotate_left(shift);
             data.test_points.iter().map(move |test_point| {
                 let metric = test_point
                     .measurements
@@ -113,7 +113,10 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use crate::{find_position, get_points_from_file, make_test_data::TestData, TEST_DATA_PATH};
+    use crate::{
+        find_position, get_points_from_file::get_points_from_file, make_test_data::TestData,
+        TEST_DATA_PATH,
+    };
 
     #[test]
     fn test475() {
@@ -123,6 +126,11 @@ mod tests {
         //data.plot(true, false, true, None);
 
         let points = get_points_from_file("../Matlab + txt files/test475.txt");
+
+        //for p in points.iter_mut() {
+        //    p.angle_deg = (p.angle_deg + 20.0) % 360.0;
+        //}
+
         let less_points = &points[0..1200];
         //dbg!(&points);
 
@@ -132,7 +140,7 @@ mod tests {
 
         let mut polar_points_rotated = less_points.to_owned();
         for p in polar_points_rotated.iter_mut() {
-            p.angle_deg += angle;
+            p.angle_deg -= angle;
         }
         dbg!(polar_points_rotated.len());
 
