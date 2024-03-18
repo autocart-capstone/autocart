@@ -1,12 +1,13 @@
 #ifndef CALCULATIONS_H
 #define CALCULATIONS_H
 
-// verify the measurements (should be in cm)
-#define WHEEL_DIAM 9.7f   // cm   
-#define PIVOT_DIAM 38.1f  // cm 
+/* Cart Measurements 
+    length middle of wheel: 30.48 cm 
+    Width middle of wheel: 21.59 cm 
+ */
 
-// Width middle of wheel: 21.59 cm 
-// length middle of wheel: 30.48 cm 
+#define WHEEL_DIAM 9.7f   // cm
+#define PIVOT_DIAM 38.1f  // cm
 
 float calculate_pulses_for_angle(float angle);
 

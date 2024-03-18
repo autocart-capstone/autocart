@@ -35,6 +35,7 @@ void check_and_set_pin(unsigned int pwm_pin, unsigned int duty_cycle) {
   }
 }
 
+/* Method to determine if provided PWM pin is disabled for direction control */
 bool check_pin_disabled(unsigned int pin) {
   for (int i = 0; i < MAX_DISABLED_PINS; i++) {
     if (disabled_gpio_pins[i] == pin) {
@@ -44,7 +45,7 @@ bool check_pin_disabled(unsigned int pin) {
   return false;
 }
 
-/* The initial PWM we want to start the motors at */
+/* The set PWM of all motors */
 void drive_all_motors(uint8_t duty_cycle) {
   for (int i = 0; i < NUM_MOTORS; i++) {
     set_pwm_duty_cycle(PWM_FWD[i], duty_cycle);
@@ -56,6 +57,7 @@ void drive_all_motors(uint8_t duty_cycle) {
 void set_pwm_duty_cycle(unsigned int pwm_pin, unsigned int duty_cycle) {
   // Check to see if the pin is disabled
   if (check_pin_disabled(pwm_pin)) {
+    // Write PWM of 0 to disabled pins to disable them on BTS7960 controller
     analogWrite(pwm_pin, 0);
   } else {
     analogWrite(pwm_pin, duty_cycle);  //set duty cycle to passed in value
@@ -63,31 +65,16 @@ void set_pwm_duty_cycle(unsigned int pwm_pin, unsigned int duty_cycle) {
   check_and_set_pin(pwm_pin, duty_cycle);
 }
 
+/* Methods to control direction of motors with BTS7960 controller */
+
 void drive_forwards() {
-  int pins_to_disable[] = { PWM_BWD_FL, PWM_BWD_BL, PWM_BWD_FR, PWM_BWD_BR }; 
+  int pins_to_disable[] = { PWM_BWD_FL, PWM_BWD_BL, PWM_BWD_FR, PWM_BWD_BR };
   memcpy(disabled_gpio_pins, pins_to_disable, sizeof(pins_to_disable));
 }
 
 void drive_backwards() {
   int pins_to_disable[] = { PWM_FWD_FL, PWM_FWD_BL, PWM_FWD_FR, PWM_FWD_BR };
   memcpy(disabled_gpio_pins, pins_to_disable, sizeof(pins_to_disable));
-}
-
-void drive_left() {
-  int pins_to_disable[] = { PWM_FWD_FL, PWM_FWD_BR, PWM_BWD_BL, PWM_BWD_FR };
-  memcpy(disabled_gpio_pins, pins_to_disable, sizeof(pins_to_disable));
-}
-
-void drive_right() {
-  int pins_to_disable[] = { PWM_BWD_FL, PWM_FWD_BR, PWM_BWD_BL, PWM_FWD_FR };
-  memcpy(disabled_gpio_pins, pins_to_disable, sizeof(pins_to_disable));
-}
-
-void stop_motors() {
-  for(int i = 0; i < 4; i++) {
-    analogWrite(PWM_FWD[i], 0);
-    analogWrite(PWM_BWD[i], 0);
-  }
 }
 
 void pivot_left() {
@@ -100,6 +87,16 @@ void pivot_right() {
   memcpy(disabled_gpio_pins, pins_to_disable, sizeof(pins_to_disable));
 }
 
+void stop_motors() {
+  for (int i = 0; i < 4; i++) {
+    analogWrite(PWM_FWD[i], 0);
+    analogWrite(PWM_BWD[i], 0);
+  }
+}
+
+/*  Method to control motors to pivot for a given angle 
+    returns pulses required for pivot
+ */
 int pivot_theta(float angle) {
   bool turning_right = false;
 
@@ -117,8 +114,9 @@ int pivot_theta(float angle) {
   return calculate_pulses_for_angle(angle);
 }
 
-
-// Calculations for two wheels (prototype)
+/*  Method to control motors to turn a given angle 
+    returns pulses required for turn
+  */
 int turn_theta(float angle) {
   bool turning_right = false;
 
@@ -126,18 +124,9 @@ int turn_theta(float angle) {
     turning_right = true;
     angle = 360 - angle;
   }
-
   float pulses = calculate_pulses_for_angle(angle);
-
-  Serial.print("ANGLE ");
-  Serial.println(angle);
-
-  Serial.print("PULSES ");
-  Serial.println(pulses);
-  // ANGLE = 60, PULSES = 59, RPM_FACTOR = 0.00. might be a integer division, pulses per rev - 90
   float RPM_factor = (pulses / PULSES_PER_REV);
-  Serial.print("RPM FACTOR ");
-  Serial.println(RPM_factor);
+
   if (turning_right) {
     control_left_motors(duty_cycles.FL + (duty_cycles.FL * RPM_factor),
                         duty_cycles.BL + (duty_cycles.BL * RPM_factor));
@@ -145,19 +134,6 @@ int turn_theta(float angle) {
     control_right_motors(duty_cycles.FR + (duty_cycles.FR * RPM_factor),
                          duty_cycles.BR + (duty_cycles.BR * RPM_factor));
   }
-
-  Serial.print("FL: ");
-  Serial.println(duty_cycles.FL);
-
-  Serial.print("BL: ");
-  Serial.println(duty_cycles.BL);
-
-  Serial.print("FR: ");
-  Serial.println(duty_cycles.FR);
-
-  Serial.print("BR: ");
-  Serial.println(duty_cycles.BR);
-
   return pulses;
 }
 
@@ -178,6 +154,7 @@ States getState() {
 
 // Setter function for the 'state' variable
 void setState(States newState) {
+  // reset the encoders tracking turning on every state change
   reset_encoders();
   stateChange = true;
   state = newState;

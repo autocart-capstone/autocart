@@ -1,14 +1,14 @@
 #ifndef PIN_CONFIG_H
 #define PIN_CONFIG_H
 
-typedef enum{
-	STOP = 0,
+typedef enum {
+  STOP = 0,
   PIVOT_LEFT,
   PIVOT_RIGHT,
   FORWARD,
   BACKWARD,
   ADJUST
-} States ;
+} States;
 
 States state = STOP;
 
@@ -29,15 +29,6 @@ States state = STOP;
 #define PWM_BWD_FR 28
 #define PWM_BWD_BR 18
 
-
-// PWM-direction -- NOT NEEDED WITH NEW DRIVERS
-// Board Left Side
-#define DIRECTION_FL (13) // x- Forwards
-#define DIRECTION_BL (12) // -x Backwards
-// Board Right Side
-#define DIRECTION_FR (18) // x- Forwards
-#define DIRECTION_BR (19) // -x Backwards
-
 // Encoder Pins
 // Board Left Side
 #define ENCODER_FL (10)
@@ -47,12 +38,11 @@ States state = STOP;
 #define ENCODER_BR (20)
 
 #define PWM_FREQ 50
-#define NUM_MOTORS 4 
+#define NUM_MOTORS 4
 
-const int encoders[4] = {ENCODER_FL, ENCODER_BL, ENCODER_FR, ENCODER_BR};
-const int PWM_FWD[4] = {PWM_FWD_FL, PWM_FWD_BL, PWM_FWD_FR, PWM_FWD_BR};
-const int PWM_BWD[4] = {PWM_BWD_FL, PWM_BWD_BL, PWM_BWD_FR, PWM_BWD_BR};
-const int directions[4] = {DIRECTION_FL, DIRECTION_BL, DIRECTION_FR, DIRECTION_BR};
+const int encoders[4] = { ENCODER_FL, ENCODER_BL, ENCODER_FR, ENCODER_BR };
+const int PWM_FWD[4] = { PWM_FWD_FL, PWM_FWD_BL, PWM_FWD_FR, PWM_FWD_BR };
+const int PWM_BWD[4] = { PWM_BWD_FL, PWM_BWD_BL, PWM_BWD_FR, PWM_BWD_BR };
 
 extern bool stateChange;
 
@@ -66,7 +56,7 @@ void drive_forwards();
 
 void drive_backwards();
 
-void drive_left(); 
+void drive_left();
 
 void drive_right();
 

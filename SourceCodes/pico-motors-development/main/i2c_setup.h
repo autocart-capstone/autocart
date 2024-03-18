@@ -7,7 +7,7 @@ void init_i2c();
 
 #define MSB_ANGLE_INDEX (1)
 #define LSB_ANGLE_INDEX (2)
-#define STATE_INDEX     (3) //Refer to pin_config.h for the numbering
+#define STATE_INDEX (3)  //Refer to pin_config.h for the numbering
 
 uint32_t get_turning_angle();
 
