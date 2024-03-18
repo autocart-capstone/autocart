@@ -27,6 +27,5 @@ pub fn get_points_from_file(path: &str) -> Vec<PolarPoint> {
             }
         })
         .collect_vec();
-    out.sort_by(|a, b| a.angle_deg.total_cmp(&b.angle_deg));
     out
 }

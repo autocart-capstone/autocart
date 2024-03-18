@@ -190,6 +190,9 @@ impl TestData {
                     .draw_series(LineSeries::new([(p1.x, p1.y), (p2.x, p2.y)], &GREEN))
                     .unwrap();
             }
+            chart
+                .draw_series(vec![Circle::new((pos.pos.x, pos.pos.y), 3, BLACK)])
+                .unwrap();
         }
 
         if let Some((pos, polar_points)) = plot_point {
@@ -203,6 +206,9 @@ impl TestData {
                     .draw_series(LineSeries::new([(p1.x, p1.y), (p2.x, p2.y)], &GREEN))
                     .unwrap();
             }
+            chart
+                .draw_series(vec![Circle::new((pos.x, pos.y), 3, BLACK)])
+                .unwrap();
         }
 
         root.present().unwrap();

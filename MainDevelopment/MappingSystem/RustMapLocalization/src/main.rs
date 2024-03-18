@@ -1,3 +1,9 @@
+use std::{
+    io::{Read, Write},
+    net::TcpStream,
+};
+
+use itertools::Itertools;
 use parry2d::na::{Point2, Vector2};
 
 use crate::{get_points_from_file::get_points_from_file, make_test_data::TestData};
@@ -24,6 +30,7 @@ pub struct AvgPolarPoint {
 }
 
 pub fn find_position(points: &[PolarPoint], data: &TestData) -> (Point, f32, f32) {
+    println!("{}", points.len());
     let avg_points: [AvgPolarPoint; 36] = std::array::from_fn(|i| {
         let center_angle_deg = (i * 10) as f32;
         let mut count = 0;
@@ -66,30 +73,42 @@ fn main() {
     let b = std::fs::read(TEST_DATA_PATH).unwrap();
     let data = bincode::deserialize::<TestData>(&b).unwrap();
 
-    //data.plot(true, false, true, None);
+    let args = std::env::args().collect_vec();
+    let addr = &args[1];
+    let mut stream = TcpStream::connect(addr).unwrap();
 
-    let points = get_points_from_file("../Matlab + txt files/test475.txt");
-    //dbg!(&points);
+    loop {
+        let mut size_buf: [u8; 4] = Default::default();
+        stream.read_exact(&mut size_buf).unwrap();
+        let size = u32::from_le_bytes(size_buf);
+        dbg!(size);
+        let mut data_buf = vec![0_u8; size as usize * 4];
+        stream.read_exact(&mut data_buf).unwrap();
+        let points = (0..data_buf.len())
+            .step_by(8)
+            .map(|i| PolarPoint {
+                angle_deg: f32::from_le_bytes(data_buf[i..i + 4].try_into().unwrap()),
+                distance: f32::from_le_bytes(data_buf[i + 4..i + 8].try_into().unwrap()) / 1000.0,
+            })
+            .collect_vec();
+        dbg!(&points);
+        let (min_point_position, metric, angle) = find_position(&points, &data);
+        dbg!(min_point_position, metric, angle);
+        stream
+            .write_all(format!("{} {}", min_point_position.x, min_point_position.y).as_bytes())
+            .unwrap();
 
-    let (min_point_position, metric, angle) = find_position(&points, &data);
-
-    dbg!(min_point_position, metric, angle);
-
-    let mut polar_points_rotated = points.clone();
-    for p in polar_points_rotated.iter_mut() {
-        p.angle_deg += angle;
+        let mut polar_points_rotated = points.clone();
+        for p in polar_points_rotated.iter_mut() {
+            p.angle_deg += angle;
+        }
+        data.plot(
+            true,
+            false,
+            false,
+            Some((min_point_position, polar_points_rotated)),
+        );
     }
-
-    data.plot(
-        true,
-        false,
-        false,
-        Some((min_point_position, polar_points_rotated)),
-    );
-
-    //let bytes = bincode::serialize(&data).unwrap();
-    //let mut file = File::create("foo.txt")?;
-    //file.write_all(b"Hello, world!")?;
 }
 
 #[cfg(test)]
@@ -104,16 +123,18 @@ mod tests {
         //data.plot(true, false, true, None);
 
         let points = get_points_from_file("../Matlab + txt files/test475.txt");
+        let less_points = &points[0..1200];
         //dbg!(&points);
 
-        let (min_point_position, metric, angle) = find_position(&points, &data);
+        let (min_point_position, metric, angle) = find_position(less_points, &data);
 
         dbg!(min_point_position, metric, angle);
 
-        let mut polar_points_rotated = points.clone();
+        let mut polar_points_rotated = less_points.to_owned();
         for p in polar_points_rotated.iter_mut() {
             p.angle_deg += angle;
         }
+        dbg!(polar_points_rotated.len());
 
         data.plot(
             true,
