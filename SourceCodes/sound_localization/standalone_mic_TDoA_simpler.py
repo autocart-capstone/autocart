@@ -5,6 +5,7 @@ import matplotlib.animation as pltAnim
 import serial
 import threading
 import queue
+import copy
 
 
 noiseA = np.load("misc/filtered_noiseA.npy")
@@ -179,12 +180,14 @@ def do_plot():
         axMap.set_xlim(axMap.get_xlim())
         axMap.set_ylim(axMap.get_ylim())
 
-        for p in msg.positions:
-            axMap.scatter(
-                p[0],
-                p[1],
-                color="blue",
-            )
+        # for p in msg.positions:
+        #     axMap.scatter(
+        #         p[0],
+        #         p[1],
+        #         color="blue",
+        #     )
+        for line in msg.positions:
+            axMap.plot(line[0], line[1], color='blue', linewidth='2')
 
         axMap.scatter(
             msg.cursor_position[0],
@@ -200,7 +203,9 @@ def do_plot():
 def main_task_pico():
     Nw = len(noiseA)
     positions = []
-    with serial.Serial("/dev/ttyACM0", 115200) as ser:
+    positions.append([[],[]])
+    pos_idx = 0
+    with serial.Serial("COM14", 115200) as ser:
         # ser.set_buffer_size(rx_size = 8192)
         ser.write(b"freq\n")
         # print(ser.readline())
@@ -214,11 +219,11 @@ def main_task_pico():
             ser.write(f"{Nw}\n".encode())
             # print(size)
 
-            a = ser.readline()  # For draw button
-            a_dec = a.decode("utf-8").strip()
+            rcv_draw = ser.readline()  # For draw button
+            rcv_draw = rcv_draw.decode("utf-8").strip()
 
-            a1 = ser.readline()  # For clear button
-            a1_dec = a1.decode("utf-8").strip()
+            rcv_clear = ser.readline()  # For clear button
+            rcv_clear = rcv_clear.decode("utf-8").strip()
 
             num_bytes = Nw * 2  # 2 bytes per sample
             b = ser.read(num_bytes)
@@ -242,11 +247,12 @@ def main_task_pico():
             guessed_position = fangs_algorithm_TDoA(ta, tb, tc)
 
             # Button stuff
-            if a_dec == "press":
+            if rcv_draw == "press":
                 draw_button_on = True
 
-            if a1_dec == "cleared":
+            if rcv_clear == "cleared":
                 clear_button_on = True
+
 
             if guessed_position is None:
                 cursor_position = INVALID_CURSOR_POS
@@ -254,10 +260,18 @@ def main_task_pico():
             else:
                 cursor_position = guessed_position
                 if draw_button_on:
-                    positions.append(guessed_position)
+                    # If button is pressed
+                    positions[pos_idx][0].append(guessed_position[0])   # Add x coord in the curr drawing list
+                    positions[pos_idx][1].append(guessed_position[1])   # Add y coord in the curr drawing list
+                else:
+                    # If button is released, add new list to positions
+                    positions.append([[],[]])
+                    pos_idx += 1
 
             if clear_button_on == 1:
                 positions.clear()
+                positions.append([[],[]])
+                pos_idx = 0
 
             if thread_queue.empty():
                 thread_queue.put(
@@ -265,7 +279,7 @@ def main_task_pico():
                         cross_corrA,
                         cross_corrB,
                         cross_corrC,
-                        positions.copy(),
+                        copy.deepcopy(positions),
                         cursor_position,
                     )
                 )
@@ -345,8 +359,8 @@ def main_task_mic():
                 print("dropping frame")
 
 
-# t1 = threading.Thread(target=main_task_pico)
-t1 = threading.Thread(target=main_task_mic, daemon=True)
+t1 = threading.Thread(target=main_task_pico, daemon=True)
+# t1 = threading.Thread(target=main_task_mic, daemon=True)
 t1.start()
 
 do_plot()
