@@ -1,9 +1,11 @@
 import numpy as np
 import scipy as sp
 import matplotlib.pyplot as plt
+import matplotlib.animation as pltAnim
 import serial
+import threading
+import queue
 
-guessed_positions = []
 
 noiseA = np.load("misc/filtered_noiseA.npy")
 noiseB = np.load("misc/filtered_noiseB.npy")
@@ -16,7 +18,7 @@ noiseC = np.load("misc/filtered_noiseC.npy")
 A = np.array([0, 0])
 
 B = np.array([0.82, 0])
-C = np.array([0.82/2, 0.551])
+C = np.array([0.82 / 2, 0.551])
 Z_MIC_RELATIVE_TO_SPEAKERS = 0.195
 
 assert A[0] == 0 and A[1] == 0
@@ -39,14 +41,11 @@ def correlate_and_find_delay(rec, noise, name):
     # cross_corr = cross_corr[:valid_len]
 
     # print(cross_corr)
-    plt.plot(cross_corr)
-    plt.title("correlation " + name)
-
     k_max_ind = np.argmax(cross_corr)
     k_max = cross_corr[k_max_ind]
     avg = np.sum(cross_corr) / len(cross_corr)
 
-    return k_max_ind, k_max, avg
+    return k_max_ind, k_max, avg, cross_corr
 
 
 def fangs_algorithm_TDoA(ta, tb, tc):
@@ -83,14 +82,14 @@ def fangs_algorithm_TDoA(ta, tb, tc):
     # variable names correspond to those in the paper
 
     g = (Rac * b / Rab - cx) / cy
-    h = (c ** 2 - Rac ** 2 + Rac * Rab * (1 - (b / Rab) ** 2)) / (2 * cy)
+    h = (c**2 - Rac**2 + Rac * Rab * (1 - (b / Rab) ** 2)) / (2 * cy)
 
-    d = -(1 - (b / Rab) ** 2 + g ** 2)
+    d = -(1 - (b / Rab) ** 2 + g**2)
     e = b * (1 - (b / Rab) ** 2) - 2 * g * h
-    f = (Rab ** 2 / 4) * (1 - (b / Rab) ** 2) ** 2 - h ** 2
+    f = (Rab**2 / 4) * (1 - (b / Rab) ** 2) ** 2 - h**2
 
     z = Z_MIC_RELATIVE_TO_SPEAKERS
-    x = np.roots([d, e, f - z ** 2])  # eq 9a
+    x = np.roots([d, e, f - z**2])  # eq 9a
     x = x[abs(x.imag) < 1e-5]  # ignore imaginary roots
     y = g * x + h  # eq 13
     # print(x, y)
@@ -116,20 +115,91 @@ def fangs_algorithm_TDoA(ta, tb, tc):
     best_guess = min(guesses, key=err)
     return best_guess
 
+
 def plot_spect(sound):
-  f, t, Sxx = sp.signal.spectrogram(sound, 50000)
-  plt.pcolormesh(t, f, Sxx, shading='gouraud')
-  plt.ylabel('Frequency [Hz]')
-  plt.xlabel('Time [sec]')
-  plt.ylim((1000, 5000))
-
-positions = {}
+    f, t, Sxx = sp.signal.spectrogram(sound, 50000)
+    plt.pcolormesh(t, f, Sxx, shading="gouraud")
+    plt.ylabel("Frequency [Hz]")
+    plt.xlabel("Time [sec]")
+    plt.ylim((1000, 5000))
 
 
-def main_task():
+INVALID_CURSOR_POS = (-100.0, -100.0)  # off the shown map hopefully
+
+thread_queue = queue.Queue()
+
+
+class QueueMsg:
+    def __init__(
+        self, cross_corrA, cross_corrB, cross_corrC, positions, cursor_position
+    ) -> None:
+        self.cross_corrA = cross_corrA
+        self.cross_corrB = cross_corrB
+        self.cross_corrC = cross_corrC
+        self.positions = positions
+        self.cursor_position = cursor_position
+
+
+def do_plot():
+    fig = plt.figure(1)
+    axA = plt.subplot(231)
+    axB = plt.subplot(232, sharey=axA)
+    axC = plt.subplot(233, sharey=axA)
+
+    axMap = plt.subplot(212)
+
+    def update_plot(frame):
+        if thread_queue.empty():
+            return
+        msg = thread_queue.get()
+
+        axA.clear()
+        axA.plot(msg.cross_corrA)
+        axA.set_title("Correlation A")
+
+        axB.clear()
+        axB.plot(msg.cross_corrB)
+        axB.set_title("Correlation B")
+        axB.tick_params("y", labelleft=False)
+
+        axC.clear()
+        axC.plot(msg.cross_corrC)
+        axC.set_title("Correlation C")
+        axC.tick_params("y", labelleft=False)
+
+        axMap.clear()
+        axMap.scatter(
+            [A[0], B[0], C[0]],
+            [A[1], B[1], C[1]],
+            label="base stations",
+            marker="o",
+            color="purple",
+        )
+        axMap.set_aspect("equal")
+        axMap.set_xlim(axMap.get_xlim())
+        axMap.set_ylim(axMap.get_ylim())
+
+        for p in msg.positions:
+            axMap.scatter(
+                p[0],
+                p[1],
+                color="blue",
+            )
+
+        axMap.scatter(
+            msg.cursor_position[0],
+            msg.cursor_position[1],
+            color="lightblue",
+        )
+        fig.canvas.draw()
+
+    anim = pltAnim.FuncAnimation(fig, update_plot, cache_frame_data=False, interval=10)
+    plt.show(block=True)
+
+
+def main_task_pico():
     Nw = len(noiseA)
-    sound = np.zeros(Nw)
-
+    positions = []
     with serial.Serial("/dev/ttyACM0", 115200) as ser:
         # ser.set_buffer_size(rx_size = 8192)
         ser.write(b"freq\n")
@@ -145,51 +215,25 @@ def main_task():
             # print(size)
 
             a = ser.readline()  # For draw button
-            a_dec = a.decode('utf-8').strip()
+            a_dec = a.decode("utf-8").strip()
 
             a1 = ser.readline()  # For clear button
-            a1_dec = a1.decode('utf-8').strip()
+            a1_dec = a1.decode("utf-8").strip()
 
             num_bytes = Nw * 2  # 2 bytes per sample
             b = ser.read(num_bytes)
 
-            # Button stuff
-            if a_dec == "press":
-                draw_button_on = 1
-
-            if a1_dec == "cleared":
-                clear_button_on = 1
-
             sound = np.frombuffer(b, dtype="<i2")
-            plt.ion()
-            plt.figure(1)
-            plt.clf()
-            ax1 = plt.subplot(231)
-            found_delay1, max1, avg1 = correlate_and_find_delay(
+
+            found_delay1, max1, avg1, cross_corrA = correlate_and_find_delay(
                 sound, noiseA, "A"
             )
-            plt.subplot(232, sharey=ax1)
-            found_delay2, max2, avg2 = correlate_and_find_delay(
+            found_delay2, max2, avg2, cross_corrB = correlate_and_find_delay(
                 sound, noiseB, "B"
             )
-            plt.tick_params("y", labelleft=False)
-            plt.subplot(233, sharey=ax1)
-            found_delay3, max3, avg3 = correlate_and_find_delay(
+            found_delay3, max3, avg3, cross_corrC = correlate_and_find_delay(
                 sound, noiseC, "C"
             )
-            plt.tick_params("y", labelleft=False)
-
-            plt.subplot(212)
-            plt.scatter(
-                [A[0], B[0], C[0]],
-                [A[1], B[1], C[1]],
-                label="base stations",
-                marker="o",
-            )
-            a = plt.gca()
-            a.set_aspect("equal")
-            a.set_xlim(a.get_xlim())
-            a.set_ylim(a.get_ylim())
 
             ta = found_delay1 / 48000
             tb = found_delay2 / 48000
@@ -197,62 +241,112 @@ def main_task():
 
             guessed_position = fangs_algorithm_TDoA(ta, tb, tc)
 
-            if guessed_position is not None:
-                positions["self"] = guessed_position
-            print(positions)
-            for name, position in positions.items():
-                plt.figure(1)
-                plt.scatter(position[0], position[1], label=name)
+            # Button stuff
+            if a_dec == "press":
+                draw_button_on = True
 
-            plt.gca().set_aspect("equal")
-            plt.legend(loc="center left", bbox_to_anchor=(1.0, 0.5))
-            """ plt.subplot(437)
-            plot_spect(noiseA)
-            plt.subplot(438)
-            plot_spect(noiseB)
-            plt.subplot(439)
-            plot_spect(noiseC)
-            plt.subplot(4,3,11)
-            plot_spect(sound) """
+            if a1_dec == "cleared":
+                clear_button_on = True
 
-            # Draw button
-            if draw_button_on == 1:
-                #if guessed_position is not None:
-                    #positions["self"] = guessed_position
+            if guessed_position is None:
+                cursor_position = INVALID_CURSOR_POS
 
-                print("THE DRAWING BUTTON IS WORKING!!")
-                if guessed_position is not None:
-                    guessed_positions.append(guessed_position)
-                print(guessed_positions)
-
-                x_elem = [x[0] for x in guessed_positions]
-                y_elem = [x[1] for x in guessed_positions]
-
-                plt.figure(2)
-
-                plt.scatter(
-                    [A[0], B[0], C[0]],
-                    [A[1], B[1], C[1]],
-                    #label="base stations",
-                    marker="o",
-                )
-                a = plt.gca()
-                a.set_aspect("equal")
-                a.set_xlim(a.get_xlim())
-                a.set_ylim(a.get_ylim())
-
-                plt.scatter(x_elem, y_elem)
-                # plt.gca().set_aspect("equal")
-                # plt.legend(loc="center left", bbox_to_anchor=(1.0, 0.5))
+            else:
+                cursor_position = guessed_position
+                if draw_button_on:
+                    positions.append(guessed_position)
 
             if clear_button_on == 1:
-                print("THE CLEAR BUTTON IS WORKING!!")
-                guessed_positions.clear()
-                plt.figure(2)
-                plt.clf()
+                positions.clear()
 
-            plt.show()
-            plt.pause(0.01)
+            if thread_queue.empty():
+                thread_queue.put(
+                    QueueMsg(
+                        cross_corrA,
+                        cross_corrB,
+                        cross_corrC,
+                        positions.copy(),
+                        cursor_position,
+                    )
+                )
+            else:
+                print("dropping frame")
 
 
-main_task()
+def main_task_mic():
+    Nw = len(noiseA)
+
+    audio_buffer_queue = queue.Queue()
+
+    def audio_callback(indata, frames, time, status):
+        """This is called (from a separate thread) for each audio block."""
+
+        if status:
+            print(status)
+
+        length = min(Nw - audio_callback.index, frames)
+        audio_callback.buffer[audio_callback.index : audio_callback.index + length] = (
+            indata[:length].flatten()
+        )
+
+        audio_callback.index += length
+
+        if audio_callback.index >= Nw:
+            audio_callback.index = 0
+            if audio_buffer_queue.empty():
+                audio_buffer_queue.put(audio_callback.buffer.copy())
+            else:
+                print("dropping sound")
+
+    audio_callback.index = 0
+    audio_callback.buffer = np.zeros(Nw)
+
+    import sounddevice as sd
+
+    stream = sd.InputStream(channels=1, samplerate=48000, callback=audio_callback)
+    with stream:
+        positions = []
+        while True:
+            sound = audio_buffer_queue.get()
+
+            found_delay1, max1, avg1, cross_corrA = correlate_and_find_delay(
+                sound, noiseA, "A"
+            )
+            found_delay2, max2, avg2, cross_corrB = correlate_and_find_delay(
+                sound, noiseB, "B"
+            )
+            found_delay3, max3, avg3, cross_corrC = correlate_and_find_delay(
+                sound, noiseC, "C"
+            )
+
+            ta = found_delay1 / 48000
+            tb = found_delay2 / 48000
+            tc = found_delay3 / 48000
+
+            guessed_position = fangs_algorithm_TDoA(ta, tb, tc)
+
+            if guessed_position is None:
+                cursor_position = INVALID_CURSOR_POS
+
+            else:
+                cursor_position = guessed_position
+
+            if thread_queue.empty():
+                thread_queue.put(
+                    QueueMsg(
+                        cross_corrA,
+                        cross_corrB,
+                        cross_corrC,
+                        positions.copy(),
+                        cursor_position,
+                    )
+                )
+            else:
+                print("dropping frame")
+
+
+# t1 = threading.Thread(target=main_task_pico)
+t1 = threading.Thread(target=main_task_mic, daemon=True)
+t1.start()
+
+do_plot()

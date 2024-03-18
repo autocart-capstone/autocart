@@ -96,6 +96,9 @@ class SimpleSocketRpi:
     def reset_buffer(self):
         self.buf = []
 
+global x,y
+x = -1
+y = -1
 
 def main():
     ss = SimpleSocketRpi()
@@ -119,6 +122,7 @@ def main():
 
         matlab_pos = ss.receive_data_from_matlab()
         if matlab_pos:
+            print("Waiting to receive")
             matlab_ready = True
             a = matlab_pos.decode().strip().split()
             x = float(a[0])
@@ -128,16 +132,7 @@ def main():
                 f"took {time.time() - matlab_sent_timestamp} seconds to get position from Matlab"
             )
             
-            #MAR 17 CHANGES -------
-            if ((x >= 24.5 and x <= 25.5) and (y >= 0.5 and y <= 1.5)):
-                #msb = (round(currentAngle) >> 8) & 0xFF
-                #lsb = (round(currentAngle)) & 0xFF
-                print("hit if statement")        
-                data_to_send = (0,0,0) #STOP
-                data = bytes(data_to_send) #SEND
-                bus.write_i2c_block_data(address, 0, list(data))
             
-            #MAR 17 CHANGES -------
 
         if curr_angle < prev_angle:  # If we finish one revolution
             if matlab_ready:
@@ -147,7 +142,38 @@ def main():
                 ss.send_data_to_matlab()
                 matlab_sent_timestamp = time.time()
                 matlab_ready = False
+                
+            #MAR 17 CHANGES -------
+             if ((x >= 24.5 and x <= 25.5) and (y >= 0.5 and y <= 1.5)):
+                #msb = (round(currentAngle) >> 8) & 0xFF
+                #lsb = (round(currentAngle)) & 0xFF
+                print("hit if statement")
+                data_to_send = (0,0,0) #STOP
+                data = bytes(data_to_send) #SEND
+                bus.write_i2c_block_data(address, 0, list(data))
 
+                data_to_send = (0,0,1) #LEFT
+                data = bytes(data_to_send) #SEND
+                bus.write_i2c_block_data(address, 0, list(data))
+
+                data_to_send = (0,0,0)
+                data = bytes(data_to_send)
+                bus.write_i2c_block_data(address, 0, list(data))
+
+                data_to_send = (0,0,3)
+                data= bytes(data_to_send)
+                bus.write_i2c_block_data(address, 0, list(data))
+                time.sleep(2)
+
+            if ((x >= 24.5 and x <= 25.5) and (y >= 17.5 and y <= 18.5)):
+                print("hit if statement")
+                data_to_send = (0,0,0) #STOP
+                data = bytes(data_to_send) #SEND
+                bus.write_i2c_block_data(address, 0, list(data))
+                
+            #MAR 17 CHANGES -------
+            
+            
             # Reset buffer - always do this after finishing 1 rev
             ss.reset_buffer()
             # Save first data from the new rev
