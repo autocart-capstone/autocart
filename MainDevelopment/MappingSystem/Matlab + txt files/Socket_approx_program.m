@@ -8,6 +8,8 @@ figure(1)
 plot(structures{1}(:,1), structures{1}(:,2), 'k'); % Plot walls
 hold on
 plot(structures{2}(:,1), structures{2}(:,2), 'k'); % Plot walls
+xlim([-5 35]);
+ylim([-5 30]);
 set(gca, 'ButtonDownFcn', @plotClickCallback);
 
 %disp(['You clicked at X:', num2str(x_clicked), ', Y:', num2str(y_clicked)]);
@@ -22,9 +24,11 @@ b = [1.0,-1.0,0.0,-1.0,1.0];
 pgon = polyshape(a,b);
 pgon = scale(pgon,0.3);
 angle = 0;
+x_new =0;
+y_new = 0;
 while true
     size = read(t,1, "int32");
-    disp(size);
+    %disp(size);
 
     floats = read(t,size,'single');
     floats = reshape(floats, 2, []);
@@ -34,19 +38,24 @@ while true
     %      delete h;
     %  end
     hold on
-    [x, y, angle] = position(theta,distance,angle,test_pos,measures,walls,D_meas,last_pos);
+    [x, y, angle,x_new,y_new] = position(theta,distance,angle,test_pos,measures,walls,D_meas,last_pos,x_new,y_new);
     last_pos=[x y];
     if exist('n','var')
         delete(n);
     end
+    if exist('d','var')
+        delete(d);
+    end
     phi = -90+angle;
     z = rotate(pgon,phi);
     h = plot(translate(z,x,y));
+    c = plot(x_new,y_new,'r.');
     %h = plot(translate(rotate(pgon, x, y,-90+angle));
     %disp(angle);
     write(t,[sprintf('%g %g %g',x,y,angle) newline]);
     hold off;
     n=h;
+    d=c;
     %write(t,[x y])
     
 
@@ -72,7 +81,7 @@ end
 %yoff =  7.98;
 %angle = 0;
 
-function [xa,ya, angle] = position(theta, distances,angle, test_pos,measures,walls,D_meas,last_pos)
+function [xa,ya, angle, x_new,y_new] = position(theta, distances,angle, test_pos,measures,walls,D_meas,last_pos,x_new,y_new)
 % Read data file, and skip header and blank line at end
     xoff = 24.63;
     yoff = 22.50;
@@ -143,7 +152,7 @@ function [xa,ya, angle] = position(theta, distances,angle, test_pos,measures,wal
             %metric = squeeze(sum(((X_meas - X_coord).^2 + (Y_meas - Y_coord).^2).*new_counts));
             metric = squeeze(sum(abs(D_meas_near - new_mean_distance).*new_counts));
             if na<1
-                disp("HELLO");
+                %disp("HELLO");
                 [minmetric(na+36),minidx(na+36)] = min(metric);
             elseif na > 36
                 [minmetric(na-36),minidx(na-36)] = min(metric);
@@ -166,9 +175,11 @@ function [xa,ya, angle] = position(theta, distances,angle, test_pos,measures,wal
     xa = test_pos(pidx,1);
     ya = test_pos(pidx,2);
 
-    % dodraw = true;
-    % x_new = xoff + distance.*cosd(theta_fixed+angle_list(fidx));
-    % y_new = yoff + distance.*sind(theta_fixed+angle_list(fidx));
+    %dodraw = true;
+    x_new = xa + distance.*cosd(theta_fixed+angle_list(fidx));
+    y_new = ya + distance.*sind(theta_fixed+angle_list(fidx));
+    
+    
     % if dodraw
     % 
     % 
