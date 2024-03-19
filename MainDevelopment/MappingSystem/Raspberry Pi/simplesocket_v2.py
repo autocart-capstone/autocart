@@ -13,18 +13,22 @@ import struct
 import os
 import subprocess
 import time
+import math
+import smbus
 
-MATLAB_PORT = 8002
+MATLAB_PORT = 8008
 if "MATLAB_PORT" in os.environ:
     MATLAB_PORT = int(os.environ["MATLAB_PORT"])
 print(f"will listen for matlab on port: {MATLAB_PORT}")
+
+SDK_PORT = 8080
+if "SDK_PORT" in os.environ:
+    SDK_PORT = int(os.environ["SDK_PORT"])
 
 class SimpleSocketRpi:
     def __init__(self):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.m = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.PORT = 8080
-        self.HOST_IP = "127.0.0.1"
         self.buf = []
 
     def connect_socket(self):
@@ -37,7 +41,7 @@ class SimpleSocketRpi:
         self.matlab_conn = conn
         self.matlab_conn.setblocking(False)
 
-        self.s.bind((self.HOST_IP, self.PORT))
+        self.s.bind(("127.0.0.1", SDK_PORT))
         self.s.listen(1)
         print("starting to listen to sdk")
 
@@ -86,43 +90,57 @@ class SimpleSocketRpi:
 #global x,y,matlab_ready
 #x = -1
 #y = -1
-destinations = [ (25, 1),(25, 17)]
+destinations = [ (25, 1),(25, 17),(5, 17),(5, 1)]
 
 channel = 1
 address = 0x12
 
 bus = smbus.SMBus(channel)
 
-data_to_send = (0,0,3) #FORWARD
-data = bytes(data_to_send) #SEND
-bus.write_i2c_block_data(address, 0, list(data))
+#data_to_send = (0,0,3) #FORWARD
+#data = bytes(data_to_send) #SEND
+#bus.write_i2c_block_data(address, 0, list(data))
 
-def got_position_from_matlab(x,y):
-    # need to work on this logic
-    if abs(x - destinations[0][0])<1 and abs(y - destinations[0][1])<1:
-        #msb = (round(currentAngle) >> 8) & 0xFF
-        #lsb = (round(currentAngle)) & 0xFF
-        data_to_send = (0,0,0) #STOP
-        data = bytes(data_to_send) 
-        bus.write_i2c_block_data(address, 0, list(data))
+PICO_CMD_STOP = int.to_bytes(0)
+PICO_CMD_FWD = int.to_bytes(3)
+PICO_CMD_BWD = int.to_bytes(4)
+PICO_ANGLE_PADDING = int.to_bytes(0, length=2)
+PICO_CMD_TURN_LEFT = int.to_bytes(1)
+PICO_CMD_TURN_RIGHT = int.to_bytes(2)
 
-        data_to_send = (0,0,1) #LEFT
-        data = bytes(data_to_send)
-        bus.write_i2c_block_data(address, 0, list(data))
-
-        data_to_send = (0,0,0) #STOP
-        data = bytes(data_to_send)
-        bus.write_i2c_block_data(address, 0, list(data))
-
-        data_to_send = (0,0,3) #FORWARD
-        data= bytes(data_to_send)
-        bus.write_i2c_block_data(address, 0, list(data))
-
+def got_position_from_matlab(cart_x, cart_y, cart_angle):
+    
+    dest_x, dest_y = destinations[0]
+    if math.sqrt((cart_x - dest_x)**2 + (cart_y - dest_y)**2) < 1:
         destinations.append(destinations.pop(0)) # put reached destination at the end of the list
+    
+    dest_x, dest_y = destinations[0]
+
+    line_to_dest = dest_x - cart_x, dest_y - cart_y
+
+    angle_to_dest = math.atan2(line_to_dest[1], line_to_dest[0]) # [-pi, pi]
+    angle_to_dest_deg = (angle_to_dest + math.pi) / math.pi * 360.0
+
+    angle_to_turn = int(cart_angle - angle_to_dest_deg)
+    print(angle_to_dest_deg, cart_angle, angle_to_turn)
+    turn_cmd = None
+    if angle_to_turn > 0.0:
+        turn_cmd = PICO_CMD_TURN_LEFT
+    else:
+        turn_cmd = PICO_CMD_TURN_RIGHT
+
+    angle_bytes = int.to_bytes(abs(angle_to_turn), length=2)
+
+    if True: # Should we always send the turn command?
+        data= angle_bytes + turn_cmd
+        bus.write_i2c_block_data(address, 0, data)
 
 def main():
     ss = SimpleSocketRpi()
     ss.connect_socket()
+    data_to_send = (0,0,3)
+    data=bytes(data_to_send)
+    bus.write_i2c_block_data(address,0,list(data))
     curr_angle = 0
     prev_angle = curr_angle
     matlab_ready = True
@@ -142,9 +160,10 @@ def main():
             a = matlab_pos.decode().strip().split()
             x = float(a[0])
             y = float(a[1])
-            print(f"received (x,y): ({x},{y})")
+            angle = float(a[2])
+            print(f"received (x,y,angle): ({x},{y},{angle})")
             print(f"took {time.time() - matlab_sent_timestamp} seconds to get position from Matlab")
-            got_position_from_matlab(x,y)
+            got_position_from_matlab(x,y,angle)
             
         if curr_angle < prev_angle:  # If we finish one revolution
             if matlab_ready:

@@ -101,7 +101,7 @@ void ctrlc(int)
 }
 
 int main(int argc, const char * argv[]) {
-    ClientSocket python_socket = createConnection("127.0.0.1", "8080");
+    ClientSocket python_socket = createConnection("127.0.0.1", std::getenv("SDK_PORT"));
     
 
 	const char * opt_is_channel = NULL; 
