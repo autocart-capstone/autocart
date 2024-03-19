@@ -14,7 +14,7 @@ import os
 import subprocess
 import time
 import math
-import smbus
+from smbus2 import SMBus
 
 MATLAB_PORT = 8008
 if "MATLAB_PORT" in os.environ:
@@ -95,45 +95,51 @@ destinations = [ (25, 1),(25, 17),(5, 17),(5, 1)]
 channel = 1
 address = 0x12
 
-bus = smbus.SMBus(channel)
+bus = SMBus(channel)
 
 #data_to_send = (0,0,3) #FORWARD
 #data = bytes(data_to_send) #SEND
 #bus.write_i2c_block_data(address, 0, list(data))
 
-PICO_CMD_STOP = int.to_bytes(0)
-PICO_CMD_FWD = int.to_bytes(3)
-PICO_CMD_BWD = int.to_bytes(4)
-PICO_ANGLE_PADDING = int.to_bytes(0, length=2)
-PICO_CMD_TURN_LEFT = int.to_bytes(1)
-PICO_CMD_TURN_RIGHT = int.to_bytes(2)
+PICO_CMD_STOP = 0
+PICO_CMD_TURN_LEFT = 1
+PICO_CMD_TURN_RIGHT = 2
+PICO_CMD_FWD = 3
+PICO_CMD_BWD = 4
+
+PICO_ANGLE_PADDING = list(int.to_bytes(0, length=2))
 
 def got_position_from_matlab(cart_x, cart_y, cart_angle):
     
     dest_x, dest_y = destinations[0]
+    pivot = False
     if math.sqrt((cart_x - dest_x)**2 + (cart_y - dest_y)**2) < 1:
         destinations.append(destinations.pop(0)) # put reached destination at the end of the list
+        pivot = True
     
     dest_x, dest_y = destinations[0]
 
     line_to_dest = dest_x - cart_x, dest_y - cart_y
 
-    angle_to_dest = math.atan2(line_to_dest[1], line_to_dest[0]) # [-pi, pi]
-    angle_to_dest_deg = (angle_to_dest + math.pi) / math.pi * 360.0
+    angle_to_dest_deg = math.atan2(line_to_dest[1], line_to_dest[0]) / math.pi * 180.0 # [-180, 180]
+    if angle_to_dest_deg < 0:
+        angle_to_dest_deg += 360 # -90 -> 270
 
     angle_to_turn = int(cart_angle - angle_to_dest_deg)
     print(angle_to_dest_deg, cart_angle, angle_to_turn)
-    turn_cmd = None
-    if angle_to_turn > 0.0:
-        turn_cmd = PICO_CMD_TURN_LEFT
+    cmd = None
+    if not pivot:
+        cmd = PICO_CMD_FWD
+    elif angle_to_turn > 0.0:
+        cmd = PICO_CMD_TURN_LEFT
     else:
-        turn_cmd = PICO_CMD_TURN_RIGHT
+        cmd = PICO_CMD_TURN_RIGHT
 
-    angle_bytes = int.to_bytes(abs(angle_to_turn), length=2)
+    print(f"angle_to_turn = {angle_to_turn}")
+    angle_bytes = list(int.to_bytes(abs(angle_to_turn), length=2))
 
-    if True: # Should we always send the turn command?
-        data= angle_bytes + turn_cmd
-        bus.write_i2c_block_data(address, 0, data)
+    data= angle_bytes + [cmd]
+    bus.write_i2c_block_data(address, 0, data)
 
 def main():
     ss = SimpleSocketRpi()
