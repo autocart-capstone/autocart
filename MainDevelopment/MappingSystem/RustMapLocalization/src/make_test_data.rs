@@ -122,7 +122,7 @@ impl TestData {
         plot_structs: bool,
         plot_tests_positions: bool,
         plot_1_random_test_pos_with_rays: bool,
-        plot_point: Option<(Point, Vec<PolarPoint>)>,
+        plot_point: Option<(Point, f32, &[PolarPoint])>,
     ) {
         use plotters::prelude::*;
         let name = format!("target/{name}.png");
@@ -194,9 +194,10 @@ impl TestData {
                 .unwrap();
         }
 
-        if let Some((pos, polar_points)) = plot_point {
+        if let Some((pos, angle, polar_points)) = plot_point {
+           
             for point in polar_points.into_iter() {
-                let angle = point.angle_deg.to_radians();
+                let angle = (point.angle_deg - angle).to_radians();
                 let dir = Vector::new(angle.cos(), angle.sin());
 
                 let p1 = pos;
@@ -205,8 +206,28 @@ impl TestData {
                     .draw_series(LineSeries::new([(p1.x, p1.y), (p2.x, p2.y)], &GREEN))
                     .unwrap();
             }
+
+            let angle_rad = angle.to_radians();
+
+            let mut polygon = [
+                Point::new(0.0, 1.0),
+                Point::new(-1.0, -1.0),
+                Point::new(0.0, -0.2),
+                Point::new(1.0, -1.0),
+                Point::new(0.0, 1.0),
+            ];
+
+            for p in polygon.iter_mut() {
+                p.coords *= 0.4; // scale down
+            }
+
+            let mut iso = parry2d::na::Isometry2::rotation(-std::f32::consts::FRAC_PI_2 - angle_rad);
+            iso.append_translation_mut(&parry2d::na::Translation2::from(pos));
+            parry2d::transformation::utils::transform(&mut polygon, iso);
+
+            let polygon = polygon.map(|p| (p.x, p.y));
             chart
-                .draw_series(vec![Circle::new((pos.x, pos.y), 3, BLACK)])
+                .draw_series(vec![Polygon::new(polygon, BLACK)])
                 .unwrap();
         }
 

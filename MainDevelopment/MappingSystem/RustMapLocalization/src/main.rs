@@ -46,7 +46,7 @@ impl AvgPolarPoint {
                     .into_iter()
                     .min_by(f32::total_cmp)
                     .unwrap()
-                        <= ANGLE_AVG_RANGE / 2.0
+                        <= 0.5
                 })
                 .fold((0, 0.0), |(count_acc, distance_acc), e| {
                     (count_acc + 1, distance_acc + e.distance)
@@ -134,7 +134,7 @@ fn main() {
         let points = (0..data_buf.len())
             .step_by(8)
             .map(|i| PolarPoint {
-                angle_deg: f32::from_le_bytes(data_buf[i..i + 4].try_into().unwrap()),
+                angle_deg: 360.0 - f32::from_le_bytes(data_buf[i..i + 4].try_into().unwrap()),
                 distance: f32::from_le_bytes(data_buf[i + 4..i + 8].try_into().unwrap()) / 1000.0,
             })
             .collect_vec();
@@ -142,20 +142,16 @@ fn main() {
         let (min_point_position, metric, angle) = find_position(&points, &data, last_pos);
         dbg!(min_point_position, metric, angle);
         stream
-            .write_all(format!("{} {}", min_point_position.x, min_point_position.y).as_bytes())
+            .write_all(format!("{} {} {}", min_point_position.x, min_point_position.y, angle).as_bytes())
             .unwrap();
         last_pos = Some((min_point_position, angle));
 
-        let mut polar_points_rotated = points.clone();
-        for p in polar_points_rotated.iter_mut() {
-            p.angle_deg += angle;
-        }
         data.plot(
             "img",
             true,
             false,
             false,
-            Some((min_point_position, polar_points_rotated)),
+            Some((min_point_position, angle, &points)),
         );
     }
 }
@@ -204,12 +200,6 @@ mod tests {
 
         dbg!(min_point_position, metric, angle);
 
-        let mut polar_points_rotated = less_points.to_owned();
-        for p in polar_points_rotated.iter_mut() {
-            p.angle_deg -= angle;
-        }
-        dbg!(polar_points_rotated.len());
-
         let path = PathBuf::from_str(path).unwrap();
 
         data.plot(
@@ -217,7 +207,7 @@ mod tests {
             true,
             false,
             false,
-            Some((min_point_position, polar_points_rotated)),
+            Some((min_point_position, angle, less_points)),
         );
 
         //let bytes = bincode::serialize(&data).unwrap();
