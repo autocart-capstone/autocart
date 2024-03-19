@@ -51,7 +51,7 @@ impl Structures {
 use rand::seq::SliceRandom;
 use serde_big_array::BigArray;
 
-use crate::{Point, PolarPoint, Vector};
+use crate::{AvgPolarPoint, Point, PolarPoint, Vector};
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct TestPoint {
@@ -195,8 +195,20 @@ impl TestData {
         }
 
         if let Some((pos, angle, polar_points)) = plot_point {
-           
-            for point in polar_points.into_iter() {
+            
+            let mut pts = AvgPolarPoint::from_points(polar_points);
+            pts.rotate_left((angle/10.0) as usize);
+            for (i, pt) in pts.into_iter().enumerate() {
+                let angle = (i as f32 * 10.0).to_radians();
+                let dir = Vector::new(angle.cos(), angle.sin());
+
+                let p1 = pos;
+                let p2 = pos + dir * pt.distance;
+                chart
+                    .draw_series(LineSeries::new([(p1.x, p1.y), (p2.x, p2.y)], &GREEN))
+                    .unwrap();
+            }
+           /*  for point in polar_points.into_iter() {
                 let angle = (point.angle_deg - angle).to_radians();
                 let dir = Vector::new(angle.cos(), angle.sin());
 
@@ -205,7 +217,7 @@ impl TestData {
                 chart
                     .draw_series(LineSeries::new([(p1.x, p1.y), (p2.x, p2.y)], &GREEN))
                     .unwrap();
-            }
+            } */
 
             let angle_rad = angle.to_radians();
 

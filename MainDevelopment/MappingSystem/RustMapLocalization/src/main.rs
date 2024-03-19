@@ -38,15 +38,11 @@ impl AvgPolarPoint {
             let (count, distance_acc) = points
                 .iter()
                 .filter(|p| {
-                    [
-                        f32::abs(p.angle_deg - center_angle_deg),
-                        f32::abs(p.angle_deg - center_angle_deg - 360.0),
-                        f32::abs(p.angle_deg - center_angle_deg + 360.0),
-                    ]
-                    .into_iter()
-                    .min_by(f32::total_cmp)
-                    .unwrap()
-                        <= 0.5
+                    if i == 0 {
+                        p.angle_deg >= 359.0 || p.angle_deg <= 1.0
+                    } else {
+                        (center_angle_deg - p.angle_deg).abs() <= 1.0
+                    }
                 })
                 .fold((0, 0.0), |(count_acc, distance_acc), e| {
                     (count_acc + 1, distance_acc + e.distance)
@@ -93,14 +89,18 @@ pub fn find_position(
                     None => true,                                           // all points go through
                 })
                 .map(move |test_point| {
-                    let metric = test_point
+                    let metric: f32 = test_point
                         .measurements
                         .iter()
                         .zip(points_shifted.iter())
-                        .fold(0.0, |acc, (test_distance, measurement)| {
-                            acc + f32::abs(test_distance - measurement.distance)
-                                * measurement.count as f32
-                        });
+                        .map(|(&test_distance, measurement)| {
+                            if test_distance > 6.0 {
+                                0.0
+                            } else {
+                                (test_distance - measurement.distance).powi(4) * measurement.count as f32
+                            }
+                        })
+                        .sum();
                     (test_point.pos, metric, shift)
                 })
         })
@@ -185,7 +185,8 @@ mod tests {
         let data = bincode::deserialize::<TestData>(&b).unwrap();
 
         //data.plot(true, false, true, None);
-        let path = "../Matlab + txt files/test475.txt";
+        //let path = "../Matlab + txt files/test475.txt";
+        let path = "../Matlab + txt files/19thjan.txt";
 
         let points = get_points_from_file(path);
 
@@ -193,7 +194,7 @@ mod tests {
         //    p.angle_deg = (p.angle_deg + 20.0) % 360.0;
         //}
 
-        let less_points = &points; //[0..1200];
+        let less_points = &points[0..1200];
                                    //dbg!(&points);
 
         let (min_point_position, metric, angle) = find_position(less_points, &data, None);
