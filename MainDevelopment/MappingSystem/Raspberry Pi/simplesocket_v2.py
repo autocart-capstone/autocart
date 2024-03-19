@@ -90,7 +90,7 @@ class SimpleSocketRpi:
 #global x,y,matlab_ready
 #x = -1
 #y = -1
-destinations = [ (25, 1),(25, 17),(5, 17),(5, 1)]
+destinations = [ (25, 1), (25, 18.5),(5, 18.5),(5, 1)]
 
 channel = 1
 address = 0x12
@@ -122,12 +122,13 @@ def got_position_from_matlab(cart_x, cart_y, cart_angle):
     line_to_dest = dest_x - cart_x, dest_y - cart_y
 
     angle_to_dest_deg = math.atan2(line_to_dest[1], line_to_dest[0]) / math.pi * 180.0 # [-180, 180]
-    if angle_to_dest_deg < 0:
-        angle_to_dest_deg += 360 # -90 -> 270
+    angle_to_dest_deg %= 360.0 # [0, 360]
 
-    angle_to_turn = int(cart_angle - angle_to_dest_deg)
+    angle_to_turn = int(cart_angle - angle_to_dest_deg) % 360 # [0, 360]
+
     print(angle_to_dest_deg, cart_angle, angle_to_turn)
     cmd = None
+    #cmd = PICO_CMD_FWD
     if not pivot:
         cmd = PICO_CMD_FWD
     elif angle_to_turn > 0.0:
@@ -135,7 +136,7 @@ def got_position_from_matlab(cart_x, cart_y, cart_angle):
     else:
         cmd = PICO_CMD_TURN_RIGHT
 
-    print(f"angle_to_turn = {angle_to_turn}")
+    print(f"angle_to_turn = {angle_to_turn}, cmd: {cmd}")
     angle_bytes = list(int.to_bytes(abs(angle_to_turn), length=2))
 
     data= angle_bytes + [cmd]
