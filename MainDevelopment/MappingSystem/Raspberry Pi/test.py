@@ -18,27 +18,20 @@ PICO_CMD_BWD = 4
 
 PICO_ANGLE_PADDING = list(int.to_bytes(0, length=2))
 
-angle_bytes = list(int.to_bytes(3, length=2))
-
-""" for i in range(5):
-    data= angle_bytes + [PICO_CMD_FWD]
-    bus.write_i2c_block_data(address, 0, data)
-    sleep(0.01)
-
-angle_bytes = list(int.to_bytes(90, length=2))
-data= angle_bytes + [PICO_CMD_TURN_RIGHT]
+data= PICO_ANGLE_PADDING + [PICO_CMD_STOP]
 bus.write_i2c_block_data(address, 0, data)
-sleep(0.01)
+sleep(0.1)
 
-angle_bytes = list(int.to_bytes(3, length=2))
-for i in range(5):
-    data= angle_bytes + [PICO_CMD_FWD]
-    bus.write_i2c_block_data(address, 0, data)
-    sleep(0.01) """
-
+input("press enter to go forward")
 
 for i in range(7):
     angle_bytes = list(int.to_bytes(i*10, length=2))
     data= angle_bytes + [PICO_CMD_FWD]
     bus.write_i2c_block_data(address, 0, data)
     sleep(0.1)
+
+input("press enter to go stop")
+
+data= PICO_ANGLE_PADDING + [PICO_CMD_STOP]
+bus.write_i2c_block_data(address, 0, data)
+sleep(0.1)

@@ -90,7 +90,7 @@ class SimpleSocketRpi:
 #global x,y,matlab_ready
 #x = -1
 #y = -1
-destinations = [ (25, 1), (25, 18.5),(5, 18.5),(5, 1)]
+destinations = [(25, 1), (25, 18.5), (5, 18.5), (5, 1)]
 
 channel = 1
 address = 0x12
@@ -132,9 +132,9 @@ def got_position_from_matlab(cart_x, cart_y, cart_angle):
     if not pivot:
         cmd = PICO_CMD_FWD
     elif angle_to_turn > 0.0:
-        cmd = PICO_CMD_TURN_LEFT
-    else:
         cmd = PICO_CMD_TURN_RIGHT
+    else:
+        cmd = PICO_CMD_TURN_LEFT
 
     print(f"angle_to_turn = {angle_to_turn}, cmd: {cmd}")
     angle_bytes = list(int.to_bytes(abs(angle_to_turn), length=2))
@@ -145,9 +145,6 @@ def got_position_from_matlab(cart_x, cart_y, cart_angle):
 def main():
     ss = SimpleSocketRpi()
     ss.connect_socket()
-    data_to_send = (0,0,3)
-    data=bytes(data_to_send)
-    bus.write_i2c_block_data(address,0,list(data))
     curr_angle = 0
     prev_angle = curr_angle
     matlab_ready = True
