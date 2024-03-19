@@ -151,6 +151,7 @@ fn main() {
             p.angle_deg += angle;
         }
         data.plot(
+            "img",
             true,
             false,
             false,
@@ -161,6 +162,8 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
+    use std::{path::PathBuf, str::FromStr};
+
     use crate::{
         find_position, get_points_from_file::get_points_from_file, make_test_data::TestData,
         TEST_DATA_PATH,
@@ -170,14 +173,14 @@ mod tests {
     fn plot_random_testpoint() {
         let b = std::fs::read(TEST_DATA_PATH).unwrap();
         let data = bincode::deserialize::<TestData>(&b).unwrap();
-        data.plot(true, false, true, None);
+        data.plot("random_testpoint", true, false, true, None);
     }
 
     #[test]
     fn plot_all_testpoint() {
         let b = std::fs::read(TEST_DATA_PATH).unwrap();
         let data = bincode::deserialize::<TestData>(&b).unwrap();
-        data.plot(true, true, false, None);
+        data.plot("testpoints", true, true, false, None);
     }
 
     #[test]
@@ -186,15 +189,16 @@ mod tests {
         let data = bincode::deserialize::<TestData>(&b).unwrap();
 
         //data.plot(true, false, true, None);
+        let path = "../Matlab + txt files/test475.txt";
 
-        let points = get_points_from_file("../Matlab + txt files/test475.txt");
+        let points = get_points_from_file(path);
 
         //for p in points.iter_mut() {
         //    p.angle_deg = (p.angle_deg + 20.0) % 360.0;
         //}
 
-        let less_points = &points[0..1200];
-        //dbg!(&points);
+        let less_points = &points; //[0..1200];
+                                   //dbg!(&points);
 
         let (min_point_position, metric, angle) = find_position(less_points, &data, None);
 
@@ -206,7 +210,10 @@ mod tests {
         }
         dbg!(polar_points_rotated.len());
 
+        let path = PathBuf::from_str(path).unwrap();
+
         data.plot(
+            path.file_name().unwrap().to_str().unwrap(),
             true,
             false,
             false,

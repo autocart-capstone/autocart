@@ -118,13 +118,15 @@ impl TestData {
 
     pub fn plot(
         &self,
+        name: &str,
         plot_structs: bool,
         plot_tests_positions: bool,
         plot_1_random_test_pos_with_rays: bool,
         plot_point: Option<(Point, Vec<PolarPoint>)>,
     ) {
         use plotters::prelude::*;
-        let root = BitMapBackend::new("img.png", (1000, 1000)).into_drawing_area();
+        let name = format!("target/{name}.png");
+        let root = BitMapBackend::new(&name, (1000, 1000)).into_drawing_area();
         //let root = SVGBackend::new("img.svg", (1000, 1000)).into_drawing_area();
         root.fill(&WHITE).unwrap();
 

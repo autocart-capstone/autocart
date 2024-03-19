@@ -26,5 +26,6 @@ pub fn get_points_from_file(path: &str) -> Vec<PolarPoint> {
                 None
             }
         })
+        .filter(|p| p.distance < 6.0)
         .collect_vec()
 }
