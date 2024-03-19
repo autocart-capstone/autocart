@@ -17,7 +17,9 @@ X_meas = measures(1,:,:);
 Y_meas = measures(2,:,:);
 D_meas = sqrt(X_meas.^2 + Y_meas.^2);
 last_pos = nan(1,2);
-t = tcpclient('10.42.0.1', 8003, "Timeout", 100000);
+
+
+t = tcpclient('172.17.141.96', 8006, "Timeout", 100000);
 a = [0.0,-1.0,0.0,1.0,0.0];
 r = a*0.2;
 b = [1.0,-1.0,0.0,-1.0,1.0];

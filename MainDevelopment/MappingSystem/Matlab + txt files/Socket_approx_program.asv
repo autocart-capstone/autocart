@@ -8,7 +8,8 @@ figure(1)
 plot(structures{1}(:,1), structures{1}(:,2), 'k'); % Plot walls
 hold on
 plot(structures{2}(:,1), structures{2}(:,2), 'k'); % Plot walls
-xlim([ -5 ])
+xlim([-5 35]);
+ylim([-5 30]);
 set(gca, 'ButtonDownFcn', @plotClickCallback);
 
 %disp(['You clicked at X:', num2str(x_clicked), ', Y:', num2str(y_clicked)]);
@@ -16,7 +17,9 @@ X_meas = measures(1,:,:);
 Y_meas = measures(2,:,:);
 D_meas = sqrt(X_meas.^2 + Y_meas.^2);
 last_pos = nan(1,2);
-t = tcpclient('10.42.0.1', 8005, "Timeout", 100000);
+
+
+t = tcpclient('172.17.141.96', 8008, "Timeout", 100000);
 a = [0.0,-1.0,0.0,1.0,0.0];
 r = a*0.2;
 b = [1.0,-1.0,0.0,-1.0,1.0];
