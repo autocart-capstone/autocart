@@ -41,9 +41,12 @@ impl AvgPolarPoint {
                     [
                         f32::abs(p.angle_deg - center_angle_deg),
                         f32::abs(p.angle_deg - center_angle_deg - 360.0),
-                        f32::abs(p.angle_deg - center_angle_deg + 360.0),    
-                    ].into_iter()
-                    .min_by(f32::total_cmp).unwrap() <= ANGLE_AVG_RANGE/2.0
+                        f32::abs(p.angle_deg - center_angle_deg + 360.0),
+                    ]
+                    .into_iter()
+                    .min_by(f32::total_cmp)
+                    .unwrap()
+                        <= ANGLE_AVG_RANGE / 2.0
                 })
                 .fold((0, 0.0), |(count_acc, distance_acc), e| {
                     (count_acc + 1, distance_acc + e.distance)
@@ -64,21 +67,30 @@ impl AvgPolarPoint {
 pub fn find_position(
     points: &[PolarPoint],
     data: &TestData,
-    last_pos: Option<Point>,
+    last_pos: Option<(Point, f32)>,
 ) -> (Point, f32, f32) {
     let start_instant = std::time::Instant::now();
     let avg_points: [AvgPolarPoint; 36] = AvgPolarPoint::from_points(points);
 
-    let (min_point_position, metric, shift) = (0..36)
+    let (min_point_position, metric, shift) = last_pos
+        .map(|(_, angle)| {
+            let ind = (angle / 10.0) as i32;
+            ind - 9..ind + 9
+        })
+        .unwrap_or_else(|| 0..36)
         .flat_map(|shift| {
             let mut points_shifted = avg_points.clone();
-            points_shifted.rotate_left(shift);
+            if shift < 0 {
+                points_shifted.rotate_right(shift.unsigned_abs() as usize);
+            } else {
+                points_shifted.rotate_left(shift as usize);
+            }
             //dbg!(&points_shifted);
             data.test_points
                 .iter()
                 .filter(|test_point| match last_pos {
-                    Some(p) => (test_point.pos - p).magnitude() < 0.5, // only points close to last pos go through
-                    None => true,                                      // all points go through
+                    Some((p, _)) => (test_point.pos - p).magnitude() < 0.5, // only points close to last pos go through
+                    None => true,                                           // all points go through
                 })
                 .map(move |test_point| {
                     let metric = test_point
@@ -132,7 +144,7 @@ fn main() {
         stream
             .write_all(format!("{} {}", min_point_position.x, min_point_position.y).as_bytes())
             .unwrap();
-        last_pos = Some(min_point_position);
+        last_pos = Some((min_point_position, angle));
 
         let mut polar_points_rotated = points.clone();
         for p in polar_points_rotated.iter_mut() {
