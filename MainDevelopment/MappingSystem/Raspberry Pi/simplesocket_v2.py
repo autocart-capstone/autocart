@@ -142,6 +142,8 @@ def got_position_from_matlab(cart_x, cart_y, cart_angle):
     bus.write_i2c_block_data(address, 0, data)
 
 def main():
+    closestDistance = -1
+    closestAngle = 0
     ss = SimpleSocketRpi()
     ss.connect_socket()
     data_to_send = (0,0,3)
@@ -170,7 +172,11 @@ def main():
             print(f"received (x,y,angle): ({x},{y},{angle})")
             print(f"took {time.time() - matlab_sent_timestamp} seconds to get position from Matlab")
             got_position_from_matlab(x,y,angle)
-            
+
+        if((data[1] < 1000) and (data[1] < lowestDistance or lowestDistance == -1) and (closestAngle > 270 and closestAngle < 90)):
+            lowestDistance = data[1]
+            currentAngle = data[0]
+
         if curr_angle < prev_angle:  # If we finish one revolution
             if matlab_ready:
                 # Send buffer to matlab socket
@@ -179,6 +185,14 @@ def main():
                 print("sent data to Matlab")
                 matlab_sent_timestamp = time.time()
                 matlab_ready = False
+            
+            if(closestAngle > 0 and closestAngle < 90):
+                if((math.sin(((90 - closestAngle) * math.pi) / 180) * closestDistance < 500) and (math.cos(((90 - closestAngle) * math.pi) / 180) * closestDistance < 160)):
+                    print('stop')
+            elif(closestAngle > 270 and closestAngle < 360):
+                if((math.sin((90 - (closestAngle - 270)) * math.pi / 180) * closestDistance < 500) and (math.cos((90 - (closestAngle - 270)) * math.pi / 180) * closestDistance < 160)):
+                    print('stop')
+            
             # Reset buffer - always do this after finishing 1 rev
             ss.reset_buffer()
             # Save first data from the new rev
