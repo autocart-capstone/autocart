@@ -110,6 +110,9 @@ PICO_ANGLE_PADDING = list(int.to_bytes(0, length=2))
 
 
 def got_position_from_matlab(cart_x, cart_y, cart_angle):
+    
+    
+    
     dest_x, dest_y = destinations[0]
     pivot = False
     if math.sqrt((cart_x - dest_x) ** 2 + (cart_y - dest_y) ** 2) < 1:
@@ -162,18 +165,22 @@ def main():
     curr_angle = 0
     prev_angle = curr_angle
     matlab_ready = True
+    collision = False
     matlab_sent_timestamp = time.time()
 
     while True:
+        #Receive from SDK
         data = ss.receive_data_from_lidar()
         data = struct.unpack("ff", data)
-
         curr_angle = data[0]  # Assuming first elem is angle
-
         ss.save_data_to_buffer(data)
 
-        matlab_pos = ss.receive_data_from_matlab()
-        if matlab_pos:
+        #Receive X,Y from MATLAB
+        if (collision == False):
+            matlab_pos = ss.receive_data_from_matlab()
+        
+        #Process X,Y
+        if (matlab_pos and collision==False):
             matlab_ready = True
             a = matlab_pos.decode().strip().split()
             x = float(a[0])
@@ -185,14 +192,25 @@ def main():
             )
             got_position_from_matlab(x, y, angle)
 
-        if curr_angle < prev_angle:  # If we finish one revolution
-            if matlab_ready:
+        #Finish one revolution
+        if curr_angle < prev_angle: 
+            if (matlab_ready and collision == False):
                 # Send buffer to matlab socket
                 # print(ss.get_buffer())
                 ss.send_data_to_matlab()
                 print("sent data to Matlab")
                 matlab_sent_timestamp = time.time()
                 matlab_ready = False
+               
+            #Check for Collision 
+            collision = False
+            for i in range (1, len(ss.buf),2):
+                if((ss.buf[i-1] > 350) and (ss.buf[i-1] < 10) and (ss.buf[i]< 300)):
+                    collision = True
+                    print(f"Collision avoided at Distance = {ss.buf[i]}, Angle = {ss.buf[i-1]}")
+                    bus.write_i2c_block_data(address, 0, PICO_ANGLE_PADDING + [PICO_CMD_STOP]) # Send Stop
+
+            
             # Reset buffer - always do this after finishing 1 rev
             ss.reset_buffer()
             # Save first data from the new rev
