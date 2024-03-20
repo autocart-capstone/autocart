@@ -4,7 +4,8 @@ Gets the LIDAR from the pi then processes it and send back the approximate
 location of the cart 
 %}
 load('ahmed.mat');
-figure(1)
+figure(1);
+%figure('KeyPressFcn',@myKeyPressFcn);
 plot(structures{1}(:,1), structures{1}(:,2), 'k'); % Plot walls
 hold on
 plot(structures{2}(:,1), structures{2}(:,2), 'k'); % Plot walls
@@ -16,10 +17,10 @@ set(gca, 'ButtonDownFcn', @plotClickCallback);
 X_meas = measures(1,:,:);
 Y_meas = measures(2,:,:);
 D_meas = sqrt(X_meas.^2 + Y_meas.^2);
-last_pos = nan(1,2);
 
 
-t = tcpclient('172.17.141.96', 8006, "Timeout", 100000);
+
+t = tcpclient('172.17.141.116', 8004, "Timeout", 100000);
 a = [0.0,-1.0,0.0,1.0,0.0];
 r = a*0.2;
 b = [1.0,-1.0,0.0,-1.0,1.0];
@@ -28,6 +29,7 @@ pgon = scale(pgon,0.3);
 angle = 0;
 x_new =0;
 y_new = 0;
+last_pos = nan(1,2);
 while true
     size = read(t,1, "int32");
     %disp(size);
@@ -62,6 +64,13 @@ while true
     
 
 end
+
+% function myKeyPressFcn(~, evt)
+%     global last_pos;
+%     if strcmp(evt.Key, 'space')
+%         last_pos = nan(1,2);
+%     end
+% end
 
 % Nested callback function definition
 function [x_clicked y_clicked] = plotClickCallback(src, ~)
@@ -139,7 +148,7 @@ function [xa,ya, angle, x_new,y_new] = position(theta, distances,angle, test_pos
         test_pos_distance = sum((test_pos - last_pos).^2, 2);
         
         % Find the indices of the test positions that are near the robot
-        near_test_pos_idx = find(test_pos_distance < 0.5);
+        near_test_pos_idx = find(test_pos_distance < 0.7);
         % Discard all the non-near test positions
         D_meas_near = D_meas(:,:,near_test_pos_idx);
         %angle_list = 0:10:angle_list(fidx);
