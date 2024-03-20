@@ -25,6 +25,7 @@ SDK_PORT = 8080
 if "SDK_PORT" in os.environ:
     SDK_PORT = int(os.environ["SDK_PORT"])
 
+
 class SimpleSocketRpi:
     def __init__(self):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -87,9 +88,7 @@ class SimpleSocketRpi:
     def reset_buffer(self):
         self.buf = []
 
-#global x,y,matlab_ready
-#x = -1
-#y = -1
+
 destinations = [(25, 1), (25, 18.5), (5, 18.5), (5, 1)]
 
 channel = 1
@@ -97,9 +96,9 @@ address = 0x12
 
 bus = SMBus(channel)
 
-#data_to_send = (0,0,3) #FORWARD
-#data = bytes(data_to_send) #SEND
-#bus.write_i2c_block_data(address, 0, list(data))
+# data_to_send = (0,0,3) #FORWARD
+# data = bytes(data_to_send) #SEND
+# bus.write_i2c_block_data(address, 0, list(data))
 
 PICO_CMD_STOP = 0
 PICO_CMD_TURN_LEFT = 1
@@ -109,38 +108,52 @@ PICO_CMD_BWD = 4
 
 PICO_ANGLE_PADDING = list(int.to_bytes(0, length=2))
 
+
 def got_position_from_matlab(cart_x, cart_y, cart_angle):
-    
     dest_x, dest_y = destinations[0]
     pivot = False
-    if math.sqrt((cart_x - dest_x)**2 + (cart_y - dest_y)**2) < 1:
-        destinations.append(destinations.pop(0)) # put reached destination at the end of the list
+    if math.sqrt((cart_x - dest_x) ** 2 + (cart_y - dest_y) ** 2) < 1:
+        destinations.append(
+            destinations.pop(0)
+        )  # put reached destination at the end of the list
         pivot = True
-    
+
     dest_x, dest_y = destinations[0]
 
     line_to_dest = dest_x - cart_x, dest_y - cart_y
 
-    angle_to_dest_deg = math.atan2(line_to_dest[1], line_to_dest[0]) / math.pi * 180.0 # [-180, 180]
-    angle_to_dest_deg %= 360.0 # [0, 360]
+    angle_to_dest_deg = (
+        math.atan2(line_to_dest[1], line_to_dest[0]) / math.pi * 180.0
+    )  # [-180, 180]
+    angle_to_dest_deg %= 360.0  # [0, 360]
 
-    angle_to_turn = int(cart_angle - angle_to_dest_deg) % 360 # [0, 360]
+    angle_to_turn = int(cart_angle - angle_to_dest_deg) % 360  # [0, 360]
 
-    print(angle_to_dest_deg, cart_angle, angle_to_turn)
-    cmd = None
-    #cmd = PICO_CMD_FWD
-    if not pivot:
-        cmd = PICO_CMD_FWD
-    elif angle_to_turn > 0.0:
-        cmd = PICO_CMD_TURN_RIGHT
-    else:
-        cmd = PICO_CMD_TURN_LEFT
+    print(
+        "angle_to_dest:",
+        angle_to_dest_deg,
+        "cart_angle:",
+        cart_angle,
+        "angle_to_turn:",
+        angle_to_turn,
+    )
 
-    print(f"angle_to_turn = {angle_to_turn}, cmd: {cmd}")
-    angle_bytes = list(int.to_bytes(abs(angle_to_turn), length=2))
+    if pivot:
+        if angle_to_turn > 0.0:
+            cmd = PICO_CMD_TURN_RIGHT
+            print("PIVOT right")
+        else:
+            cmd = PICO_CMD_TURN_LEFT
+            print("PIVOT left")
+        data = PICO_ANGLE_PADDING + [cmd]
+        bus.write_i2c_block_data(address, 0, data)
+        return
 
-    data= angle_bytes + [cmd]
+    print(f"FWD, angle = {angle_to_turn}")
+    angle_bytes = list(int.to_bytes(angle_to_turn, length=2))
+    data = angle_bytes + [cmd]
     bus.write_i2c_block_data(address, 0, data)
+
 
 def main():
     ss = SimpleSocketRpi()
@@ -166,9 +179,11 @@ def main():
             y = float(a[1])
             angle = float(a[2])
             print(f"received (x,y,angle): ({x},{y},{angle})")
-            print(f"took {time.time() - matlab_sent_timestamp} seconds to get position from Matlab")
-            got_position_from_matlab(x,y,angle)
-            
+            print(
+                f"took {time.time() - matlab_sent_timestamp} seconds to get position from Matlab"
+            )
+            got_position_from_matlab(x, y, angle)
+
         if curr_angle < prev_angle:  # If we finish one revolution
             if matlab_ready:
                 # Send buffer to matlab socket
@@ -185,5 +200,6 @@ def main():
         # If we are not done with one rev yet, keep saving data (angle,dist) to buffer
         # Update prev_angle
         prev_angle = curr_angle
+
 
 main()
