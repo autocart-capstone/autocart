@@ -31,8 +31,8 @@ for i in range(10):
 #input()
 
 print("adjusting right")
-for i in range(150):
-    angle_bytes = list(int.to_bytes(20, length=2))
+for i in range(150000):
+    angle_bytes = list(int.to_bytes(10, length=2))
     bus.write_i2c_block_data(address, 0, angle_bytes + [PICO_CMD_FWD])
     sleep(0.1)
 exit(1)

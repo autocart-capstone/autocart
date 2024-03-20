@@ -89,7 +89,7 @@ class SimpleSocketRpi:
         self.buf = []
 
 
-destinations = [(25, 1),(25, 18.5),(5, 18.5),(5, 1)]
+destinations = [(25, 18.5),(5, 18.5),(5, 1),(25, 1)]
 
 channel = 1
 address = 0x12
