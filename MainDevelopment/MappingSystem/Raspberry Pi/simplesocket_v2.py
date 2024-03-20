@@ -89,7 +89,7 @@ class SimpleSocketRpi:
         self.buf = []
 
 
-destinations = [(25, 1), (25, 18.5), (5, 18.5), (5, 1)]
+destinations = [(25, 1),(25, 18.5),(5, 18.5),(5, 1)]
 
 channel = 1
 address = 0x12
@@ -139,7 +139,8 @@ def got_position_from_matlab(cart_x, cart_y, cart_angle):
     )
 
     if pivot:
-        if angle_to_turn > 0.0:
+        cmd = None
+        if angle_to_turn <= 180.0:
             cmd = PICO_CMD_TURN_RIGHT
             print("PIVOT right")
         else:
@@ -151,7 +152,7 @@ def got_position_from_matlab(cart_x, cart_y, cart_angle):
 
     print(f"FWD, angle = {angle_to_turn}")
     angle_bytes = list(int.to_bytes(angle_to_turn, length=2))
-    data = angle_bytes + [cmd]
+    data = angle_bytes + [PICO_CMD_FWD]
     bus.write_i2c_block_data(address, 0, data)
 
 
