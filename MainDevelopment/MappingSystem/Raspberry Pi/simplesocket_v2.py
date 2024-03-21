@@ -89,7 +89,13 @@ class SimpleSocketRpi:
         self.buf = []
 
 
-destinations = [(25, 18.5),(5, 18.5),(5, 1),(25, 1)]
+destinations = [
+    (25, 18.5), (20, 18.5), (15, 18.5), (10, 18.5),# TR -> TL
+    ( 5, 18.5), ( 5, 14.1), ( 5,  9.7), ( 5,  5.3),# TL -> BL
+    ( 5,  1  ), (10,  1  ), (15,  1  ), (20,  1  ),# BL -> BR
+    (25,  1  ), (25,  5.3), (25,  9.7), (25, 14.1),# BR -> TR
+]
+
 
 channel = 1
 address = 0x12
@@ -108,18 +114,13 @@ PICO_CMD_BWD = 4
 
 PICO_ANGLE_PADDING = list(int.to_bytes(0, length=2))
 
-
-def got_position_from_matlab(cart_x, cart_y, cart_angle):
-    
-    
-    
+def got_position_from_matlab(cart_x, cart_y, cart_angle):   
     dest_x, dest_y = destinations[0]
-    pivot = False
     if math.sqrt((cart_x - dest_x) ** 2 + (cart_y - dest_y) ** 2) < 1:
+        print("-- Reached point of interest")
         destinations.append(
             destinations.pop(0)
         )  # put reached destination at the end of the list
-        pivot = True
 
     dest_x, dest_y = destinations[0]
 
@@ -141,22 +142,24 @@ def got_position_from_matlab(cart_x, cart_y, cart_angle):
         angle_to_turn,
     )
 
-    if pivot:
-        cmd = None
-        if angle_to_turn <= 180.0:
-            cmd = PICO_CMD_TURN_RIGHT
-            print("PIVOT right")
-        else:
-            cmd = PICO_CMD_TURN_LEFT
-            print("PIVOT left")
-        data = PICO_ANGLE_PADDING + [cmd]
-        bus.write_i2c_block_data(address, 0, data)
-        return
+    cmd, angle_bytes = None, None
 
-    print(f"FWD, angle = {angle_to_turn}")
-    angle_bytes = list(int.to_bytes(angle_to_turn, length=2))
-    data = angle_bytes + [PICO_CMD_FWD]
+    if angle_to_turn > 60.0 and angle_to_turn < 180.0:
+        cmd = PICO_CMD_TURN_RIGHT
+        angle_bytes = PICO_ANGLE_PADDING
+        print("PIVOT right")
+    elif angle_to_turn < 300.0 and angle_to_turn > 180.0:
+        cmd = PICO_CMD_TURN_LEFT
+        print("PIVOT left")
+        angle_bytes = PICO_ANGLE_PADDING
+    else:
+        print(f"FWD, angle = {angle_to_turn}")
+        cmd = PICO_CMD_FWD
+        angle_bytes = list(int.to_bytes(angle_to_turn, length=2))
+
+    data = angle_bytes + [cmd]
     bus.write_i2c_block_data(address, 0, data)
+
 
 
 def main():
