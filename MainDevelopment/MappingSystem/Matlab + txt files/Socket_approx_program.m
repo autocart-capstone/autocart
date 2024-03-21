@@ -162,7 +162,7 @@ function [xa,ya, angle, x_new,y_new] = position(theta, distances,angle, test_pos
             new_mean_distance = circshift(mean_distance, na-1);
             %metric = squeeze(sum(((X_meas - X_coord).^2 + (Y_meas - Y_coord).^2).*new_counts));
             metric = squeeze(sum(abs(D_meas_near - new_mean_distance).*new_counts));
-            if na<1
+            if na < 1
                 %disp("HELLO");
                 [minmetric(na+36),minidx(na+36)] = min(metric);
             elseif na > 36

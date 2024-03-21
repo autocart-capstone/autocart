@@ -41,7 +41,6 @@ for np = 1:N_positions
         [x_intersect1, y_intersect1] = polyxpoly([lidar_pos(1),x_end],[lidar_pos(2),y_end], structure1(:,1), structure1(:,2));
         [x_intersect2, y_intersect2] = polyxpoly([lidar_pos(1),x_end],[lidar_pos(2),y_end], structure2(:,1), structure2(:,2));
         [x_intersect3, y_intersect3] = polyxpoly([lidar_pos(1),x_end],[lidar_pos(2),y_end], structure3(:,1), structure3(:,2));
-
         x_intersect = [ x_intersect1 ; x_intersect2 ; x_intersect3];
         y_intersect = [ y_intersect1 ; y_intersect2 ; y_intersect3];
         

@@ -1,26 +1,19 @@
-%!python echoserver.py &
-
-% t = tcpip('172.20.10.11', 50008);
-% fopen(t);
-
-filename = "test475.txt";
-%xoff = 24.63;
-%yoff = 22.50;
-%angle = 91.5;
+tic
+% filename = "test475.txt";
+% xoff = 24.63;
+% yoff = 22.50;
+%angle = 91.5
 angle = 0;
 
-
-
-
-% filename = "test425.txt";
-% xoff = 24.63;
-% yoff = 20.98;
+filename = "test425.txt";
+xoff = 24.63;
+yoff = 20.98;
 % angle = 0;
-
-%filename = "19thjantest2.txt";
-%xoff = 24.63;
-%yoff =  7.98;
-%angle = 0;
+% 
+% filename = "19thjantest2.txt";
+% xoff = 24.63;
+% yoff =  7.98;
+% angle = 0;
 
 % Read data file, and skip header and blank line at end
 loadedData = readlines(filename);
@@ -33,11 +26,6 @@ data = reshape(cell2mat(data), 3, []);
 theta_raw = data(1,:);
 distance = data(2,:);
 quality = data(3,:);
-% idx = find(diff(theta_raw));
-% idx = idx(1):idx(2);
-% theta_raw = data(1,idx);
-% distance = data(2,idx);
-% quality = data(3,idx);
 
 distance = distance/1000;
 theta_fixed = mod((360 - theta_raw) - angle, 360);
@@ -59,17 +47,29 @@ distance = distance(idx);
     % xa2 = walls(3,pidx) - abs(real_data(2,  1)); %%right wall
     % ya1 = walls(4,pidx) + abs(real_data(1, 1)); %% bottom wall
     %ya2 = walls(2,pidx) - abs(real_data(4, 1)); %%top wall
+structures = {
+ [  0.00, 0.00 ;  0.00, 2.13 ;  3.96, 2.13 ;  3.96,18.50 ;  5.81,18.50 ;
+    5.81,17.57 ; 15.79,17.57 ; 15.79,17.57 ; 15.79,21.99 ;  8.07,21.99 ;
+    8.07,24.07 ; 12.64,24.07 ; 12.64,23.46 ; 13.84,23.46 ; 13.84,24.07 ;
+   24.05,24.07 ; 24.05,24.17 ; 24.96,24.17 ; 24.96,24.07 ;
+   29.53,24.07 ; 29.53,22.09 ; 25.40,22.09 ; 25.40,17.82 ; 27.33,17.82 ;
+   27.33,18.18 ; 27.94,18.18 ; 27.94,17.82 ; 32.44,17.82 ; 32.44,15.38 ;
+   25.40,15.38 ; 25.40, 0.00 ; 0.00, 0.00 ] ;
+ [  5.81, 1.83 ;  5.81,13.67 ;  6.57,13.67 ;  6.57,14.67 ;  5.81,14.67 ;
+    5.81,15.70 ;  7.32,15.70 ;  7.32,14.94 ;  8.32,14.94 ;  8.32,15.70 ;
+   23.54,15.70 ; 23.54,14.15 ; 22.79,14.15 ; 22.79,12.82 ; 23.54,12.82 ;
+   23.54, 1.83 ; 22.04, 1.83 ; 22.04, 2.59 ; 21.01, 2.59 ; 21.01, 1.83 ;
+    5.81, 1.83 ] ;
+ [ 17.15,21.99 ; 23.56,21.99 ; 23.56,19.33 ; 24.00,19.33 ; 24.00,17.57 ;
+   17.15,17.57 ; 17.15,21.99 ]
+};
+%N_structures = length(structures);
 
 
-
-% segs = [ structures{1}(1:end-1,:) structures{1}(2:end,:) ; structures{2}(1:end-1,:) structures{2}(2:end,:) ; structures{3}(1:end-1,:) structures{3}(2:end,:) ];
-% test_pos = makeTestGrid(0.1, structures);
-% [measures,walls] = makeTestData(test_pos, segs);
-load('ahmed.mat');
-X_meas = measures(1,:,:);
-Y_meas = measures(2,:,:);
-D_meas = sqrt(X_meas.^2 + Y_meas.^2);
-
+segs = [ structures{1}(1:end-1,:) structures{1}(2:end,:) ; structures{2}(1:end-1,:) structures{2}(2:end,:) ; structures{3}(1:end-1,:) structures{3}(2:end,:) ];
+test_pos = load('testPositions.mat').test_pos();
+[measures,walls] = makeTestData(test_pos, segs);
+N_testpos = size(test_pos, 1);
 
 angle_list = 0:10:359;
 real_data = zeros(2,36);
@@ -115,7 +115,7 @@ end
 pidx = minidx(fidx);
 
 
-fprintf('The lidar is closest to position %g,%g\n', test_pos(pidx,:));
+%fprintf('The lidar is closest to position %g,%g\n', test_pos(pidx,:));
 
 
 xa1 = walls(1,pidx) - abs(real_data(1, 1)); %right wall
@@ -125,65 +125,61 @@ ya2 = walls(2,pidx) - abs(real_data(2, 10)); %%top wall
 
 
 if (real_data(1, 1) == 0 && real_data(1, 19) == 0)
-    disp("A1");
     xapprox = test_pos(pidx,1);
 elseif (real_data(1, 1) == 0 && real_data(1, 19) ~= 0)
-    disp("B1");
-
     xapprox = xa2;
 elseif (real_data(1, 1) ~= 0 && real_data(1, 19) == 0)
-    disp("C1");
     xapprox = xa1;
 elseif (real_data(1, 1) ~= 0 && real_data(1, 19) ~= 0)
-    disp("D1");
     xapprox = (xa1 + xa2) / 2;
 end
 
 if (real_data(2, 28) == 0 && real_data(2, 10) == 0)
-    disp("E2");
     yapprox = test_pos(pidx,2);
 elseif (real_data(2, 28) == 0 && real_data(2, 10) ~= 0)
-    disp("F2");
     yapprox = ya2;
 elseif (real_data(2, 28) ~= 0 && real_data(2, 10) == 0)
-    disp('G2');  
     yapprox = ya1;
 elseif (real_data(2, 28) ~= 0 && real_data(2, 10) ~= 0)
-    disp("Z2");
     yapprox = (ya1 + ya2) / 2;
 end
 
-xa = xapprox;
-ya = yapprox;
-% 
-% for i = 1:20
-%     message = sprintf('[%.2f, %.2f]', xa, ya);
-%     fwrite(t,message);
-% end 
-% 
-% message1 = sprintf('%g %g', test_pos(pidx,1), test_pos(pidx,2));
-% fwrite(t,message1);
-% toc
-% bytes3 = fread(t, [1, t.BytesAvailable]);
-% char(bytes3)
-% fclose(t);
-
+if angle_list(fidx) == 180
+    xa = xoff + xapprox.*cos((angle_list(fidx)/2));
+    ya = yoff + yapprox.*sind(-(angle_list(fidx))/2);
+else
+    xa = xoff + xapprox.*cosd(angle_list(fidx));
+    ya = yoff + yapprox.*cosd(angle_list(fidx));
+end
+% xa = xapprox;
+% ya = yapprox;
+%fprintf('Our position is actually at %g, %g\n', xa,ya);
 dodraw = true;
-x_new = xa + distance.*cosd(theta_fixed+angle_list(fidx));
-y_new = ya + distance.*sind(theta_fixed+angle_list(fidx));
+if angle_list(fidx) == 180
+    x_new = xoff + distance.*cosd(theta_fixed+(angle_list(fidx)/2));
+    y_new = yoff + distance.*sind(theta_fixed+(angle_list(fidx)/2));
+else
+    x_new = xoff + distance.*cosd(theta_fixed+angle_list(fidx));
+    y_new = yoff + distance.*sind(theta_fixed+angle_list(fidx));
+end
 if dodraw
     figure(1)
-    plot(structures{1}(:,1), structures{1}(:,2), 'k'); % Plot walls
+    
+    plot(structures{1}(:,1), structures{1}(:,2), 'k', 'LineWidth', 1.5); % Plot walls
     hold on
-    plot(structures{2}(:,1), structures{2}(:,2), 'k'); % Plot walls
+    plot(structures{2}(:,1), structures{2}(:,2), 'k', 'LineWidth',  1.5); % Plot walls
+    plot(structures{3}(:,1), structures{3}(:,2), 'k', 'LineWidth',  1.5); % Plot walls
     plot(x_new,y_new,'r.');
     plot(test_pos(pidx,1),test_pos(pidx,2),'go');
     plot(xa,ya,'mo');
     plot(xoff,yoff,'bo');
+    ylim([-5 30]);
+    xlim([-5 30]);
 
     in1 = inpolygon(x_new, y_new, structures{1}(:,1), structures{1}(:,2));
     in2 = inpolygon(x_new, y_new, structures{2}(:,1), structures{2}(:,2));
-    bad = (~in1 | in2 );
+    in3 = inpolygon(x_new, y_new, structures{3}(:,1), structures{3}(:,2));
+    bad = (~in1 | in2 | in3);
     % in1 = inpolygon(test_pos(:,1), test_pos(:,2), structures{1}(:,1), structures{1}(:,2));
     % in2 = inpolygon(test_pos(:,1), test_pos(:,2), structures{2}(:,1), structures{2}(:,2));
     % in3 = inpolygon(test_pos(:,1), test_pos(:,2), structures{3}(:,1), structures{3}(:,2));
@@ -195,3 +191,6 @@ if dodraw
     axis equal;
     hold off
 end
+
+toc
+
