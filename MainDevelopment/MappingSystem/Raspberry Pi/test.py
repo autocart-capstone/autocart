@@ -24,14 +24,14 @@ sleep(0.1)
 
 input("press enter to go forward")
 
-for i in range(10):
+for i in range(1500000):
     bus.write_i2c_block_data(address, 0, PICO_ANGLE_PADDING + [PICO_CMD_FWD])
     sleep(0.1)
 
 #input()
 
 print("adjusting right")
-for i in range(150000):
+for i in range(50):
     angle_bytes = list(int.to_bytes(10, length=2))
     bus.write_i2c_block_data(address, 0, angle_bytes + [PICO_CMD_FWD])
     sleep(0.1)

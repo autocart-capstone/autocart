@@ -12,7 +12,7 @@ import socket
 import struct
 import os
 import subprocess
-import time
+from time import sleep
 import math
 from smbus2 import SMBus
 
@@ -205,10 +205,12 @@ def main():
             #Check for Collision 
             collision = False
             for i in range (1, len(ss.buf),2):
-                if((ss.buf[i-1] > 350) and (ss.buf[i-1] < 10) and (ss.buf[i]< 300)):
+                print(f"Hit: {ss.buf[i]}")
+                if(((ss.buf[i-1] > 300) or (ss.buf[i-1] < 60)) and (ss.buf[i]< 600)):
                     collision = True
                     print(f"Collision avoided at Distance = {ss.buf[i]}, Angle = {ss.buf[i-1]}")
                     bus.write_i2c_block_data(address, 0, PICO_ANGLE_PADDING + [PICO_CMD_STOP]) # Send Stop
+                    sleep(0.5)
 
             
             # Reset buffer - always do this after finishing 1 rev
