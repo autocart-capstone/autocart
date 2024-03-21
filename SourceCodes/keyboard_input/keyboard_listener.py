@@ -16,9 +16,7 @@ while True:
     conn, addr = s.accept()
     with conn:
         while True:
-            data = conn.recv(
-                
-            )
+            data = conn.recv(1024)
             msg = data.decode()
             split = msg.split()
             pressed = split[0] == "pressed"
