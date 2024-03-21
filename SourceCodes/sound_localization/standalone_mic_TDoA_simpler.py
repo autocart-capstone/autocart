@@ -91,7 +91,7 @@ def fangs_algorithm_TDoA(ta, tb, tc):
 
     z = Z_MIC_RELATIVE_TO_SPEAKERS
     x = np.roots([d, e, f - z**2])  # eq 9a
-    x = x[abs(x.imag) < 1e-5]  # ignore imaginary roots
+    x = x[(abs(x.imag) < 1e-5) & (x.real >= A[0]) & (x.real <= B[0])]  # ignore imaginary roots and points beyond axis limits
     y = g * x + h  # eq 13
     # print(x, y)
 
@@ -180,12 +180,6 @@ def do_plot():
         axMap.set_xlim(axMap.get_xlim())
         axMap.set_ylim(axMap.get_ylim())
 
-        # for p in msg.positions:
-        #     axMap.scatter(
-        #         p[0],
-        #         p[1],
-        #         color="blue",
-        #     )
         for line in msg.positions:
             axMap.plot(line[0], line[1], color='blue', linewidth='2')
 
@@ -198,7 +192,6 @@ def do_plot():
 
     anim = pltAnim.FuncAnimation(fig, update_plot, cache_frame_data=False, interval=10)
     plt.show(block=True)
-
 
 def main_task_pico():
     Nw = len(noiseA)
