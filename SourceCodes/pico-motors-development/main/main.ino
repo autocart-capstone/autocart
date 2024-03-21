@@ -130,7 +130,8 @@ void loop() {
         stateChange = false;
       }
       drive_forwards();
-      drive_all_motors(MOVING_SPEED);
+      control_left_motors(MOVING_SPEED_LEFT);
+      control_right_motors(MOVING_SPEED_RIGHT);
       break;
 
     case BACKWARD:
@@ -138,14 +139,16 @@ void loop() {
         stateChange = false;
       }
       drive_backwards();
-      drive_all_motors(MOVING_SPEED);
+      control_left_motors(MOVING_SPEED_LEFT);
+      control_right_motors(MOVING_SPEED_RIGHT);
       break;
 
     case ADJUST:
       if (stateChange) {
         stateChange = false;
-        drive_all_motors(MOVING_SPEED);
-        turn_pulses = turn_theta(get_turning_angle()) * 2.5;
+        control_left_motors(MOVING_SPEED_LEFT);
+        control_right_motors(MOVING_SPEED_RIGHT);
+        turn_pulses = turn_theta(get_turning_angle());
       }
       // On-the-fly adjustment with received angle.
       // Might need to move this to set state method for integration so we dont keep reading new updates

@@ -125,26 +125,24 @@ int turn_theta(float angle) {
     angle = 360 - angle;
   }
   float pulses = calculate_pulses_for_angle(angle);
-  float RPM_factor = (pulses / PULSES_PER_REV);
+  float RPM_factor = (pulses / PULSES_PER_REV) * 3;
 
   if (turning_left) {
-    control_right_motors(duty_cycles.FR + (duty_cycles.FR * RPM_factor),
-                         duty_cycles.BR + (duty_cycles.BR * RPM_factor));
+    control_right_motors(duty_cycles.FR + (duty_cycles.FR * RPM_factor));
   } else {
-    control_left_motors(duty_cycles.FL + (duty_cycles.FL * RPM_factor),
-                        duty_cycles.BL + (duty_cycles.BL * RPM_factor));
+    control_left_motors(duty_cycles.FL + (duty_cycles.FL * RPM_factor));
   }
   return pulses;
 }
 
-void control_left_motors(float T_PWM, float B_PWM) {
-  set_pwm_duty_cycle(PWM_FWD_FL, T_PWM);
-  set_pwm_duty_cycle(PWM_FWD_BL, B_PWM);
+void control_left_motors(float duty_cycle) {
+  set_pwm_duty_cycle(PWM_FWD_FL, duty_cycle);
+  set_pwm_duty_cycle(PWM_FWD_BL, duty_cycle);
 }
 
-void control_right_motors(float T_PWM, float B_PWM) {
-  set_pwm_duty_cycle(PWM_FWD_FR, T_PWM);
-  set_pwm_duty_cycle(PWM_FWD_BR, B_PWM);
+void control_right_motors(float duty_cycle) {
+  set_pwm_duty_cycle(PWM_FWD_FR, duty_cycle);
+  set_pwm_duty_cycle(PWM_FWD_BR, duty_cycle);
 }
 
 // Getter function for the 'state' variable
