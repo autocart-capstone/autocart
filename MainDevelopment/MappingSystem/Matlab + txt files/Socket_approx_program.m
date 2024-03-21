@@ -4,13 +4,14 @@ Gets the LIDAR from the pi then processes it and send back the approximate
 location of the cart 
 %}
 load('ahmed.mat');
-figure(1)
+fig=figure(1);
 plot(structures{1}(:,1), structures{1}(:,2), 'k'); % Plot walls
 hold on
 plot(structures{2}(:,1), structures{2}(:,2), 'k'); % Plot walls
 xlim([-5 35]);
 ylim([-5 30]);
 set(gca, 'ButtonDownFcn', @plotClickCallback);
+set(fig, 'KeyPressFcn',@ResetMap);
 
 %disp(['You clicked at X:', num2str(x_clicked), ', Y:', num2str(y_clicked)]);
 X_meas = measures(1,:,:);
@@ -26,6 +27,8 @@ pgon = scale(pgon,0.3);
 angle = 0;
 x_new =0;
 y_new = 0;
+global Reset;
+Reset=false;
 while true
     size = read(t,1, "int32");
     %disp(size);
@@ -39,7 +42,11 @@ while true
     %  end
     hold on
     [x, y, angle,x_new,y_new] = position(theta,distance,angle,test_pos,measures,walls,D_meas,last_pos,x_new,y_new);
-    last_pos=[x y];
+    if Reset == false
+        last_pos=[x y];
+    else
+        last_pos=nan(1,2);
+    end
     if exist('n','var')
         delete(n);
     end
@@ -69,6 +76,14 @@ function [x_clicked y_clicked] = plotClickCallback(src, ~)
     y_clicked = clickCoords(1, 2); % Y coordinate of the click
     
 end
+
+function ResetMap(src, event)
+    global Reset;
+    if strcmp(event.Key, 'space')
+        Reset=true;
+    end
+end
+
 
 
 % filename = "test425.txt";
