@@ -208,7 +208,15 @@ def main():
             #Check for Collision 
             collision = False
             for i in range (1, len(ss.buf),2):
-                #print(f"Hit: {ss.buf[i]}")
+
+                print(f"Hit: {ss.buf[i]}")
+                if(ss.buf[i-1] > 0 and ss.buf[i-1] < 90):
+                    if((math.sin(((90 - ss.buf[i-1]) * math.pi) / 180) * ss.buf[i] < 600) and (math.cos(((90 - ss.buf[i-1]) * math.pi) / 180) * ss.buf[i] < 160)):
+                        print('stop')
+                elif(ss.buf[i-1] > 270 and ss.buf[i-1] < 360):
+                    if((math.sin((90 - (ss.buf[i-1] - 270)) * math.pi / 180) * ss.buf[i] < 600) and (math.cos((90 - (ss.buf[i-1] - 270)) * math.pi / 180) * ss.buf[i] < 160)):
+                        print('stop')
+
                 if(((ss.buf[i-1] > 320) or (ss.buf[i-1] < 40)) and (ss.buf[i]< 600)):
                     collision = True
                     print(f"Collision avoided at Distance = {ss.buf[i]}, Angle = {ss.buf[i-1]}")
