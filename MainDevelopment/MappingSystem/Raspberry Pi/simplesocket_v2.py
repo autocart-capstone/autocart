@@ -208,7 +208,7 @@ def main():
             #Check for Collision 
             collision = False
             for i in range (1, len(ss.buf),2):
-                print(f"Hit: {ss.buf[i]}")
+                #print(f"Hit: {ss.buf[i]}")
                 if(((ss.buf[i-1] > 320) or (ss.buf[i-1] < 40)) and (ss.buf[i]< 600)):
                     collision = True
                     print(f"Collision avoided at Distance = {ss.buf[i]}, Angle = {ss.buf[i-1]}")

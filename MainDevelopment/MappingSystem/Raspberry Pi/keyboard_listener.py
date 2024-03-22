@@ -55,12 +55,12 @@ with s:
                 if "right" in key:
                     print(f"right pressed:{pressed}")
                     extra_bytes_MSB = list(int.to_bytes(0))
-                    extra_bytes_LSB = list(int.to_bytes(30))
+                    extra_bytes_LSB = list(int.to_bytes(0))
                     data_to_send = extra_bytes_MSB + extra_bytes_LSB + list(int.to_bytes(2))
                     bus.write_i2c_block_data(address, 0, data_to_send)
                 if "left" in key:
                     print(f"left pressed:{pressed}")
-                    extra_bytes_LSB = list(int.to_bytes(74))
-                    extra_bytes_MSB = list(int.to_bytes(1))
+                    extra_bytes_LSB = list(int.to_bytes(0))
+                    extra_bytes_MSB = list(int.to_bytes(0))
                     data_to_send = extra_bytes_MSB + extra_bytes_LSB + list(int.to_bytes(1))
                     bus.write_i2c_block_data(address, 0, data_to_send)
