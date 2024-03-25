@@ -206,14 +206,26 @@ def main():
                 matlab_ready = False
                
             #Check for Collision 
+            lowestDistance = -1
+            closestAngle = 0
             collision = False
             for i in range (1, len(ss.buf),2):
+                if((ss.buf[i] < 800) and (ss.buf[i] < lowestDistance or lowestDistance == -1) and ((ss.buf[i-1] < 90) or (ss.buf[i-1] > 270))):
+                    lowestDistance = ss.buf[i]
+                    closestAngle = ss.buf[i-1]
+                    
                 #print(f"Hit: {ss.buf[i]}")
-                if(((ss.buf[i-1] > 320) or (ss.buf[i-1] < 40)) and (ss.buf[i]< 600)):
+
+            if(closestAngle > 0 and closestAngle < 90):
+                if(math.cos(((90 - closestAngle) * math.pi) / 180) * lowestDistance < 190):
                     collision = True
-                    print(f"Collision avoided at Distance = {ss.buf[i]}, Angle = {ss.buf[i-1]}")
+                    print(f"Collision avoided at Distance = {lowestDistance}, Angle = {closestAngle}")
                     bus.write_i2c_block_data(address, 0, PICO_ANGLE_PADDING + [PICO_CMD_STOP]) # Send Stop
-                    break
+            elif(closestAngle > 270 and closestAngle < 360):
+                if(math.cos(((closestAngle - 270)) * math.pi / 180) * lowestDistance < 190):
+                    collision = True
+                    print(f"Collision avoided at Distance = {lowestDistance}, Angle = {closestAngle}")
+                    bus.write_i2c_block_data(address, 0, PICO_ANGLE_PADDING + [PICO_CMD_STOP]) # Send Stop
 
             
             # Reset buffer - always do this after finishing 1 rev
