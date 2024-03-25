@@ -46,9 +46,10 @@ while true
     hold on
     [x, y, angle,x_new,y_new] = position(theta,distance,angle,test_pos,measures,walls,D_meas,last_pos,x_new,y_new);
     if Reset==false
-    last_pos=[x y];
+        last_pos=[x y];
     else
         last_pos=nan(1,2);
+        Reset = false;
     end
     if exist('n','var')
         delete(n);
@@ -165,7 +166,7 @@ function [xa,ya, angle, x_new,y_new] = position(theta, distances,angle, test_pos
         %angle_list = 0:10:angle_list(fidx);
         %minmetric = zeros(1, 36);
         
-        idx_angle= find(angle_list==angle);
+        idx_angle= round(angle/10);
         nx = idx_angle - 9;
         %minidx = zeros(1, 36);
         for na = nx:(nx+18)
@@ -184,7 +185,8 @@ function [xa,ya, angle, x_new,y_new] = position(theta, distances,angle, test_pos
     
         end
         [minima,fidx] = min(minmetric); % find best orientation
-        disp(minima);
+        minima
+        % disp(minima);
         %disp(fidx);
         pidx_near = minidx(fidx);  % find index of best nearby test position
         %disp(pidx_near);
@@ -207,7 +209,7 @@ function [xa,ya, angle, x_new,y_new] = position(theta, distances,angle, test_pos
              look_angle = angle - current_angle;
     
             new_theta_range = [mod(look_angle-1,360), mod(look_angle+1,360)];
-            if look_angle == 0
+            if abs(look_angle) <= 1
                 idx3 = (theta_fixed > new_theta_range(1) | theta_fixed < new_theta_range(2));
             else
                 idx3 = (theta_fixed > new_theta_range(1) & theta_fixed < new_theta_range(2));
@@ -219,17 +221,16 @@ function [xa,ya, angle, x_new,y_new] = position(theta, distances,angle, test_pos
             end
          end
     end
-    
+
     precise_cos = cosd(precise_angle);
     precise_sin = sind(precise_angle);
     new_D_meas = D_meas(:,pidx);
-    metric_pr = squeeze(sum((new_D_meas-mean_distance_pr).^2.*counts_pr));
+    metric_pr = squeeze(sum((new_D_meas-mean_distance_pr).^2.*counts_pr))
     [minmetric_pr,minidx_pr] = min(metric_pr);
-    angle = precise_angle(minidx_pr);
-    disp(precise_angle(minidx_pr));
+    angle = precise_angle(minidx_pr)
     %dodraw = true;
-    x_new = xa + distance.*cosd(theta_fixed+angle_list(fidx));
-    y_new = ya + distance.*sind(theta_fixed+angle_list(fidx));
+    x_new = xa + distance.*cosd(theta_fixed+angle);
+    y_new = ya + distance.*sind(theta_fixed+angle);
 
     
     
