@@ -26,25 +26,28 @@ pub struct PolarPoint {
 
 #[derive(Clone, Debug)]
 pub struct AvgPolarPoint {
-    count: u32,
+    weight: f32,
     distance: f32,
 }
 
 impl AvgPolarPoint {
     pub fn from_points(points: &[PolarPoint]) -> [Self; 36] {
         const ANGLE_AVG_RANGE: f32 = 10.0;
-        std::array::from_fn(|i| {
+        let mut count_tot = 0;
+        let mut arr = std::array::from_fn(|i| {
             let center_angle_deg = i as f32 * ANGLE_AVG_RANGE;
             let (count, distance_acc) = points
                 .iter()
                 .filter(|p| {
+                    let angle = p.angle_deg.rem_euclid(360.0);
                     if i == 0 {
-                        p.angle_deg >= 359.0 || p.angle_deg <= 1.0
+                        angle >= 359.0 || angle <= 1.0
                     } else {
-                        (center_angle_deg - p.angle_deg).abs() <= 1.0
+                        (center_angle_deg - angle).abs() <= 1.0
                     }
                 })
                 .fold((0, 0.0), |(count_acc, distance_acc), e| {
+                    count_tot += 1;
                     (count_acc + 1, distance_acc + e.distance)
                 });
             let avg_distance = if count == 0 {
@@ -53,10 +56,16 @@ impl AvgPolarPoint {
                 distance_acc / count as f32
             };
             AvgPolarPoint {
-                count,
+                weight: count as f32,
                 distance: avg_distance,
             }
-        })
+        });
+
+        for p in arr.iter_mut() {
+            p.weight /= count_tot as f32;
+        }
+
+        arr
     }
 }
 
@@ -68,50 +77,53 @@ pub fn find_position(
     let start_instant = std::time::Instant::now();
     let avg_points: [AvgPolarPoint; 36] = AvgPolarPoint::from_points(points);
 
-    let (min_point_position, metric, shift) = last_pos
+    let ((min_point_position_idx, metric), shift) = last_pos
         .map(|(_, angle)| {
             let ind = (angle / 10.0) as i32;
             ind - 9..ind + 9
         })
         .unwrap_or_else(|| 0..36)
-        .flat_map(|shift| {
+        .map(|shift| {
             let mut points_shifted = avg_points.clone();
             if shift < 0 {
-                points_shifted.rotate_right(shift.unsigned_abs() as usize);
+                points_shifted.rotate_left(shift.unsigned_abs() as usize);
             } else {
-                points_shifted.rotate_left(shift as usize);
+                points_shifted.rotate_right(shift as usize);
             }
             //dbg!(&points_shifted);
-            data.test_points
-                .iter()
-                .filter(|test_point| match last_pos {
-                    Some((p, _)) => (test_point.pos - p).magnitude() < 0.5, // only points close to last pos go through
-                    None => true,                                           // all points go through
-                })
-                .map(move |test_point| {
-                    let metric: f32 = test_point
-                        .measurements
-                        .iter()
-                        .zip(points_shifted.iter())
-                        .map(|(&test_distance, measurement)| {
-                            if test_distance > 6.0 {
-                                0.0
-                            } else {
-                                (test_distance - measurement.distance).powi(4) * measurement.count as f32
-                            }
-                        })
-                        .sum();
-                    (test_point.pos, metric, shift)
-                })
+            (data.metric(last_pos, points_shifted), shift)
         })
         .min_by(|a, b| {
             //dbg!(a, b);
-            a.1.partial_cmp(&b.1).unwrap()
+            a.0.1.partial_cmp(&b.0.1).unwrap()
         })
         .unwrap();
-    let angle = shift as f32 * 10.0; // in degrees
+    let angle_imprecise = shift as f32 * 10.0; // in degrees
+    let tp = &data.test_points[min_point_position_idx];
+    let mut angle_loop = angle_imprecise-5.0;
+    let (precise_angle, precise_metric) = std::iter::from_fn(|| {
+        if angle_loop > angle_imprecise+5.0 {
+            None
+        } else {
+            let ret = Some(angle_loop);
+            angle_loop += 0.5;
+            ret
+        }
+    }).map(|angle| {
+        let avg_points = AvgPolarPoint::from_points(
+            &points.iter()
+                .map(|p| {
+                    let mut p = p.clone();
+                    p.angle_deg = (p.angle_deg + angle).rem_euclid(360.0);
+                    p
+                }).collect_vec()
+        );
+        (angle, tp.metric(&avg_points))
+    }).min_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
+    .unwrap();
     dbg!(start_instant.elapsed().as_secs_f64());
-    (min_point_position, metric, angle)
+    dbg!(metric, precise_metric, angle_imprecise, precise_angle);
+    (tp.pos, precise_metric, angle_imprecise)
 }
 
 fn main() {
@@ -140,19 +152,19 @@ fn main() {
             .collect_vec();
         //dbg!(&points);
         let (min_point_position, metric, angle) = find_position(&points, &data, last_pos);
-        dbg!(min_point_position, metric, angle);
+        //dbg!(min_point_position, metric, angle);
         stream
             .write_all(format!("{} {} {}", min_point_position.x, min_point_position.y, angle).as_bytes())
             .unwrap();
         last_pos = Some((min_point_position, angle));
 
-        data.plot(
-            "img",
-            true,
-            false,
-            false,
-            Some((min_point_position, angle, &points)),
-        );
+        //data.plot(
+        //    "img",
+        //    true,
+        //    false,
+        //    false,
+        //    Some((min_point_position, angle, &[])),
+        //);
     }
 }
 
@@ -186,7 +198,7 @@ mod tests {
 
         //data.plot(true, false, true, None);
         //let path = "../Matlab + txt files/test475.txt";
-        let path = "../Matlab + txt files/19thjan.txt";
+        let path = "../Matlab + txt files/test475.txt";
 
         let points = get_points_from_file(path);
 

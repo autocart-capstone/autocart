@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use parry2d::{query::RayCast, shape::Polyline};
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -60,6 +61,22 @@ pub struct TestPoint {
     pub measurements: [f32; 36],
 }
 
+impl TestPoint {
+    pub fn metric(&self, points: &[AvgPolarPoint; 36]) -> f32 {
+        self.measurements
+        .iter()
+        .zip(points.iter())
+        .map(|(&test_distance, measurement)| {
+            if test_distance > 6.0 {
+                0.0
+            } else {
+                (test_distance - measurement.distance).powi(2) * measurement.weight
+            }
+        })
+        .sum()
+    }
+}
+
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct TestData {
     pub structs: Structures,
@@ -114,6 +131,25 @@ impl TestData {
             structs,
             test_points: out,
         }
+    }
+
+    pub fn metric(&self, last_pos: Option<(Point, f32)>, points: [AvgPolarPoint; 36]) -> (usize, f32) {
+        self.test_points
+                .iter()
+                .enumerate()
+                .filter(move |(_, test_point)| match last_pos {
+                    Some((p, _)) => (test_point.pos - p).magnitude() < 0.5, // only points close to last pos go through
+                    None => true,                                           // all points go through
+                })
+                .map(move |(idx, test_point)| {
+                    let metric: f32 = test_point.metric(&points);
+                    (idx, metric)
+                })
+                .min_by(|a, b| {
+                    //dbg!(a, b);
+                    a.1.partial_cmp(&b.1).unwrap()
+                })
+                .unwrap()
     }
 
     pub fn plot(
@@ -196,8 +232,16 @@ impl TestData {
 
         if let Some((pos, angle, polar_points)) = plot_point {
             
-            let mut pts = AvgPolarPoint::from_points(polar_points);
-            pts.rotate_left((angle/10.0) as usize);
+            //let mut pts = AvgPolarPoint::from_points(polar_points);
+            //pts.rotate_right((angle/10.0) as usize);
+            let pts = AvgPolarPoint::from_points(
+                &polar_points.iter()
+                    .map(|p| {
+                        let mut p = p.clone();
+                        p.angle_deg = (p.angle_deg + angle).rem_euclid(360.0);
+                        p
+                    }).collect_vec()
+            );
             for (i, pt) in pts.into_iter().enumerate() {
                 let angle = (i as f32 * 10.0).to_radians();
                 let dir = Vector::new(angle.cos(), angle.sin());
@@ -233,7 +277,7 @@ impl TestData {
                 p.coords *= 0.4; // scale down
             }
 
-            let mut iso = parry2d::na::Isometry2::rotation(-std::f32::consts::FRAC_PI_2 - angle_rad);
+            let mut iso = parry2d::na::Isometry2::rotation(-std::f32::consts::FRAC_PI_2 + angle_rad);
             iso.append_translation_mut(&parry2d::na::Translation2::from(pos));
             parry2d::transformation::utils::transform(&mut polygon, iso);
 
