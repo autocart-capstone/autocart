@@ -84,13 +84,9 @@ pub fn find_position(
         })
         .unwrap_or_else(|| 0..36)
         .map(|shift| {
-            let shift = shift % 36;
+            let shift = shift.rem_euclid(36) as usize;
             let mut points_shifted = avg_points.clone();
-            if shift < 0 {
-                points_shifted.rotate_left(shift.unsigned_abs() as usize);
-            } else {
-                points_shifted.rotate_right(shift as usize);
-            }
+            points_shifted.rotate_right(shift);
             //dbg!(&points_shifted);
             (data.metric(last_pos, points_shifted), shift)
         })
