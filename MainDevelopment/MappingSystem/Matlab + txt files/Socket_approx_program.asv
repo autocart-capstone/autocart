@@ -4,8 +4,7 @@ Gets the LIDAR from the pi then processes it and send back the approximate
 location of the cart 
 %}
 load('ahmed.mat');
-figure(1);
-%figure('KeyPressFcn',@myKeyPressFcn);
+figure(1)
 plot(structures{1}(:,1), structures{1}(:,2), 'k'); % Plot walls
 hold on
 plot(structures{2}(:,1), structures{2}(:,2), 'k'); % Plot walls
@@ -18,9 +17,8 @@ set(gcf, 'KeyPressFcn', @ResetMAP);
 X_meas = measures(1,:,:);
 Y_meas = measures(2,:,:);
 D_meas = sqrt(X_meas.^2 + Y_meas.^2);
-
 last_pos = nan(1,2);
-t = tcpclient('localization-pi.duckdns.org', 8003, "Timeout", 100000);
+t = tcpclient('localization-pi.duckdns.org', 8002, "Timeout", 100000);
 a = [0.0,-1.0,0.0,1.0,0.0];
 r = a*0.2;
 b = [1.0,-1.0,0.0,-1.0,1.0];
@@ -31,7 +29,6 @@ Reset=false;
 angle = 0;
 x_new =0;
 y_new = 0;
-last_pos = nan(1,2);
 while true
     size = read(t,1, "int32");
     %disp(size);
@@ -71,13 +68,6 @@ while true
     
 
 end
-
-% function myKeyPressFcn(~, evt)
-%     global last_pos;
-%     if strcmp(evt.Key, 'space')
-%         last_pos = nan(1,2);
-%     end
-% end
 
 % Nested callback function definition
 function [x_clicked y_clicked] = plotClickCallback(src, ~)
@@ -159,7 +149,7 @@ function [xa,ya, angle, x_new,y_new] = position(theta, distances,angle, test_pos
         test_pos_distance = sum((test_pos - last_pos).^2, 2);
         
         % Find the indices of the test positions that are near the robot
-        near_test_pos_idx = find(test_pos_distance < 0.7);
+        near_test_pos_idx = find(test_pos_distance < 0.5);
         % Discard all the non-near test positions
         D_meas_near = D_meas(:,:,near_test_pos_idx);
         %angle_list = 0:10:angle_list(fidx);
@@ -173,7 +163,7 @@ function [xa,ya, angle, x_new,y_new] = position(theta, distances,angle, test_pos
             new_mean_distance = circshift(mean_distance, na-1);
             %metric = squeeze(sum(((X_meas - X_coord).^2 + (Y_meas - Y_coord).^2).*new_counts));
             metric = squeeze(sum(abs(D_meas_near - new_mean_distance).*new_counts));
-            if na < 1
+            if na<1
                 %disp("HELLO");
                 [minmetric(na+36),minidx(na+36)] = min(metric);
             elseif na > 36
@@ -197,40 +187,31 @@ function [xa,ya, angle, x_new,y_new] = position(theta, distances,angle, test_pos
     ya = test_pos(pidx,2);
 
     precise_angle = angle_list(fidx) + (-5:.5:5);
-    counts_pr = zeros(36, length(precise_angle));
-    mean_distance_pr = zeros(36, length(precise_angle));
+counts_pr = zeros(36, length(precise_angle));
+mean_distance_pr = zeros(36, length(precise_angle));
 
-    for i =1:length(precise_angle)
-        current_angle = precise_angle(i);
-         for k= 1:length(angle_list)
-             angle = angle_list(k);
-             look_angle = angle - current_angle;
-    
-            new_theta_range = [mod(look_angle-1,360), mod(look_angle+1,360)];
-            if look_angle == 0
-                idx3 = (theta_fixed > new_theta_range(1) | theta_fixed < new_theta_range(2));
-            else
-                idx3 = (theta_fixed > new_theta_range(1) & theta_fixed < new_theta_range(2));
-            end
-            counts_pr(k,i) = sum(idx3);
-            mean_distance_pr(k,i) = mean(distance(idx3));
-            if (counts_pr(k,i) == 0)
-                mean_distance_pr(k,i) = 0.0;
-            end
-         end
-    end
-    
-    precise_cos = cosd(precise_angle);
-    precise_sin = sind(precise_angle);
-    new_D_meas = D_meas(:,pidx);
-    metric_pr = squeeze(sum((new_D_meas-mean_distance_pr).^2.*counts_pr));
-    [minmetric_pr,minidx_pr] = min(metric_pr);
-    angle = precise_angle(minidx_pr);
-    disp(precise_angle(minidx_pr));
+for i =1:length(precise_angle)
+    current_angle = precise_angle(i);
+     for k= 1:length(angle_list)
+         angle = angle_list(k);
+         look_angle = angle - current_angle;
+
+        new_theta_range = [mod(look_angle-1,360), mod(look_angle+1,360)];
+        if look_angle == 0
+            idx3 = (theta_fixed > new_theta_range(1) | theta_fixed < new_theta_range(2));
+        else
+            idx3 = (theta_fixed > new_theta_range(1) & theta_fixed < new_theta_range(2));
+        end
+        counts_pr(k,i) = sum(idx3);
+        mean_distance_pr(k,i) = mean(distance(idx3));
+        if (counts_pr(k,i) == 0)
+            mean_distance_pr(k,i) = 0.0;
+        end
+     end
+end
     %dodraw = true;
     x_new = xa + distance.*cosd(theta_fixed+angle_list(fidx));
     y_new = ya + distance.*sind(theta_fixed+angle_list(fidx));
-
     
     
     % if dodraw

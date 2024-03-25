@@ -147,10 +147,61 @@ end
 
 precise_cos = cosd(precise_angle);
 precise_sin = sind(precise_angle);
+new_X_meas = measures(1,:,pidx);
+new_Y_meas = measures(2,:,pidx);
 new_D_meas = D_meas(:,pidx);
 metric_pr = squeeze(sum((new_D_meas-mean_distance_pr).^2.*counts_pr));
 [minmetric_pr,minidx_pr] = min(metric_pr);
+ 
 disp(precise_angle(minidx_pr));
+
+
+
+
+
+
+
+
+
+
+xa1 = walls(1,pidx) - abs(real_data(1, 1)); %right wall
+xa2 = walls(3,pidx) + abs(real_data(1,  19)); %%left wall
+ya1 = walls(4,pidx) + abs(real_data(2, 28)); %% bottom wall
+ya2 = walls(2,pidx) - abs(real_data(2, 10)); %%top wall
+
+
+if (real_data(1, 1) == 0 && real_data(1, 19) == 0)
+    disp("A1");
+    xapprox = test_pos(pidx,1);
+elseif (real_data(1, 1) == 0 && real_data(1, 19) ~= 0)
+    disp("B1");
+
+    xapprox = xa2;
+elseif (real_data(1, 1) ~= 0 && real_data(1, 19) == 0)
+    disp("C1");
+    xapprox = xa1;
+elseif (real_data(1, 1) ~= 0 && real_data(1, 19) ~= 0)
+    disp("D1");
+    xapprox = (xa1 + xa2) / 2;
+end
+
+if (real_data(2, 28) == 0 && real_data(2, 10) == 0)
+    disp("E2");
+    yapprox = test_pos(pidx,2);
+elseif (real_data(2, 28) == 0 && real_data(2, 10) ~= 0)
+    disp("F2");
+    yapprox = ya2;
+elseif (real_data(2, 28) ~= 0 && real_data(2, 10) == 0)
+    disp('G2');  
+    yapprox = ya1;
+elseif (real_data(2, 28) ~= 0 && real_data(2, 10) ~= 0)
+    disp("Z2");
+    yapprox = (ya1 + ya2) / 2;
+end
+
+xa = xapprox;
+ya = yapprox;
+
 % 
 % for i = 1:20
 %     message = sprintf('[%.2f, %.2f]', xa, ya);
@@ -174,12 +225,20 @@ if dodraw
     plot(structures{2}(:,1), structures{2}(:,2), 'k'); % Plot walls
     plot(x_new,y_new,'r.');
     plot(test_pos(pidx,1),test_pos(pidx,2),'go');
+    plot(xa,ya,'mo');
     plot(xoff,yoff,'bo');
 
     in1 = inpolygon(x_new, y_new, structures{1}(:,1), structures{1}(:,2));
     in2 = inpolygon(x_new, y_new, structures{2}(:,1), structures{2}(:,2));
     bad = (~in1 | in2);
+    % in1 = inpolygon(test_pos(:,1), test_pos(:,2), structures{1}(:,1), structures{1}(:,2));
+    % in2 = inpolygon(test_pos(:,1), test_pos(:,2), structures{2}(:,1), structures{2}(:,2));
+    % in3 = inpolygon(test_pos(:,1), test_pos(:,2), structures{3}(:,1), structures{3}(:,2));
+    % bad = (~in1 | in2 | in3);
 
+    % x_new = x(~bad);
+    % y_new = y(~bad);
+    %plot(test_pos(:,1),test_pos(:,2),'go');
     axis equal;
     hold off
 end

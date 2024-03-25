@@ -1,3 +1,4 @@
+tic
 structures = {
     [00.00,00.11;-0.13,00.11; -0.13,00.28; -0.24,00.28; -0.24,02.06; -0.11,02.06;
     -0.11,02.24; 00.00,02.24; 02.56,02.24; 02.56,02.37; 03.44,02.37; 03.44,02.24;
@@ -49,6 +50,7 @@ segs = [ structures{1}(1:end-1,:) structures{1}(2:end,:) ; structures{2}(1:end-1
 test_pos = makeTestGrid(0.1, structures);
 [measures,walls] = makeTestData(test_pos, segs);
 save('ahmed.mat','measures','walls','test_pos','structures');
+toc
 function test_pos = makeTestGrid(space, structures)
     %%% Make the test grid
     %     space: separation between points in the test grid (in metres)
