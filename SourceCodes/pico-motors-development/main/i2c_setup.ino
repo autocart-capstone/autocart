@@ -52,7 +52,7 @@ void processMessage(int* data) {
   Serial.print("Recieved State: ");
   Serial.println(state);
 
-  if (received_angle > 3 && received_angle < 357) {
+  if (received_angle > 1 && received_angle < 359) {
     // Angle has changed significantly, set state to adjusting.
     if ((getState() == PIVOT_LEFT || getState() == PIVOT_RIGHT) && state != STOP) {
       // Do Nothing

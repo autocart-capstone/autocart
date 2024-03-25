@@ -46,7 +46,7 @@ const int PWM_BWD[4] = { PWM_BWD_FL, PWM_BWD_BL, PWM_BWD_FR, PWM_BWD_BR };
 
 // PWM signal to send motors (0-255)
 static const int MOVING_SPEED = 100;
-static const int MOVING_SPEED_LEFT = 135;
+static const int MOVING_SPEED_LEFT = 140;
 static const int MOVING_SPEED_RIGHT = 100;
 static const int TURNING_SPEED = 120;
 
