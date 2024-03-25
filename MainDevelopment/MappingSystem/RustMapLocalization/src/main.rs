@@ -84,6 +84,7 @@ pub fn find_position(
         })
         .unwrap_or_else(|| 0..36)
         .map(|shift| {
+            let shift = shift % 36;
             let mut points_shifted = avg_points.clone();
             if shift < 0 {
                 points_shifted.rotate_left(shift.unsigned_abs() as usize);
