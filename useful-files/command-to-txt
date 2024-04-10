@@ -1,0 +1,1 @@
+find * -type f -exec bash -c "echo '* {} *'; echo '#nospaced[\`\`\`python '; cat '{}'; echo '\`\`\`]' ; echo '#linebreak()' ;" \; > result.txt

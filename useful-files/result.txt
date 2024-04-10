@@ -1,0 +1,2911 @@
+== robot-demo/Socket_approx_program.m
+#nospaced[```matlab 
+%{
+This is a Mapping file for getting the current points on the cart
+Gets the LIDAR from the pi then processes it and send back the approximate
+location of the cart 
+%}
+load('ahmed.mat');
+figure(1);
+%figure('KeyPressFcn',@myKeyPressFcn);
+plot(structures{1}(:,1), structures{1}(:,2), 'k'); % Plot walls
+hold on
+plot(structures{2}(:,1), structures{2}(:,2), 'k'); % Plot walls
+xlim([-5 35]);
+ylim([-5 30]);
+set(gca, 'ButtonDownFcn', @plotClickCallback);
+
+%disp(['You clicked at X:', num2str(x_clicked), ', Y:', num2str(y_clicked)]);
+X_meas = measures(1,:,:);
+Y_meas = measures(2,:,:);
+D_meas = sqrt(X_meas.^2 + Y_meas.^2);
+
+
+
+t = tcpclient('172.17.141.116', 8004, "Timeout", 100000);
+a = [0.0,-1.0,0.0,1.0,0.0];
+r = a*0.2;
+b = [1.0,-1.0,0.0,-1.0,1.0];
+pgon = polyshape(a,b);
+pgon = scale(pgon,0.3);
+angle = 0;
+x_new =0;
+y_new = 0;
+last_pos = nan(1,2);
+while true
+    size = read(t,1, "int32");
+    %disp(size);
+
+    floats = read(t,size,'single');
+    floats = reshape(floats, 2, []);
+    theta = floats(1,:);
+    distance = floats(2,:);
+    % if h ~= 0
+    %      delete h;
+    %  end
+    hold on
+    [x, y, angle,x_new,y_new] = position(theta,distance,angle,test_pos,measures,walls,D_meas,last_pos,x_new,y_new);
+    last_pos=[x y];
+    if exist('n','var')
+        delete(n);
+    end
+    if exist('d','var')
+        delete(d);
+    end
+    phi = -90+angle;
+    z = rotate(pgon,phi);
+    h = plot(translate(z,x,y));
+    c = plot(x_new,y_new,'r.');
+    %h = plot(translate(rotate(pgon, x, y,-90+angle));
+    %disp(angle);
+    write(t,[sprintf('%g %g %g',x,y,angle) newline]);
+    hold off;
+    n=h;
+    d=c;
+    %write(t,[x y])
+    
+
+end
+
+% Nested callback function definition
+function [x_clicked y_clicked] = plotClickCallback(src, ~)
+    % Get the coordinates of the mouse click within the axes
+    clickCoords = get(src, 'CurrentPoint'); % CurrentPoint returns [x,y] of the click
+    x_clicked = clickCoords(1, 1); % X coordinate of the click
+    y_clicked = clickCoords(1, 2); % Y coordinate of the click
+    
+end
+
+function [xa,ya, angle, x_new,y_new] = position(theta, distances,angle, test_pos,measures,walls,D_meas,last_pos,x_new,y_new)
+% Read data file, and skip header and blank line at end
+    xoff = 24.63;
+    yoff = 22.50;
+    
+    % Extract angle, distance, and quality
+    theta_raw = theta;
+    distance = distances;    
+    distance = distance/1000;
+    theta_fixed = mod((360 - theta_raw), 360);
+    
+    % Sort theta values
+    [theta_fixed, idx] = sort(theta_fixed);
+    distance = distance(idx);
+        
+    angle_list = 0:10:359;
+    real_data = zeros(2,36);
+    counts = zeros(1, 36);
+    mean_distance = zeros(1, 36);
+    fidx=1;
+    pidx_near =1;
+    pidx=1;
+    for nx = 1:length(angle_list)
+        current_angle = angle_list(nx);
+        theta_range = [mod(current_angle-1,360), mod(current_angle+1,360)];
+        if current_angle == 0
+            idx = (theta_fixed > theta_range(1) | theta_fixed < theta_range(2));
+        else
+            idx = (theta_fixed > theta_range(1) & theta_fixed < theta_range(2));
+        end
+    
+        counts(nx) = sum(idx);
+        mean_distance(nx) = mean(distance(idx));
+        if (counts(nx) == 0)
+            mean_distance(nx) = 0.0;
+        end
+    end
+
+    minmetric = 1000000.*ones(1, 36);
+    minidx = zeros(1, 36);
+    if isnan(last_pos)
+        for na = 1:length(angle_list)
+            new_counts = circshift(counts, na-1);
+            new_mean_distance = circshift(mean_distance, na-1);
+            %metric = squeeze(sum(((X_meas - X_coord).^2 + (Y_meas - Y_coord).^2).*new_counts));
+            metric = squeeze(sum(abs(D_meas - new_mean_distance).*new_counts));
+            [minmetric(na),minidx(na)] = min(metric);
+    
+        end
+        [~,fidx] = min(minmetric); % find best orientation
+        pidx = minidx(fidx);  % find index of best nearby test position
+
+    else
+        test_pos_distance = sum((test_pos - last_pos).^2, 2);
+        
+        % Find the indices of the test positions that are near the robot
+        near_test_pos_idx = find(test_pos_distance < 0.7);
+        % Discard all the non-near test positions
+        D_meas_near = D_meas(:,:,near_test_pos_idx);
+        %angle_list = 0:10:angle_list(fidx);
+        %minmetric = zeros(1, 36);
+        
+        idx_angle= find(angle_list==angle);
+        nx = idx_angle - 9;
+        %minidx = zeros(1, 36);
+        for na = nx:(nx+18)
+            new_counts = circshift(counts, na-1);
+            new_mean_distance = circshift(mean_distance, na-1);
+            %metric = squeeze(sum(((X_meas - X_coord).^2 + (Y_meas - Y_coord).^2).*new_counts));
+            metric = squeeze(sum(abs(D_meas_near - new_mean_distance).*new_counts));
+            if na < 1
+                %disp("HELLO");
+                [minmetric(na+36),minidx(na+36)] = min(metric);
+            elseif na > 36
+                [minmetric(na-36),minidx(na-36)] = min(metric);
+            else
+                [minmetric(na),minidx(na)] = min(metric);
+            end
+    
+        end
+        [minima,fidx] = min(minmetric); % find best orientation
+        disp(minima);
+        %disp(fidx);
+        pidx_near = minidx(fidx);  % find index of best nearby test position
+        %disp(pidx_near);
+        pidx = near_test_pos_idx(pidx_near); % find corresponding test position
+
+       
+        % Attempt to find a position within 1 metre of the last
+    end
+    angle = angle_list(fidx);
+    xa = test_pos(pidx,1);
+    ya = test_pos(pidx,2);
+
+    x_new = xa + distance.*cosd(theta_fixed+angle_list(fidx));
+    y_new = ya + distance.*sind(theta_fixed+angle_list(fidx));
+    
+end
+```]
+== robot-demo/simplesocket_v2.py
+#nospaced[```python 
+"""
+Pseudocode:
+Setup c++ socket connection to the C++ SDK
+Read data coming from t)e SDK whenever current angle is less than previous angle:
+Store it in buffer(dynamic buffer) (1 revolution has 1200 samples)
+Make sure matlab is done processing and ready to grab new data values
+Send buffer contents (data: angle, distance) to matlab socket connection
+
+"""
+
+import socket
+import struct
+import os
+import subprocess
+import time
+import math
+from smbus2 import SMBus
+
+MATLAB_PORT = 8008
+if "MATLAB_PORT" in os.environ:
+    MATLAB_PORT = int(os.environ["MATLAB_PORT"])
+print(f"will listen for matlab on port: {MATLAB_PORT}")
+
+SDK_PORT = 8080
+if "SDK_PORT" in os.environ:
+    SDK_PORT = int(os.environ["SDK_PORT"])
+
+
+class SimpleSocketRpi:
+    def __init__(self):
+        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.m = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.buf = []
+
+    def connect_socket(self):
+        self.m.bind(("0.0.0.0", MATLAB_PORT))
+        self.m.listen(1)
+
+        print("starting to listen to matlab")
+        conn, addr = self.m.accept()
+        print("Connected by", addr)
+        self.matlab_conn = conn
+        self.matlab_conn.setblocking(False)
+
+        self.s.bind(("127.0.0.1", SDK_PORT))
+        self.s.listen(1)
+        print("starting to listen to sdk")
+
+        print("executing sdk")
+        self.sdk_subp = subprocess.Popen(
+            [
+                "../rplidar_sdk-master/output/Linux/Release/ultra_simple",
+                "--channel",
+                "--serial",
+                "/dev/ttyUSB0",
+                "115200",
+            ],
+            stdout=subprocess.DEVNULL,
+        )
+        # os.system("../rplidar_sdk-master/output/Linux/Release/ultra_simple  --channel --serial /dev/ttyUSB0 115200")
+        conn, addr = self.s.accept()
+        print("Connected by", addr)
+        self.sdk_conn = conn
+
+    def send_data_to_matlab(self):
+        self.matlab_conn.sendall(struct.pack("I", len(self.buf)))
+        self.matlab_conn.sendall(struct.pack(f"{len(self.buf)}f", *self.buf))
+
+    def receive_data_from_matlab(self):
+        try:
+            return self.matlab_conn.recv(1024)
+        except Exception:
+            return b""
+
+    def receive_data_from_lidar(self):
+        d = self.sdk_conn.recv(8)  # reads up to 8 bytes of data
+        if not d:
+            print("Recevied empty string")
+        # angle, distance = struct.unpack('ff', d)
+        return d
+
+    def save_data_to_buffer(self, data: tuple):
+        self.buf += data
+
+    def get_buffer(self):
+        return self.buf
+
+    def reset_buffer(self):
+        self.buf = []
+
+
+destinations = [
+    (25, 18.5),
+    (20, 18.5),
+    (15, 18.5),
+    (10, 18.5),  # TR -> TL
+    (5, 18.5),
+    (5, 14.1),
+    (5, 9.7),
+    (5, 5.3),  # TL -> BL
+    (5, 1),
+    (10, 1),
+    (15, 1),
+    (20, 1),  # BL -> BR
+    (25, 1),
+    (25, 5.3),
+    (25, 9.7),
+    (25, 14.1),  # BR -> TR
+]
+
+
+channel = 1
+address = 0x12
+
+bus = SMBus(channel)
+
+# data_to_send = (0,0,3) #FORWARD
+# data = bytes(data_to_send) #SEND
+# bus.write_i2c_block_data(address, 0, list(data))
+
+PICO_CMD_STOP = 0
+PICO_CMD_TURN_LEFT = 1
+PICO_CMD_TURN_RIGHT = 2
+PICO_CMD_FWD = 3
+PICO_CMD_BWD = 4
+
+PICO_ANGLE_PADDING = list(int.to_bytes(0, length=2))
+
+
+def got_position_from_matlab(cart_x, cart_y, cart_angle):
+    dest_x, dest_y = destinations[0]
+    if math.sqrt((cart_x - dest_x) ** 2 + (cart_y - dest_y) ** 2) < 1:
+        print("-- Reached point of interest")
+        destinations.append(
+            destinations.pop(0)
+        )  # put reached destination at the end of the list
+
+    dest_x, dest_y = destinations[0]
+
+    line_to_dest = dest_x - cart_x, dest_y - cart_y
+
+    angle_to_dest_deg = (
+        math.atan2(line_to_dest[1], line_to_dest[0]) / math.pi * 180.0
+    )  # [-180, 180]
+    angle_to_dest_deg %= 360.0  # [0, 360]
+
+    angle_to_turn = int(cart_angle - angle_to_dest_deg) % 360  # [0, 360]
+
+    print(
+        "angle_to_dest:",
+        angle_to_dest_deg,
+        "cart_angle:",
+        cart_angle,
+        "angle_to_turn:",
+        angle_to_turn,
+    )
+
+    cmd, angle_bytes = None, None
+
+    if angle_to_turn > 60.0 and angle_to_turn < 180.0:
+        cmd = PICO_CMD_TURN_RIGHT
+        angle_bytes = PICO_ANGLE_PADDING
+        print("PIVOT right")
+    elif angle_to_turn < 300.0 and angle_to_turn > 180.0:
+        cmd = PICO_CMD_TURN_LEFT
+        print("PIVOT left")
+        angle_bytes = PICO_ANGLE_PADDING
+    else:
+        print(f"FWD, angle = {angle_to_turn}")
+        cmd = PICO_CMD_FWD
+        angle_bytes = list(int.to_bytes(angle_to_turn, length=2))
+
+    data = angle_bytes + [cmd]
+    bus.write_i2c_block_data(address, 0, data)
+
+
+def main():
+    ss = SimpleSocketRpi()
+    ss.connect_socket()
+    curr_angle = 0
+    prev_angle = curr_angle
+    matlab_ready = True
+    collision = False
+    matlab_sent_timestamp = time.time()
+
+    while True:
+        # Receive from SDK
+        data = ss.receive_data_from_lidar()
+        data = struct.unpack("ff", data)
+        curr_angle = data[0]  # Assuming first elem is angle
+        ss.save_data_to_buffer(data)
+
+        # Receive X,Y from MATLAB
+        if collision == False:
+            matlab_pos = ss.receive_data_from_matlab()
+
+        # Process X,Y
+        if matlab_pos and collision == False:
+            matlab_ready = True
+            a = matlab_pos.decode().strip().split()
+            x = float(a[0])
+            y = float(a[1])
+            angle = float(a[2])
+            print(f"received (x,y,angle): ({x},{y},{angle})")
+            print(
+                f"took {time.time() - matlab_sent_timestamp} seconds to get position from Matlab"
+            )
+            got_position_from_matlab(x, y, angle)
+
+        # Finish one revolution
+        if curr_angle < prev_angle:
+            if matlab_ready and collision == False:
+                # Send buffer to matlab socket
+                # print(ss.get_buffer())
+                ss.send_data_to_matlab()
+                print("sent data to Matlab")
+                matlab_sent_timestamp = time.time()
+                matlab_ready = False
+
+            # Check for Collision
+            collision = False
+            for i in range(1, len(ss.buf), 2):
+                print(f"Hit: {ss.buf[i]}")
+                if ((ss.buf[i - 1] > 320) or (ss.buf[i - 1] < 40)) and (
+                    ss.buf[i] < 600
+                ):
+                    collision = True
+                    print(
+                        f"Collision avoided at Distance = {ss.buf[i]}, Angle = {ss.buf[i-1]}"
+                    )
+                    bus.write_i2c_block_data(
+                        address, 0, PICO_ANGLE_PADDING + [PICO_CMD_STOP]
+                    )  # Send Stop
+                    break
+
+            # Reset buffer - always do this after finishing 1 rev
+            ss.reset_buffer()
+            # Save first data from the new rev
+            ss.save_data_to_buffer(data)
+
+        # If we are not done with one rev yet, keep saving data (angle,dist) to buffer
+        # Update prev_angle
+        prev_angle = curr_angle
+
+
+main()
+```]
+== robot-demo/pico-motors-development/calculations.h
+#nospaced[```python 
+#ifndef CALCULATIONS_H
+#define CALCULATIONS_H
+
+/* Cart Measurements 
+    length middle of wheel: 30.48 cm 
+    Width middle of wheel: 21.59 cm 
+ */
+
+#define WHEEL_DIAM 9.7f   // cm
+#define PIVOT_DIAM 38.1f  // cm
+
+float calculate_pulses_for_angle(float angle);
+
+float calculate_RPM(int pulses_elapsed);
+
+#endif
+```]
+== robot-demo/pico-motors-development/calculations.ino
+#nospaced[```python 
+#include "calculations.h"
+#include "pin_config.h"
+#include <math.h>
+
+static const float wheel_circ = WHEEL_DIAM * PI;
+static const float pivot_circ = PIVOT_DIAM * PI;
+
+static const float period = 0.10;
+
+/* Method to calucalate the required encoder pulses to turn a given angle */
+float calculate_pulses_for_angle(float angle) {
+  float pulses_per_full_pivot = PULSES_PER_REV * (pivot_circ / wheel_circ);
+  float pulses_for_theta = (angle / 360) * (pulses_per_full_pivot);
+
+  return pulses_for_theta;
+}
+
+/* Method to calculate the current RPM of a wheel given the pulses over a period of 0.1s */
+float calculate_RPM(int pulses_elapsed) {
+  float RPM = (pulses_elapsed * 60) / (period * PULSES_PER_REV);
+  return RPM;
+}
+```]
+== robot-demo/pico-motors-development/encoder_interrupts.h
+#nospaced[```python 
+#ifndef ENCODER_INTERRUPTS_H
+#define ENCODER_INTERRUPTS_H
+
+#define PULSES_PER_REV 90.0f
+
+extern volatile int FL_turn_pulses;
+extern volatile int BL_turn_pulses;
+extern volatile int FR_turn_pulses;
+extern volatile int BR_turn_pulses;
+
+extern volatile int FL_speed_pulses;
+extern volatile int BL_speed_pulses;
+extern volatile int FR_speed_pulses;
+extern volatile int BR_speed_pulses;
+
+extern float FL_mtr_RPM;
+extern float BL_mtr_RPM;
+extern float FR_mtr_RPM;
+extern float BR_mtr_RPM;
+
+void init_encoders();
+void init_RPM_timer();
+void reset_encoders();
+
+float getMotorRPM(int mtr_index);
+bool check_all_motor_RPM(int RPM);
+
+int getAvgPulsesLeft();
+int getAvgPulsesRight();
+
+#endif```]
+== robot-demo/pico-motors-development/encoder_interrupts.ino
+#nospaced[```python 
+#include "encoder_interrupts.h"
+#include "calculations.h"
+#include "pin_config.h"
+// Requires installation of MBED_RPI_PICO_TimerInterrupt library (tools -> Manage Libraries)
+// https://github.com/khoih-prog/MBED_RPI_PICO_TimerInterrupt?tab=readme-ov-file#use-arduino-library-manager
+#include "MBED_RPi_Pico_ISR_Timer.h"
+#include "MBED_RPi_Pico_TimerInterrupt.h"
+
+// Period for timer in usec (0.1s)
+#define TIMER_PERIOD 100000L
+
+/* variables to track encoder pulses elapsed for turning */
+volatile int FL_turn_pulses = 0;
+volatile int BL_turn_pulses = 0;
+volatile int FR_turn_pulses = 0;
+volatile int BR_turn_pulses = 0;
+
+/* variables to track pulses over a period to track RPM */
+volatile int FL_speed_pulses = 0;
+volatile int BL_speed_pulses = 0;
+volatile int FR_speed_pulses = 0;
+volatile int BR_speed_pulses = 0;
+
+// FL, BL, FR, BR
+float motor_RPM[NUM_MOTORS] = { 0, 0, 0, 0 };
+
+void init_encoders() {
+
+  pinMode(ENCODER_FL, INPUT);
+  pinMode(ENCODER_BL, INPUT);
+  pinMode(ENCODER_FR, INPUT);
+  pinMode(ENCODER_BR, INPUT);
+
+  digitalWrite(ENCODER_FL, INPUT_PULLDOWN);
+  digitalWrite(ENCODER_BL, INPUT_PULLDOWN);
+  digitalWrite(ENCODER_FR, INPUT_PULLDOWN);
+  digitalWrite(ENCODER_BR, INPUT_PULLDOWN);
+
+  /* Attach interrutps to encoder input pins */
+  attachInterrupt(digitalPinToInterrupt(ENCODER_FL), FL_encoder_IRQHandler, RISING);
+  attachInterrupt(digitalPinToInterrupt(ENCODER_BL), BL_encoder_IRQHandler, RISING);
+  attachInterrupt(digitalPinToInterrupt(ENCODER_FR), FR_encoder_IRQHandler, RISING);
+  attachInterrupt(digitalPinToInterrupt(ENCODER_BR), BR_encoder_IRQHandler, RISING);
+}
+
+void init_RPM_timer() {
+  MBED_RPI_PICO_Timer ITimer(0);
+  // interval (in us), callback is ISR
+  ITimer.attachInterruptInterval(TIMER_PERIOD, TimerHandler);
+}
+
+void reset_encoders() {
+  FL_turn_pulses = 0;
+  BL_turn_pulses = 0;
+  FR_turn_pulses = 0;
+  BR_turn_pulses = 0;
+}
+
+void FL_encoder_IRQHandler() {
+  FL_turn_pulses++;
+  FL_speed_pulses++;
+}
+
+void BL_encoder_IRQHandler() {
+  BL_turn_pulses++;
+  BL_speed_pulses++;
+}
+
+void FR_encoder_IRQHandler() {
+  FR_turn_pulses++;
+  FR_speed_pulses++;
+}
+
+void BR_encoder_IRQHandler() {
+  BR_turn_pulses++;
+  BR_speed_pulses++;
+}
+
+float getMotorRPM(int mtr_index) {
+  return motor_RPM[mtr_index];
+}
+
+bool check_all_motor_RPM(int RPM) {
+  for (int i = 1; i < NUM_MOTORS; i++) {
+    if (getMotorRPM(i) != RPM) {
+      return false;
+    }
+  }
+  return true;
+}
+
+int getAvgPulsesLeft() {
+  // BL_turn_pulses replaced with FL_turn_pulses since motor encoder is broken
+  return (BL_turn_pulses + BL_turn_pulses) / 2;
+}
+
+int getAvgPulsesRight() {
+  return (FR_turn_pulses + BR_turn_pulses) / 2;
+}
+
+// Never use Serial.print inside this mbed ISR. Will hang the system
+void TimerHandler(uint alarm_num) {
+  // Always call this for MBED RP2040 before processing ISR
+  TIMER_ISR_START(alarm_num);
+
+  motor_RPM[0] = calculate_RPM(FL_speed_pulses);
+  motor_RPM[1] = calculate_RPM(BL_speed_pulses);
+  motor_RPM[2] = calculate_RPM(FR_speed_pulses);
+  motor_RPM[3] = calculate_RPM(BR_speed_pulses);
+
+  FL_speed_pulses = 0;
+  BL_speed_pulses = 0;
+  FR_speed_pulses = 0;
+  BR_speed_pulses = 0;
+
+  // Always call this for MBED RP2040 after processing ISR
+  TIMER_ISR_END(alarm_num);
+}
+```]
+== robot-demo/pico-motors-development/i2c_setup.h
+#nospaced[```python 
+#ifndef I2C_SETUP_H
+#define I2C_SETUP_H
+
+void init_i2c();
+
+#define I2C_ADDRESS (0x12)
+
+#define MSB_ANGLE_INDEX (1)
+#define LSB_ANGLE_INDEX (2)
+#define STATE_INDEX (3)  //Refer to pin_config.h for the numbering
+
+uint32_t get_turning_angle();
+
+void set_turning_angle(uint32_t angle);
+
+#endif
+```]
+== robot-demo/pico-motors-development/i2c_setup.ino
+#nospaced[```python 
+#include <Wire.h>
+#include "i2c_setup.h"
+#include "pin_config.h"
+
+const byte PICO_I2C_SDA = 0;
+const byte PICO_I2C_SCL = 1;
+
+uint32_t received_angle;
+
+//Initially, point of interest is expected to be directly ahead, so 0 degrees (where right is 90 degrees and left is 270).
+uint32_t previous_angle = 0;
+
+//Define
+arduino::MbedI2C mywire(PICO_I2C_SDA, PICO_I2C_SCL);
+
+void init_i2c() {
+  mywire.begin(I2C_ADDRESS);       // Initialize I2C communication with address 0x12
+  mywire.onReceive(receiveEvent);  // Register receiveEvent function
+}
+
+// Variables to store received tuple elements
+int received_data[4];
+
+// Function to receive data
+void receiveEvent(int bytes) {
+  int index = 0;
+  while (mywire.available()) {
+    // Read received byte
+    int c = mywire.read();
+    Serial.println(c);
+    //Get 3 bytes
+    // Interface: First two bytes are the angle, third byte is the state we want to be in.
+    received_data[index++] = c;
+    if (index == 4) {
+      Serial.println("-------------");
+      processMessage(received_data);
+      index = 0;
+    }
+  }
+  // Process received data
+}
+
+void processMessage(int* data) {
+  // Print received tuple elements
+  // The angle to the point of interest.
+
+  received_angle = (data[MSB_ANGLE_INDEX] << 8) | (data[LSB_ANGLE_INDEX]);
+  States state = (States)data[STATE_INDEX];
+  Serial.print("Recieved Angle: ");
+  Serial.println(received_angle);
+
+  Serial.print("Recieved State: ");
+  Serial.println(state);
+
+  if (received_angle > 3 && received_angle < 357) {
+    // Angle has changed significantly, set state to adjusting.
+    if ((getState() == PIVOT_LEFT || getState() == PIVOT_RIGHT) && state != STOP) {
+      // Do Nothing
+    } else {
+      Serial.println("changed state to ADJUST ");
+      set_turning_angle(received_angle);
+      setState(ADJUST);
+    }
+  } else if (state <= BACKWARD) {
+    if ((getState() == PIVOT_LEFT || getState() == PIVOT_RIGHT) && state != STOP) {
+      Serial.println("currently pivoting");
+      // Do Nothing
+    } else {
+      Serial.print("changed state to  ");
+      Serial.println(state);
+      setState(state);
+    }
+  } else {
+    Serial.print("Invalid state input: ");
+    Serial.println(state);
+  }
+}
+
+uint32_t get_turning_angle() {
+  return received_angle;
+}
+
+//FOR DEBUGGING PURPOSES
+void set_turning_angle(uint32_t angle) {
+  received_angle = angle;
+}
+```]
+== robot-demo/pico-motors-development/main.ino
+#nospaced[```python 
+#include "pin_config.h"
+#include "i2c_setup.h"
+#include "encoder_interrupts.h"
+
+/*  Problems : 
+      - Pluses for rotation are not correct in practice, need to increase them for more accurate turns
+
+      - for some reason, when we keep getting signals from the pi, the code breaks where the wheels dont 
+        turn at all, and seems to constantly go back into the stopped state (but dont actually as seen in debugging)
+        can replicate it by using pi to send signals, and holding down an arrow key. 
+*/
+
+bool stateChange = true;
+
+static int turn_pulses = 0;   // var to track pulses during a turn
+static int pivot_pulses = 0;  // var to track pulses during a pivot
+
+/* Variables for PID Controller */
+static long prevT = 0;
+static int vt = 0;  // target velocity
+
+static float velFilt[4] = { 0, 0, 0, 0 };
+static float velPrev[4] = { 0, 0, 0, 0 };
+static float eintegral[4] = { 0, 0, 0, 0 };
+static float uPrevious[4] = { 0, 0, 0, 0 };
+static int adjusted_PWMs[4] = { 0, 0, 0, 0 };
+
+
+/* PID Controller definition, used to regulate operation speed of motors individually */
+void PID_controller() {
+  long currT = micros();
+  float deltaT = ((float)(currT - prevT)) / 1.0e6;
+  prevT = currT;
+
+  //  Apply controller to each motor
+  for (int i = 1; i < 4; i++) {
+    // Get current velocity in RPM (udpates every second on RPM calc interrupt)
+    noInterrupts();  // for syncronization
+    float vel = getMotorRPM(i);
+    interrupts();
+
+    // Low-pass filter (25 Hz cutoff)
+    velFilt[i] = 0.854 * velFilt[i] + 0.0728 * vel + 0.0728 * velPrev[i];
+    velPrev[i] = vel;
+
+    /* -------- Proportional Component -------- */
+    float kp = 0.7;             // proportional constant, needs to be tuned. increasing provides more power
+    float e = vt - velFilt[i];  // error
+
+    /* -------- Integral Component -------- */
+    float ki = 2;                              // Integral constant. increasing provides more power
+    eintegral[i] = eintegral[i] + e * deltaT;  // Update integral with difference
+
+    float u = (kp * e) + (ki * eintegral[i]);  // Control signal
+    uPrevious[i] = u;
+
+    int adjusted_PWM = (int)u;
+    // u is positive, meaning we need to speed up
+    if (adjusted_PWM > 0) {
+      if (adjusted_PWM > 255) adjusted_PWM = 255;
+    } else {  // u is negative, meaning we need to slow down
+      adjusted_PWM = uPrevious[i] - u;
+    }
+
+    adjusted_PWMs[i] = adjusted_PWM;
+  }
+
+  for (int i = 1; i < NUM_MOTORS; i++) {
+    set_pwm_duty_cycle(PWM_FWD[i], adjusted_PWMs[i]);
+    set_pwm_duty_cycle(PWM_BWD[i], adjusted_PWMs[i]);
+
+    // Encoder for FL motor broken, set to the same speed as BL motor
+    if (i == 1) {
+      set_pwm_duty_cycle(PWM_FWD[i - 1], adjusted_PWMs[i]);
+      set_pwm_duty_cycle(PWM_BWD[i - 1], adjusted_PWMs[i]);
+    }
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+  init_i2c();
+  init_encoders();
+  init_RPM_timer();
+}
+
+void loop() {
+
+  if (Serial.available() > 0) {
+    char command = Serial.read();
+    handleSerialCommand(command);
+  }
+
+  switch (getState()) {
+    case STOP:
+      stateChange = false;
+
+      drive_all_motors(0);
+      stop_motors();
+      break;
+
+    case PIVOT_LEFT:
+      stateChange = false;
+
+      pivot_pulses = (pivot_theta(90) * 2);
+      pivot_left();
+      drive_all_motors(TURNING_SPEED);
+      if (getAvgPulsesLeft() < pivot_pulses && getAvgPulsesRight() < pivot_pulses) {
+        // Continue pivoting
+      } else {
+        setState(FORWARD);
+      }
+      break;
+
+    case PIVOT_RIGHT:
+      stateChange = false;
+
+      pivot_pulses = (pivot_theta(90) * 2);
+      pivot_right();
+      drive_all_motors(TURNING_SPEED);
+      if (getAvgPulsesLeft() < pivot_pulses && getAvgPulsesRight() < pivot_pulses) {
+        // Continue pivoting
+      } else {
+        setState(FORWARD);
+      }
+      break;
+
+    case FORWARD:
+      if (stateChange) {
+        stateChange = false;
+      }
+      drive_forwards();
+      control_left_motors(MOVING_SPEED_LEFT);
+      control_right_motors(MOVING_SPEED_RIGHT);
+      break;
+
+    case BACKWARD:
+      if (stateChange) {
+        stateChange = false;
+      }
+      drive_backwards();
+      control_left_motors(MOVING_SPEED_LEFT);
+      control_right_motors(MOVING_SPEED_RIGHT);
+      break;
+
+    case ADJUST:
+      if (stateChange) {
+        stateChange = false;
+        control_left_motors(MOVING_SPEED_LEFT);
+        control_right_motors(MOVING_SPEED_RIGHT);
+        turn_pulses = turn_theta(get_turning_angle());
+      }
+      // On-the-fly adjustment with received angle.
+      // Might need to move this to set state method for integration so we dont keep reading new updates
+      if (fabs(getAvgPulsesLeft() - getAvgPulsesRight()) < turn_pulses) {
+        // Continue turning
+      } else {
+        setState(FORWARD);
+      }
+      break;
+  }
+}
+
+/* Method to set target RPM for PID Controller */
+void setTarget(int target) {
+  vt = target;
+}
+
+void handleSerialCommand(char command) {
+  switch (command) {
+    case '1':
+      setTarget(0);
+      break;
+
+    case '2':
+      setTarget(60);
+      break;
+
+    case '3':
+      //Adjust in the right direction 30 degrees.
+      Serial.println("SETTING ANGLE");
+      set_turning_angle(60);
+      break;
+
+    case '4':
+      //Adjust in the left direction 30 degrees.
+      set_turning_angle(300);
+      break;
+      // overshoots (30 deg)
+    case '5':
+      setState(PIVOT_LEFT);
+      Serial.println("Set state to PIVOT_LEFT");
+      break;
+
+      // undershoots (30)
+    case '6':
+      setState(PIVOT_RIGHT);
+      Serial.println("Set state to PIVOT_RIGHT");
+      break;
+
+    case '7':
+      setState(FORWARD);
+      drive_forwards();
+      Serial.println("Set state to FORWARD");
+      break;
+
+    case '8':
+      setState(BACKWARD);
+      drive_backwards();
+      Serial.println("Set state to BACKWARD");
+      break;
+
+    case '9':
+      setState(ADJUST);
+      Serial.println("Set state to ADJUST");
+      break;
+
+    case '0':
+      setState(STOP);
+      Serial.println("Set state to STOP");
+      stop_motors();
+      break;
+
+    default:
+      Serial.println("Invalid command. Available commands: 0, 1, 2, 3, 4, ... 9");
+      break;
+  }
+}
+```]
+== robot-demo/pico-motors-development/pin_config.h
+#nospaced[```python 
+#ifndef PIN_CONFIG_H
+#define PIN_CONFIG_H
+
+typedef enum {
+  STOP = 0,
+  PIVOT_LEFT,
+  PIVOT_RIGHT,
+  FORWARD,
+  BACKWARD,
+  ADJUST
+} States;
+
+States state = STOP;
+
+// FWD of the board is USB connection
+
+// PWM-Drive
+// Board Left Side Forwards
+#define PWM_FWD_FL 6
+#define PWM_FWD_BL 7
+// Board Left Side Backwards
+#define PWM_BWD_FL 5
+#define PWM_BWD_BL 13
+
+// Board Right Side Forwards
+#define PWM_FWD_FR 27
+#define PWM_FWD_BR 26
+// Board Right Side Backwards
+#define PWM_BWD_FR 28
+#define PWM_BWD_BR 18
+
+// Encoder Pins
+// Board Left Side
+#define ENCODER_FL (10)
+#define ENCODER_BL (11)
+// Board Right Side
+#define ENCODER_FR (21)
+#define ENCODER_BR (20)
+
+#define PWM_FREQ 50
+#define NUM_MOTORS 4
+
+const int encoders[4] = { ENCODER_FL, ENCODER_BL, ENCODER_FR, ENCODER_BR };
+const int PWM_FWD[4] = { PWM_FWD_FL, PWM_FWD_BL, PWM_FWD_FR, PWM_FWD_BR };
+const int PWM_BWD[4] = { PWM_BWD_FL, PWM_BWD_BL, PWM_BWD_FR, PWM_BWD_BR };
+
+// PWM signal to send motors (0-255)
+static const int MOVING_SPEED = 100;
+static const int MOVING_SPEED_LEFT = 135;
+static const int MOVING_SPEED_RIGHT = 100;
+static const int TURNING_SPEED = 120;
+
+extern bool stateChange;
+
+void setup_pwm();
+
+void drive_all_motors(uint8_t duty_cycle);
+
+void set_pwm_duty_cycle(unsigned int pwm_pin, unsigned int duty_cycle);
+
+void drive_forwards();
+
+void drive_backwards();
+
+void drive_left();
+
+void drive_right();
+
+void stop_motors();
+
+void pivot_left();
+
+void pivot_right();
+
+int pivot_theta(float angle);
+
+int turn_theta(float angle);
+
+void setState(States newState);
+
+States getState();
+
+#endif
+```]
+== robot-demo/pico-motors-development/pin_config.ino
+#nospaced[```python 
+#include "pin_config.h"
+#include "calculations.h"
+
+#include <cstring>
+
+#define MAX_DISABLED_PINS 4
+
+//Struct to store values of duty cycle.
+static struct duty_cycles {
+  int FL, BL;  // Front and Back left
+  int FR, BR;  // Front and Back right
+} duty_cycles;
+
+static int disabled_gpio_pins[MAX_DISABLED_PINS];
+
+//Temp Function for storing PWM
+void check_and_set_pin(unsigned int pwm_pin, unsigned int duty_cycle) {
+  switch (pwm_pin) {
+    case PWM_BWD_FL:
+    case PWM_FWD_FL:
+      duty_cycles.FL = duty_cycle;
+      break;
+    case PWM_BWD_BL:
+    case PWM_FWD_BL:
+      duty_cycles.BL = duty_cycle;
+      break;
+    case PWM_BWD_FR:
+    case PWM_FWD_FR:
+      duty_cycles.FR = duty_cycle;
+      break;
+    case PWM_BWD_BR:
+    case PWM_FWD_BR:
+      duty_cycles.BR = duty_cycle;
+      break;
+  }
+}
+
+/* Method to determine if provided PWM pin is disabled for direction control */
+bool check_pin_disabled(unsigned int pin) {
+  for (int i = 0; i < MAX_DISABLED_PINS; i++) {
+    if (disabled_gpio_pins[i] == pin) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/* The set PWM of all motors */
+void drive_all_motors(uint8_t duty_cycle) {
+  for (int i = 0; i < NUM_MOTORS; i++) {
+    set_pwm_duty_cycle(PWM_FWD[i], duty_cycle);
+    set_pwm_duty_cycle(PWM_BWD[i], duty_cycle);
+  }
+}
+
+/* This method to contol PWM */
+void set_pwm_duty_cycle(unsigned int pwm_pin, unsigned int duty_cycle) {
+  // Check to see if the pin is disabled
+  if (check_pin_disabled(pwm_pin)) {
+    // Write PWM of 0 to disabled pins to disable them on BTS7960 controller
+    analogWrite(pwm_pin, 0);
+  } else {
+    analogWrite(pwm_pin, duty_cycle);  //set duty cycle to passed in value
+  }
+  check_and_set_pin(pwm_pin, duty_cycle);
+}
+
+/* Methods to control direction of motors with BTS7960 controller */
+
+void drive_forwards() {
+  int pins_to_disable[] = { PWM_BWD_FL, PWM_BWD_BL, PWM_BWD_FR, PWM_BWD_BR };
+  memcpy(disabled_gpio_pins, pins_to_disable, sizeof(pins_to_disable));
+}
+
+void drive_backwards() {
+  int pins_to_disable[] = { PWM_FWD_FL, PWM_FWD_BL, PWM_FWD_FR, PWM_FWD_BR };
+  memcpy(disabled_gpio_pins, pins_to_disable, sizeof(pins_to_disable));
+}
+
+void pivot_left() {
+  int pins_to_disable[] = { PWM_FWD_FL, PWM_FWD_BL, PWM_BWD_FR, PWM_BWD_BR };
+  memcpy(disabled_gpio_pins, pins_to_disable, sizeof(pins_to_disable));
+}
+
+void pivot_right() {
+  int pins_to_disable[] = { PWM_BWD_FL, PWM_BWD_BL, PWM_FWD_FR, PWM_FWD_BR };
+  memcpy(disabled_gpio_pins, pins_to_disable, sizeof(pins_to_disable));
+}
+
+void stop_motors() {
+  for (int i = 0; i < 4; i++) {
+    analogWrite(PWM_FWD[i], 0);
+    analogWrite(PWM_BWD[i], 0);
+  }
+}
+
+/*  Method to control motors to pivot for a given angle 
+    returns pulses required for pivot
+ */
+int pivot_theta(float angle) {
+  bool turning_right = false;
+
+  if (angle > 180) {
+    turning_right = true;
+    angle = 360 - angle;
+  }
+
+  if (turning_right) {
+    pivot_right();
+  } else {
+    pivot_left();
+  }
+
+  return calculate_pulses_for_angle(angle);
+}
+
+/*  Method to control motors to turn a given angle 
+    returns pulses required for turn
+  */
+int turn_theta(float angle) {
+  bool turning_left = false;
+
+  if (angle > 180) {
+    turning_left = true;
+    angle = 360 - angle;
+  }
+  float pulses = calculate_pulses_for_angle(angle);
+  float RPM_factor = (pulses / PULSES_PER_REV) * 3;
+
+  if (turning_left) {
+    control_right_motors(duty_cycles.FR + (duty_cycles.FR * RPM_factor));
+  } else {
+    control_left_motors(duty_cycles.FL + (duty_cycles.FL * RPM_factor));
+  }
+  return pulses;
+}
+
+void control_left_motors(float duty_cycle) {
+  set_pwm_duty_cycle(PWM_FWD_FL, duty_cycle);
+  set_pwm_duty_cycle(PWM_FWD_BL, duty_cycle);
+}
+
+void control_right_motors(float duty_cycle) {
+  set_pwm_duty_cycle(PWM_FWD_FR, duty_cycle);
+  set_pwm_duty_cycle(PWM_FWD_BR, duty_cycle);
+}
+
+// Getter function for the 'state' variable
+States getState() {
+  return state;
+}
+
+// Setter function for the 'state' variable
+void setState(States newState) {
+  // reset the encoders tracking turning on every state change
+  reset_encoders();
+  drive_all_motors(MOVING_SPEED);
+  stateChange = true;
+  state = newState;
+}
+```]
+== robot-demo/ultra_simple/Makefile
+#nospaced[```make 
+#/*
+# * Copyright (C) 2014  RoboPeak
+# * Copyright (C) 2014 - 2018 Shanghai Slamtec Co., Ltd.
+# *
+# * This program is free software: you can redistribute it and/or modify
+# * it under the terms of the GNU General Public License as published by
+# * the Free Software Foundation, either version 3 of the License, or
+# * (at your option) any later version.
+# *
+# * This program is distributed in the hope that it will be useful,
+# * but WITHOUT ANY WARRANTY; without even the implied warranty of
+# * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# * GNU General Public License for more details.
+# *
+# * You should have received a copy of the GNU General Public License
+# * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# *
+# */
+#
+HOME_TREE := ../../
+
+MODULE_NAME := $(notdir $(CURDIR))
+
+include $(HOME_TREE)/mak_def.inc
+
+CXXSRC += main.cpp
+CXXSRC += socket.cpp
+
+C_INCLUDES += -I$(CURDIR)/../../sdk/include -I$(CURDIR)/../../sdk/src -I$(CURDIR)
+
+EXTRA_OBJ := 
+LD_LIBS += -lstdc++ -lpthread
+
+all: build_app
+
+include $(HOME_TREE)/mak_common.inc
+
+clean: clean_app
+```]
+== robot-demo/ultra_simple/main.cpp
+#nospaced[```python 
+/*
+ *  SLAMTEC LIDAR
+ *  Ultra Simple Data Grabber Demo App
+ *
+ *  Copyright (c) 2009 - 2014 RoboPeak Team
+ *  http://www.robopeak.com
+ *  Copyright (c) 2014 - 2020 Shanghai Slamtec Co., Ltd.
+ *  http://www.slamtec.com
+ *
+ */
+/*
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <string.h>
+
+#include "sl_lidar.h" 
+#include "sl_lidar_driver.h"
+
+//Socket Implementation
+#include <iostream>
+#include "socket.hpp"
+using namespace std;
+
+
+#ifndef _countof
+#define _countof(_Array) (int)(sizeof(_Array) / sizeof(_Array[0]))
+#endif
+
+#ifdef _WIN32
+#include <Windows.h>
+#define delay(x)   ::Sleep(x)
+#else
+#include <unistd.h>
+static inline void delay(sl_word_size_t ms){
+    while (ms>=1000){
+        usleep(1000*1000);
+        ms-=1000;
+    };
+    if (ms!=0)
+        usleep(ms*1000);
+}
+#endif
+
+using namespace sl;
+
+void print_usage(int argc, const char * argv[])
+{
+    printf("Usage:\n"
+           " For serial channel\n %s --channel --serial <com port> [baudrate]\n"
+           " The baudrate used by different models is as follows:\n"
+           "  A1(115200),A2M7(256000),A2M8(115200),A2M12(256000),"
+           "A3(256000),S1(256000),S2(1000000),S3(1000000)\n"
+		   " For udp channel\n %s --channel --udp <ipaddr> [port NO.]\n"
+           " The T1 default ipaddr is 192.168.11.2,and the port NO.is 8089. Please refer to the datasheet for details.\n"
+           , argv[0], argv[0]);
+}
+
+bool checkSLAMTECLIDARHealth(ILidarDriver * drv)
+{
+    sl_result     op_result;
+    sl_lidar_response_device_health_t healthinfo;
+
+    op_result = drv->getHealth(healthinfo);
+    if (SL_IS_OK(op_result)) { // the macro IS_OK is the preperred way to judge whether the operation is succeed.
+        printf("SLAMTEC Lidar health status : %d\n", healthinfo.status);
+        if (healthinfo.status == SL_LIDAR_STATUS_ERROR) {
+            fprintf(stderr, "Error, slamtec lidar internal error detected. Please reboot the device to retry.\n");
+            // enable the following code if you want slamtec lidar to be reboot by software
+            // drv->reset();
+            return false;
+        } else {
+            return true;
+        }
+
+    } else {
+        fprintf(stderr, "Error, cannot retrieve the lidar health code: %x\n", op_result);
+        return false;
+    }
+}
+
+bool ctrl_c_pressed;
+void ctrlc(int)
+{
+    ctrl_c_pressed = true;
+}
+
+int main(int argc, const char * argv[]) {
+    ClientSocket python_socket = createConnection("127.0.0.1", std::getenv("SDK_PORT"));
+    
+
+	const char * opt_is_channel = NULL; 
+	const char * opt_channel = NULL;
+    const char * opt_channel_param_first = NULL;
+	sl_u32         opt_channel_param_second = 0;
+    sl_u32         baudrateArray[2] = {115200, 256000};
+    sl_result     op_result;
+	int          opt_channel_type = CHANNEL_TYPE_SERIALPORT;
+
+	bool useArgcBaudrate = false;
+
+    IChannel* _channel;
+
+    printf("Ultra simple LIDAR data grabber for SLAMTEC LIDAR.\n"
+           "Version: %s\n", SL_LIDAR_SDK_VERSION);
+
+	 
+	if (argc>1)
+	{ 
+		opt_is_channel = argv[1];
+	}
+	else
+	{
+		print_usage(argc, argv);
+		return -1;
+	}
+
+	if(strcmp(opt_is_channel, "--channel")==0){
+		opt_channel = argv[2];
+		if(strcmp(opt_channel, "-s")==0||strcmp(opt_channel, "--serial")==0)
+		{
+			// read serial port from the command line...
+			opt_channel_param_first = argv[3];// or set to a fixed value: e.g. "com3"
+			// read baud rate from the command line if specified...
+			if (argc>4) opt_channel_param_second = strtoul(argv[4], NULL, 10);	
+			useArgcBaudrate = true;
+		}
+		else if(strcmp(opt_channel, "-u")==0||strcmp(opt_channel, "--udp")==0)
+		{
+			// read ip addr from the command line...
+			opt_channel_param_first = argv[3];//or set to a fixed value: e.g. "192.168.11.2"
+			if (argc>4) opt_channel_param_second = strtoul(argv[4], NULL, 10);//e.g. "8089"
+			opt_channel_type = CHANNEL_TYPE_UDP;
+		}
+		else
+		{
+			print_usage(argc, argv);
+			return -1;
+		}
+	}
+	else
+	{
+		print_usage(argc, argv);
+        return -1;
+	}
+
+	if(opt_channel_type == CHANNEL_TYPE_SERIALPORT)
+	{
+		if (!opt_channel_param_first) {
+#ifdef _WIN32
+		// use default com port
+		opt_channel_param_first = "\\\\.\\com3";
+#elif __APPLE__
+		opt_channel_param_first = "/dev/tty.SLAB_USBtoUART";
+#else
+		opt_channel_param_first = "/dev/ttyUSB0";
+#endif
+		}
+	}
+
+    
+    // create the driver instance
+	ILidarDriver * drv = *createLidarDriver();
+
+    if (!drv) {
+        fprintf(stderr, "insufficent memory, exit\n");
+        exit(-2);
+    }
+
+    sl_lidar_response_device_info_t devinfo;
+    bool connectSuccess = false;
+
+    if(opt_channel_type == CHANNEL_TYPE_SERIALPORT){
+        if(useArgcBaudrate){
+            _channel = (*createSerialPortChannel(opt_channel_param_first, opt_channel_param_second));
+            if (SL_IS_OK((drv)->connect(_channel))) {
+                op_result = drv->getDeviceInfo(devinfo);
+
+                if (SL_IS_OK(op_result)) 
+                {
+	                connectSuccess = true;
+                }
+                else{
+                    delete drv;
+					drv = NULL;
+                }
+            }
+        }
+        else{
+            size_t baudRateArraySize = (sizeof(baudrateArray))/ (sizeof(baudrateArray[0]));
+			for(size_t i = 0; i < baudRateArraySize; ++i)
+			{
+				_channel = (*createSerialPortChannel(opt_channel_param_first, baudrateArray[i]));
+                if (SL_IS_OK((drv)->connect(_channel))) {
+                    op_result = drv->getDeviceInfo(devinfo);
+
+                    if (SL_IS_OK(op_result)) 
+                    {
+	                    connectSuccess = true;
+                        break;
+                    }
+                    else{
+                        delete drv;
+					    drv = NULL;
+                    }
+                }
+			}
+        }
+    }
+    else if(opt_channel_type == CHANNEL_TYPE_UDP){
+        _channel = *createUdpChannel(opt_channel_param_first, opt_channel_param_second);
+        if (SL_IS_OK((drv)->connect(_channel))) {
+            op_result = drv->getDeviceInfo(devinfo);
+
+            if (SL_IS_OK(op_result)) 
+            {
+	            connectSuccess = true;
+            }
+            else{
+                delete drv;
+				drv = NULL;
+            }
+        }
+    }
+
+
+    if (!connectSuccess) {
+        (opt_channel_type == CHANNEL_TYPE_SERIALPORT)?
+			(fprintf(stderr, "Error, cannot bind to the specified serial port %s.\n"
+				, opt_channel_param_first)):(fprintf(stderr, "Error, cannot connect to the specified ip addr %s.\n"
+				, opt_channel_param_first));
+		
+        goto on_finished;
+    }
+
+    // print out the device serial number, firmware and hardware version number..
+    printf("SLAMTEC LIDAR S/N: ");
+    for (int pos = 0; pos < 16 ;++pos) {
+        printf("%02X", devinfo.serialnum[pos]);
+    }
+
+    printf("\n"
+            "Firmware Ver: %d.%02d\n"
+            "Hardware Rev: %d\n"
+            , devinfo.firmware_version>>8
+            , devinfo.firmware_version & 0xFF
+            , (int)devinfo.hardware_version);
+
+
+
+    // check health...
+    if (!checkSLAMTECLIDARHealth(drv)) {
+        goto on_finished;
+    }
+
+    signal(SIGINT, ctrlc);
+    
+	if(opt_channel_type == CHANNEL_TYPE_SERIALPORT)
+        drv->setMotorSpeed();
+    // start scan...
+    drv->startScan(0,1);
+
+    // fetech result and print it out...
+    while (1) {
+        sl_lidar_response_measurement_node_hq_t nodes[8192];
+        size_t   count = _countof(nodes);
+
+        op_result = drv->grabScanDataHq(nodes, count);
+
+        if (SL_IS_OK(op_result)) {
+            drv->ascendScanData(nodes, count);
+            for (int pos = 0; pos < (int)count ; ++pos) {
+		printf("%s theta: %03.2f Dist: %08.2f Q: %d \n", 
+                    (nodes[pos].flag & SL_LIDAR_RESP_HQ_FLAG_SYNCBIT) ?"S ":"  ", 
+                    (nodes[pos].angle_z_q14 * 90.f) / 16384.f,
+                    nodes[pos].dist_mm_q2/4.0f,
+                    nodes[pos].quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT);
+		int quality = nodes[pos].quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT;
+                if(quality > 0) {
+                    struct values datapoint;
+                    datapoint.degrees = (nodes[pos].angle_z_q14 * 90.f) / 16384.f;
+                    datapoint.distance = nodes[pos].dist_mm_q2/4.0f;
+                    sendValues(&python_socket, datapoint);
+		    
+		    printf("%s theta: %03.2f Dist: %08.2f Q: %d \n", 
+                    (nodes[pos].flag & SL_LIDAR_RESP_HQ_FLAG_SYNCBIT) ?"S ":"  ", 
+                    (nodes[pos].angle_z_q14 * 90.f) / 16384.f,
+                    nodes[pos].dist_mm_q2/4.0f,
+                    nodes[pos].quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT);
+
+                    
+                }
+            }
+        }
+
+        if (ctrl_c_pressed){ 
+            break;
+        }
+    }
+
+    drv->stop();
+	delay(200);
+	if(opt_channel_type == CHANNEL_TYPE_SERIALPORT)
+        drv->setMotorSpeed(0);
+    // done!
+on_finished:
+    if(drv) {
+        delete drv;
+        drv = NULL;
+    }
+    closeConnection(python_socket);
+    return 0;
+}
+
+```]
+== robot-demo/ultra_simple/socket.cpp
+#nospaced[```python 
+//
+//  socket.cpp
+//
+
+
+#include "socket.hpp"
+
+using namespace std;
+
+ClientSocket createConnection(char* ip, char* port) {
+    ClientSocket sock;
+
+    /* Create a socket point */
+    sock.sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    
+    if (sock.sockfd < 0) {
+        perror("ERROR opening socket");
+        exit(1);
+    } else if (sock.sockfd > 0) {
+        cout << "SOCKET OPENED" << endl;
+    }
+    
+    sock.serv_addr.sin_family = AF_INET;
+    sock.serv_addr.sin_port = htons(atoi(port));
+    inet_pton(AF_INET, ip, &(sock.serv_addr.sin_addr.s_addr));
+    
+    cout << "attempting to connect to server" << endl;
+    
+    int conn_success = connect(sock.sockfd, (struct sockaddr*)&sock.serv_addr, sizeof(sock.serv_addr));
+    
+    if (conn_success < 0) {
+        cout << "ERROR connecting to " << ip << ":" << port << endl;
+        exit(1);
+    } else {
+        cout << "connection successful to " << ip << ":" << port << endl;
+    }
+    
+    return sock;
+}
+
+int sendValues(ClientSocket* sock, struct values a) {
+    int n = send(sock->sockfd, &a, sizeof(a), 0);
+    return 0;
+}
+
+void closeConnection(ClientSocket sock) {
+    int n = close(sock.sockfd);
+    if (n == 0) {
+        printf("Socket has been shutdown\n");
+    }
+}
+```]
+== robot-demo/ultra_simple/socket.hpp
+#nospaced[```python 
+//
+//  socket.hpp
+//
+
+
+#ifndef socket_hpp
+#define socket_hpp
+
+#include <stdio.h>
+#include <iostream>
+#include <cstring>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <unistd.h>
+
+struct values {
+    float degrees;
+    float distance;
+};
+
+
+struct ClientSocket {
+    int sockfd;
+    struct sockaddr_in serv_addr;
+};
+
+
+ClientSocket createConnection(char* ip, char* port);
+int sendValues(ClientSocket* sock, struct values a);
+void closeConnection(ClientSocket sock);
+
+
+#endif /* socket_hpp */
+
+
+
+
+
+
+```]
+== sound-demo/pico_play_noise/sound_transmit.cpp
+#nospaced[```c++ 
+#include "sound_transmit.h"
+#include <I2S.h>
+//#include "src/sound_samples/sound_samplesA.h"
+#include "src/sound_samples/sound_samplesB.h"
+//#include "src/sound_samples/sound_samplesC.h"
+
+I2S i2s_out(OUTPUT);
+const int sampleRate = 50000;
+
+size_t sound_out_ind = SOUND_SAMPLES_LEN; // silence at first
+uint64_t last_interrupt_ticks = 0;        // Number of CPU cycles since the last "onTransmit" interrupt
+uint32_t samples_to_skip = 0;             // amount of samples to skip before sending samples
+int32_t divider = 1;                      // makes sound less loud
+
+void set_sound_divider(int div)
+{
+  divider = div;
+}
+
+void onTransmit()
+{
+  last_interrupt_ticks = rp2040.getCycleCount64();
+  while (true)
+  {
+    int32_t sample;
+    if (sound_out_ind < SOUND_SAMPLES_LEN && samples_to_skip == 0)
+    {
+      // sample = sound | sound << 16; // 16 bits for L channel, 16 bits for R channel
+      sample = sound_samples[sound_out_ind] << 16; // sample is 32-bit audio, shift 16 bit sound to most significant bits of 32-bit sample
+      sample /= divider;                           // make sound less loud
+    }
+    else
+    {
+      sample = 0;
+    }
+
+    int write_succesful = i2s_out.write(sample, false); // L channel
+    if (!write_succesful)
+    {
+      break;
+    }
+    i2s_out.write(sample, false); // R channel
+
+    if (sound_out_ind < SOUND_SAMPLES_LEN && samples_to_skip == 0)
+    {
+      sound_out_ind += 1;
+      sound_out_ind %= SOUND_SAMPLES_LEN; // Repeat sound when done
+    }
+    else if (samples_to_skip > 0)
+    {
+      samples_to_skip -= 1;
+    }
+  }
+}
+
+void setup_i2s_sound_out()
+{
+  i2s_out.setBCLK(20); // WS / LRCLK has to be 21, BCLK+1
+  i2s_out.setDATA(22);
+  i2s_out.setBitsPerSample(32);
+  i2s_out.onTransmit(onTransmit);
+  i2s_out.setBuffers(3, 0, 0); // 3 buffers (minimum), 0 buffer length (it will set the default), 0 silence sample
+
+  if (!i2s_out.begin(sampleRate))
+  {
+    Serial.println("Failed to initialize I2S out!");
+    while (1)
+      ; // do nothing
+  }
+}
+void start_transmitting_sound()
+{
+  sound_out_ind = 0;
+  uint64_t tick_diff = rp2040.getCycleCount64() - last_interrupt_ticks;
+  // Rationale:
+  // With the DMA triple-buffering, we always submit a certain amount of samples ahead of time
+  // Start transmitting audio after having skipped as many future samples submission as we are currently into the buffer
+  // Ex: (s means sample already submitted, e is not submitted, [] is a buffer)
+  // [s s s s] [s s s s] [s s s s] [e e e e]
+  //    ^                             ^
+  //    cur time                      start transmitting here
+  // want to start transmitting at cur time, but empty samples (0s) already submitted for the next few buffer.
+  // In the next available buffer, delay sound transmission by 2 samples
+  // This is for consistency, this way we always transmit x samples late (x=numbuffers*numsamplesinbuffer).
+  float skip = ((float)tick_diff * ((float)sampleRate / (float)rp2040.f_cpu()));
+  samples_to_skip = (uint32_t)skip;
+  // Serial.printf("delaying by %i samples\n", samples_to_skip);
+}
+
+void stop_transmitting_sound()
+{
+  sound_out_ind = SOUND_SAMPLES_LEN; // silence at first
+}
+
+/* bool is_done_transmitting_sound()
+{
+  return sound_out_ind >= SOUND_SAMPLES_LEN;
+} */
+```]
+== sound-demo/pico_play_noise/sound_transmit.h
+#nospaced[```python 
+void setup_i2s_sound_out();
+void set_sound_divider(int divider);
+void start_transmitting_sound();
+void stop_transmitting_sound();
+//bool is_done_transmitting_sound();
+```]
+== sound-demo/pico_play_noise/transceiver_speaker.cpp
+#nospaced[```c 
+#include <RFM69.h>
+#include <SPI.h>
+#include "transceiver_speaker.h"
+#include "sound_transmit.h"
+
+RFM69 radio = RFM69(CS_PIN, INTRPT_PIN);
+String receivedData = "";
+unsigned long clockAdjust = 0;
+
+void setupRfm69() {
+  bool init_ant_success = radio.initialize(FREQUENCY, MYNODEID, NETWORKID);
+  if (init_ant_success) {
+    Serial.printf("Node %d ready\n", MYNODEID);
+  } else {
+    Serial.printf("Failed to initialize Antenna Node %d\n", MYNODEID);
+    while (1); // do nothing
+  }
+  // Set bit rate to 250kbps
+  radio.writeReg(0x03,0x00);
+  radio.writeReg(0x04,0x80);
+  radio.setHighPower(); // Always use this for RFM69HCW
+}
+
+void sendPing(int target, char* msg) {
+  Serial.printf("Sending ping to node %d\n", TONODEID);
+  if (USEACK) {
+    bool success = radio.sendWithRetry(target, msg, strlen(msg), 0, 2); //last 2 arguments: 0 retries, 2ms wait time for ACK
+     if (success) {
+         Serial.printf("ACK received!\n");
+     } else {
+         Serial.printf("no ACK received :(\n");
+     }
+  } else {
+    // Serial.printf("Sending without ack\n");
+    // radio.send(TONODEID, "g", 1);
+    // Serial.printf("Sent!\n");
+  }
+}
+
+void receivePing() {
+  // Serial.println("Waiting for ping from receiver (microphone)...");
+  while(!radio.receiveDone()){
+    // do nothing
+  }
+
+  Serial.print("Ping received from node ");
+  Serial.print(radio.SENDERID, DEC);
+  Serial.print(": [");
+
+  for (byte i = 0; i < radio.DATALEN; i++) {
+    Serial.printf("%c", (char)radio.DATA[i]);
+    receivedData += (char)radio.DATA[i];
+  }
+  Serial.println("]");
+
+  // Send an ACK if requested.
+  if (radio.ACKRequested()) {
+    radio.sendACK();
+    Serial.printf("ACK sent\n");
+  }
+}
+
+void checkBroadcast() {
+  int rcvMsg = 0;
+  
+  receivePing();
+  // Convert received data to unsigned long int
+  char rcvbuf[receivedData.length() + 1];
+  receivedData.toCharArray(rcvbuf, receivedData.length() + 1);
+  rcvbuf[receivedData.length()] = '\0';
+  Serial.printf("Received message %s\n", rcvbuf);
+//  rcvMsg = strtoul(rcvbuf, NULL, 10);
+//  Serial.printf("Received message %lu\n", rcvMsg);
+
+  Serial.println(rcvbuf);
+
+  if (isDigit(*rcvbuf)) {     // is the buffer recevied a digit?
+      rcvMsg = atoi(rcvbuf);  // Convert string to integer
+      Serial.println(rcvMsg);
+      if (rcvMsg == 0) {
+        stop_transmitting_sound();
+      }
+      else {
+        set_sound_divider(rcvMsg);
+        start_transmitting_sound();
+      } 
+  } 
+  else {
+      Serial.println("INVALID MESSAGE! Message must be an integer.");
+  } 
+  receivedData = "";
+}
+```]
+== sound-demo/pico_play_noise/transceiver_speaker.h
+#nospaced[```python 
+#ifndef TRANSCEIVER_SPEAKER_H
+#define TRANSCEIVER_SPEAKER_H
+
+#define NETWORKID     0   // Must be the same for all nodes (0 to 255)
+#define MYNODEID      2   // My node ID (0 to 255)
+#define TONODEID      100   // Destination node ID (0 to 254, 255 = broadcast)
+#define FREQUENCY     RF69_915MHZ
+#define ENCRYPT       false // Set to "true" to use encryption
+#define ENCRYPTKEY    ""    // Use the same 16-byte key on all nodes
+#define USEACK        false  // Request ACKs or not
+#define CS_PIN        17    // in PICO
+#define INTRPT_PIN    2     // in PICO
+
+void setupRfm69();
+void sendPing();
+void receivePing();
+void checkBroadcast();
+#endif
+```]
+== sound-demo/pico_play_noise/pico_play_noise.ino
+#nospaced[```python 
+#include "sound_transmit.h"
+#include "transceiver_speaker.h"
+
+void setup() {
+  pinMode(LED_BUILTIN, OUTPUT);
+  rp2040.enableDoubleResetBootloader();
+
+  Serial.begin(115200); // Changing this doesn't actually change the serial speed
+  delay(3000); // delay long enough for serial to get set up
+  digitalWrite(LED_BUILTIN, 1);
+
+  setupRfm69();
+  setup_i2s_sound_out();
+  checkBroadcast();
+}
+
+void loop() {
+  checkBroadcast();
+}
+```]
+== sound-demo/pico_record_to_serial/pico_record_to_serial.ino
+#nospaced[```python 
+
+#include "record_sound.h"
+#include <cstdint>
+#include <cstddef>
+#include <algorithm>
+
+const int buttonPin = 14; // For draw button
+const int clearPin = 15; // For clear button
+int buttonState1 = 0; // For draw button
+int buttonState2 = 0; //For clear button
+
+void setup()
+{
+  pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(buttonPin, INPUT_PULLUP); // Set up draw button as input
+  pinMode(clearPin, INPUT_PULLUP); // Set up clear button as input
+
+  Serial.begin(115200); // Changing this doesn't actually change the serial speed
+  digitalWrite(LED_BUILTIN, 1);
+  while (!Serial)
+    ; // delay long enough for serial to get set up
+  String str = Serial.readStringUntil('\n');
+  str.trim();
+  if (str != "freq") {
+    Serial.println("did not get freq");
+    while (true);
+  }
+  int fs = Serial.readStringUntil('\n').toInt();
+  fs = std::clamp(fs, 8000, 50000);
+
+  setup_sound_in(fs);
+}
+
+bool first = true;
+size_t buffer_ind = 0;
+byte buffer[64];
+
+void loop()
+{
+
+  if (Serial.available() > 0)
+  {
+    String str = Serial.readStringUntil('\n');
+    str.trim();
+    if (str == "freq") {
+      String _freq = Serial.readStringUntil('\n'); // skip freq reading
+      return;
+    }
+
+    // For draw button
+    buttonState1 = digitalRead(buttonPin);
+    if (buttonState1 == LOW){
+      Serial.println("press");
+    }
+    else{
+      Serial.println("yyyyy");
+    }
+
+    //For clear button
+    buttonState2 = digitalRead(clearPin);
+    if (buttonState2 == LOW){
+      Serial.println("cleared");
+    }
+    else{
+      Serial.println("xxxxxxx");
+    }
+    int num_samples = str.toInt();
+    for (int i = 0; i < num_samples; i++)
+    {
+      int16_t sample = get_sample();
+      buffer[buffer_ind] = (sample >> 0) & 0xFF;
+      buffer_ind++;
+      buffer[buffer_ind] = (sample >> 8) & 0xFF;
+      buffer_ind++;
+      // buffer[buffer_ind] = (sample >> 16) & 0xFF;
+      // buffer_ind++;
+      // buffer[buffer_ind] = (sample >> 24) & 0xFF;
+      // buffer_ind++;
+      if (buffer_ind == 64)
+      {
+        Serial.write(buffer, 64);
+        buffer_ind = 0;
+      }
+    }
+    if (buffer_ind > 0)
+    {
+      Serial.write(buffer, buffer_ind);
+      buffer_ind = 0;
+    }
+    Serial.flush();
+  }
+  else
+  {
+    int16_t discarded_sample = get_sample();
+    (void)discarded_sample;
+  }
+}
+```]
+== sound-demo/pico_record_to_serial/record_sound.cpp
+#nospaced[```c 
+#include <I2S.h>
+#include "record_sound.h"
+#include <cstdint>
+
+I2S i2s_in(INPUT);
+
+void setup_sound_in(int32_t fs)
+{
+  i2s_in.setBCLK(12); // WS / LRCLK has to be 13, BCLK+1
+  i2s_in.setDATA(11);
+  i2s_in.setBitsPerSample(32);
+  i2s_in.setBuffers(18, 0, 0); // 3 buffers (minimum), 0 buffer length (it will set the default), 0 silence sample
+
+  if (!i2s_in.begin(fs))
+  {
+    Serial.println("Failed to initialize I2S in!");
+    while (1)
+      ; // do nothing
+  }
+}
+
+int16_t get_sample()
+{
+  int32_t l, r;
+  i2s_in.read32(&l, &r);
+  int16_t good_bits = ((l << 4) & 0xFFFF0000) >> 16;
+  return good_bits;
+}
+
+int32_t get_full_sample()
+{
+  int32_t l, r;
+  i2s_in.read32(&l, &r);
+  return l;
+}
+```]
+== sound-demo/pico_record_to_serial/record_sound.h
+#nospaced[```python 
+void setup_sound_in(int32_t fs);
+int16_t get_sample();
+int32_t get_full_sample();
+```]
+== sound-demo/pico_speaker_synchronizer/pico_speaker_synchronizer.ino
+#nospaced[```python 
+#include "transceiver_speaker_master.h"
+#include "sound_transmit.h"
+
+void setup() {
+  pinMode(LED_BUILTIN, OUTPUT);
+  rp2040.enableDoubleResetBootloader();
+  
+  Serial.begin(115200); // Changing this doesn't actually change the serial speed
+  delay(3000); // delay long enough for serial to get set up
+  digitalWrite(LED_BUILTIN, 1);
+  
+//  Serial.printf("Started! Clock speed: %i\n", rp2040.f_cpu());
+  setupRfm69();
+  setup_i2s_sound_out();
+  
+  String initial_div = "128";
+  sendBroadcast(initial_div);
+}
+
+void loop() {
+  if (Serial.available() > 0){
+    String in = Serial.readStringUntil('\n');
+    in.trim();
+    
+    sendBroadcast(in);
+  }
+}
+```]
+== sound-demo/pico_speaker_synchronizer/transceiver_speaker_master.cpp
+#nospaced[```c 
+#include <RFM69.h>
+#include <SPI.h>
+#include "transceiver_speaker_master.h"
+
+RFM69 radio = RFM69(CS_PIN, INTRPT_PIN);
+String receivedData = "";
+
+void setupRfm69() {
+  bool initAntennaSuccess = radio.initialize(FREQUENCY, MYNODEID, NETWORKID);
+  if (initAntennaSuccess) {
+    Serial.printf("Node %d ready\n", MYNODEID);
+  } else {
+    Serial.printf("Failed to initialize Antenna Node %d\n", MYNODEID);
+    while (1); // do nothing
+  }
+  // Set bit rate to 250kbps
+  radio.writeReg(0x03, 0x00);
+  radio.writeReg(0x04, 0x80);
+  radio.setHighPower(); // Always use this for RFM69HCW
+}
+
+void sendPing(int target, char* msg) {
+  Serial.printf("Sending ping to node %d\n", target);
+//  Serial.printf("size of message: %d", strlen(msg));
+  if (USEACK) {
+    bool success = radio.sendWithRetry(target, msg, strlen(msg), 0, 5); //last 2 arguments: 0 retries, 2ms wait time for ACK
+    if (success) {
+      Serial.printf("ACK received!\n");
+    } else {
+      Serial.printf("no ACK received :(\n");
+      //        sendPing(target);
+    }
+  } else {
+    //Serial.printf("Sending without ack\n");
+    // radio.send(target, "m", 1); //send character "m" (length 1) to TONODEID
+    //Serial.printf("Sent!\n");
+  }
+}
+
+void receivePing() {
+  // Serial.println("Waiting for ping from receiver (microphone)...");
+  while(!radio.receiveDone()){
+    // do nothing
+  }
+
+  Serial.print("Ping received from node ");
+  Serial.print(radio.SENDERID, DEC);
+  Serial.print(": [");
+
+//  Serial.println(radio.DATALEN);
+  for (byte i = 0; i < radio.DATALEN; i++) {
+    Serial.printf("%c", (char)radio.DATA[i]);
+    receivedData += (char)radio.DATA[i];
+  }
+  Serial.println("]");
+  
+  // Send an ACK if requested.
+  if (radio.ACKRequested()) {
+    radio.sendACK();
+    Serial.printf("ACK sent\n");
+  }
+}
+
+void sendBroadcast(String in) {
+  char buf[60];
+  strcpy(buf, in.c_str());
+  Serial.println(buf);
+  sendPing(TOALLNODE, buf);
+}
+```]
+== sound-demo/pico_speaker_synchronizer/transceiver_speaker_master.h
+#nospaced[```c 
+#ifndef TRANSCEIVER_SPEAKER_H
+#define TRANSCEIVER_SPEAKER_H
+
+#include <RFM69.h>
+
+#define NETWORKID     0   // Must be the same for all nodes (0 to 255)
+#define MYNODEID      100   // My node ID (0 to 255)
+#define TOALLNODE     0   // Destination node ID (0 to 254, 0 = broadcast)
+#define FREQUENCY     RF69_915MHZ
+#define USEACK        true // Request ACKs or not
+#define CS_PIN        17    // in PICO
+#define INTRPT_PIN    2     // in PICO
+
+void setupRfm69();
+void sendPing(int target, char* msg);
+void receivePing();
+void sendBroadcast(String in);
+#endif
+```]
+== sound-demo/standalone_mic_TDoA_simpler.py
+#nospaced[```python 
+import numpy as np
+import scipy as sp
+import matplotlib.pyplot as plt
+import matplotlib.animation as pltAnim
+import serial
+import threading
+import queue
+import copy
+
+noiseA = np.load("misc/filtered_noiseA.npy")
+noiseB = np.load("misc/filtered_noiseB.npy")
+noiseC = np.load("misc/filtered_noiseC.npy")
+
+A = np.array([0, 0])
+B = np.array([0.82, 0])
+C = np.array([0.82 / 2, 0.551])
+Z_MIC_RELATIVE_TO_SPEAKERS = 0.195
+
+assert A[0] == 0 and A[1] == 0
+assert B[0] > 0 and B[1] == 0
+assert C[1] > 0
+
+
+def correlate_and_find_delay(rec, noise, name):
+    Nw = len(noise)
+    assert Nw == len(rec)
+    rec_fft = np.fft.rfft(rec)
+    noise_fft_conj = np.conj(np.fft.rfft(noise))
+    # print(rec_fft.shape, noise_fft_conj.shape)
+    cross_corr_freq = noise_fft_conj * rec_fft
+    cross_corr = np.abs(np.fft.irfft(cross_corr_freq))
+
+    # valid_len = diff + 1
+    # cross_corr = cross_corr[:valid_len]
+
+    # print(cross_corr)
+    k_max_ind = np.argmax(cross_corr)
+    k_max = cross_corr[k_max_ind]
+    avg = np.sum(cross_corr) / len(cross_corr)
+
+    return k_max_ind, k_max, avg, cross_corr
+
+
+def fangs_algorithm_TDoA(ta, tb, tc):
+    Nw = len(noiseA)
+    # The correlation wraps around, this can cause issues when 1 val is close to index 0, and the other close to Nw
+    # assume the tdoa is always less than Nw/2, if not then substract 1 val Nw, this should bring substraction back in the range
+    # substracting the largest value by Nw makes it negative
+    # tab = min([ta-tb, ta-tb-Nw, ta-tb+Nw], key=lambda x: abs(x))
+    # tac = min([ta-tc, ta-tc-Nw, ta-tc+Nw], key=lambda x: abs(x))
+
+    ## Fang's algorithm, gotten from the PDF (in the repo or at https://ieeexplore.ieee.org/document/102710)
+    c = 343  # speed of wave in medium, speed of sound=343 m/s
+
+    cTa = ta * c
+    cTb = tb * c
+    cTc = tc * c
+
+    b = B[0]  # also = np.linalg.norm(B)
+    cx = C[0]
+    cy = C[1]
+    c = np.linalg.norm(C)
+
+    Rab = cTa - cTb
+    Rac = cTa - cTc
+    # Rab = c*tab
+    # Rac = c*tac
+
+    # avoid division by zero, just make em real small
+    if Rab == 0.0:
+        Rab = 1e-5
+    if Rac == 0.0:
+        Rac = 1e-5
+
+    # variable names correspond to those in the paper
+
+    g = (Rac * b / Rab - cx) / cy
+    h = (c**2 - Rac**2 + Rac * Rab * (1 - (b / Rab) ** 2)) / (2 * cy)
+
+    d = -(1 - (b / Rab) ** 2 + g**2)
+    e = b * (1 - (b / Rab) ** 2) - 2 * g * h
+    f = (Rab**2 / 4) * (1 - (b / Rab) ** 2) ** 2 - h**2
+
+    z = Z_MIC_RELATIVE_TO_SPEAKERS
+    x = np.roots([d, e, f - z**2])  # eq 9a
+    x = x[
+        (abs(x.imag) < 1e-5) & (x.real >= A[0]) & (x.real <= B[0])
+    ]  # ignore imaginary roots and points beyond axis limits
+    y = g * x + h  # eq 13
+    # print(x, y)
+
+    guesses = np.transpose([x, y])
+
+    # print(guesses)
+
+    def err(g):
+        # calculate what sort of time deltas would be seen with this guess
+        # compare them to the original, return the MSE
+        deltaA = np.linalg.norm(g - A)
+        deltaB = np.linalg.norm(g - B)
+        deltaC = np.linalg.norm(g - C)
+        rab = deltaA - deltaB
+        rac = deltaA - deltaC
+        mse = ((rab - Rab) ** 2 + (rac - Rac) ** 2) / 2
+        return mse
+
+    if len(guesses) == 0:
+        return None
+
+    best_guess = min(guesses, key=err)
+    return best_guess
+
+
+def plot_spect(sound):
+    f, t, Sxx = sp.signal.spectrogram(sound, 50000)
+    plt.pcolormesh(t, f, Sxx, shading="gouraud")
+    plt.ylabel("Frequency [Hz]")
+    plt.xlabel("Time [sec]")
+    plt.ylim((1000, 5000))
+
+
+INVALID_CURSOR_POS = (-100.0, -100.0)  # off the shown map hopefully
+
+thread_queue = queue.Queue()
+
+
+class QueueMsg:
+    def __init__(
+        self, cross_corrA, cross_corrB, cross_corrC, positions, cursor_position
+    ) -> None:
+        self.cross_corrA = cross_corrA
+        self.cross_corrB = cross_corrB
+        self.cross_corrC = cross_corrC
+        self.positions = positions
+        self.cursor_position = cursor_position
+
+
+def do_plot():
+    fig = plt.figure(1)
+    axA = plt.subplot(231)
+    axB = plt.subplot(232, sharey=axA)
+    axC = plt.subplot(233, sharey=axA)
+
+    axMap = plt.subplot(212)
+
+    def update_plot(frame):
+        if thread_queue.empty():
+            return
+        msg = thread_queue.get()
+
+        axA.clear()
+        axA.plot(msg.cross_corrA)
+        axA.set_title("Correlation A")
+
+        axB.clear()
+        axB.plot(msg.cross_corrB)
+        axB.set_title("Correlation B")
+        axB.tick_params("y", labelleft=False)
+
+        axC.clear()
+        axC.plot(msg.cross_corrC)
+        axC.set_title("Correlation C")
+        axC.tick_params("y", labelleft=False)
+
+        axMap.clear()
+        axMap.scatter(
+            [A[0], B[0], C[0]],
+            [A[1], B[1], C[1]],
+            label="base stations",
+            marker="o",
+            color="purple",
+        )
+        axMap.set_aspect("equal")
+        axMap.set_xlim(axMap.get_xlim())
+        axMap.set_ylim(axMap.get_ylim())
+
+        for line in msg.positions:
+            axMap.plot(line[0], line[1], color="blue", linewidth="2")
+
+        axMap.scatter(
+            msg.cursor_position[0],
+            msg.cursor_position[1],
+            color="lightblue",
+        )
+        fig.canvas.draw()
+
+    anim = pltAnim.FuncAnimation(fig, update_plot, cache_frame_data=False, interval=10)
+    plt.show(block=True)
+
+
+def main_task_pico():
+    Nw = len(noiseA)
+    positions = []
+    positions.append([[], []])
+    pos_idx = 0
+    with serial.Serial("COM14", 115200) as ser:
+        # ser.set_buffer_size(rx_size = 8192)
+        ser.write(b"freq\n")
+        # print(ser.readline())
+        ser.write(f"{50000}\n".encode())
+        # print(ser.readline())
+        # num_samples = int(Fs)
+        while True:
+            draw_button_on = 0
+            clear_button_on = 0
+
+            ser.write(f"{Nw}\n".encode())
+            # print(size)
+
+            rcv_draw = ser.readline()  # For draw button
+            rcv_draw = rcv_draw.decode("utf-8").strip()
+
+            rcv_clear = ser.readline()  # For clear button
+            rcv_clear = rcv_clear.decode("utf-8").strip()
+
+            num_bytes = Nw * 2  # 2 bytes per sample
+            b = ser.read(num_bytes)
+
+            sound = np.frombuffer(b, dtype="<i2")
+
+            found_delay1, max1, avg1, cross_corrA = correlate_and_find_delay(
+                sound, noiseA, "A"
+            )
+            found_delay2, max2, avg2, cross_corrB = correlate_and_find_delay(
+                sound, noiseB, "B"
+            )
+            found_delay3, max3, avg3, cross_corrC = correlate_and_find_delay(
+                sound, noiseC, "C"
+            )
+
+            ta = found_delay1 / 48000
+            tb = found_delay2 / 48000
+            tc = found_delay3 / 48000
+
+            guessed_position = fangs_algorithm_TDoA(ta, tb, tc)
+
+            # Button stuff
+            if rcv_draw == "press":
+                draw_button_on = True
+
+            if rcv_clear == "cleared":
+                clear_button_on = True
+
+            if guessed_position is None:
+                cursor_position = INVALID_CURSOR_POS
+
+            else:
+                cursor_position = guessed_position
+                if draw_button_on:
+                    # If button is pressed
+                    positions[pos_idx][0].append(
+                        guessed_position[0]
+                    )  # Add x coord in the curr drawing list
+                    positions[pos_idx][1].append(
+                        guessed_position[1]
+                    )  # Add y coord in the curr drawing list
+                else:
+                    # If button is released, add new list to positions
+                    positions.append([[], []])
+                    pos_idx += 1
+
+            if clear_button_on == 1:
+                positions.clear()
+                positions.append([[], []])
+                pos_idx = 0
+
+            if thread_queue.empty():
+                thread_queue.put(
+                    QueueMsg(
+                        cross_corrA,
+                        cross_corrB,
+                        cross_corrC,
+                        copy.deepcopy(positions),
+                        cursor_position,
+                    )
+                )
+            else:
+                print("dropping frame")
+
+
+def main_task_mic():
+    Nw = len(noiseA)
+
+    audio_buffer_queue = queue.Queue()
+
+    def audio_callback(indata, frames, time, status):
+        """This is called (from a separate thread) for each audio block."""
+
+        if status:
+            print(status)
+
+        length = min(Nw - audio_callback.index, frames)
+        audio_callback.buffer[audio_callback.index : audio_callback.index + length] = (
+            indata[:length].flatten()
+        )
+
+        audio_callback.index += length
+
+        if audio_callback.index >= Nw:
+            audio_callback.index = 0
+            if audio_buffer_queue.empty():
+                audio_buffer_queue.put(audio_callback.buffer.copy())
+            else:
+                print("dropping sound")
+
+    audio_callback.index = 0
+    audio_callback.buffer = np.zeros(Nw)
+
+    import sounddevice as sd
+
+    stream = sd.InputStream(channels=1, samplerate=48000, callback=audio_callback)
+    with stream:
+        positions = []
+        while True:
+            sound = audio_buffer_queue.get()
+
+            found_delay1, max1, avg1, cross_corrA = correlate_and_find_delay(
+                sound, noiseA, "A"
+            )
+            found_delay2, max2, avg2, cross_corrB = correlate_and_find_delay(
+                sound, noiseB, "B"
+            )
+            found_delay3, max3, avg3, cross_corrC = correlate_and_find_delay(
+                sound, noiseC, "C"
+            )
+
+            ta = found_delay1 / 48000
+            tb = found_delay2 / 48000
+            tc = found_delay3 / 48000
+
+            guessed_position = fangs_algorithm_TDoA(ta, tb, tc)
+
+            if guessed_position is None:
+                cursor_position = INVALID_CURSOR_POS
+
+            else:
+                cursor_position = guessed_position
+
+            if thread_queue.empty():
+                thread_queue.put(
+                    QueueMsg(
+                        cross_corrA,
+                        cross_corrB,
+                        cross_corrC,
+                        positions.copy(),
+                        cursor_position,
+                    )
+                )
+            else:
+                print("dropping frame")
+
+
+t1 = threading.Thread(target=main_task_pico, daemon=True)
+# t1 = threading.Thread(target=main_task_mic, daemon=True)
+t1.start()
+
+do_plot()
+```]
+== sound-demo/sound-jupyter-notebook.py
+#nospaced[```python 
+# %%
+%pip install numpy
+%pip install scipy
+%pip install matplotlib
+%pip install pyserial
+%pip install sympy
+%pip install sounddevice
+
+# %%
+Fs = 50000
+Ts = 1 / Fs
+
+# Nw = int(noise_dur_s * Fs )
+Nw = 2**14
+# White noise length
+noise_dur_s = Nw*Ts
+
+silence_length = int(0/343 * Fs) # 20m worth of sample travel time
+silence_length_s = silence_length * Ts
+
+full_length = Nw + silence_length
+
+cutoffs = [1000, 5000]
+
+
+# %%
+import scipy
+import scipy as sp
+import numpy as np
+import matplotlib.pyplot as plt
+## Generate noise
+
+def make_linear_chirp(f0, f1, N, Ts):
+  t = np.arange(N) * Ts
+
+  c = (f1-f0)/(N*Ts)
+
+  phi_0 = 0
+  chirp = np.sin(phi_0 + 2*np.pi*(c/2*t*t+f0*t))
+  return chirp
+
+
+def make_hyperbolic_chirp(f0, f1, N, Ts):
+  t = np.arange(N) * Ts
+
+  phi_0 = 0
+  chirp = np.sin(
+      phi_0
+        + 2*np.pi*(-f0*f1*noise_dur_s/(f1-f0))
+        * np.log(1-(f1-f0)/f1/noise_dur_s*t)
+  )
+  return chirp
+
+full = make_linear_chirp(cutoffs[0], cutoffs[1], Nw, Ts)
+half = make_linear_chirp(cutoffs[0], cutoffs[1], Nw//2, Ts)
+
+filtered_noiseA = full
+filtered_noiseB = np.flip(full)
+filtered_noiseC = np.concatenate((half, np.flip(half)))
+#filtered_noiseD = np.concatenate((np.flip(half), half))
+#print(max(filtered_noiseA))
+
+def plot_spect(chirp):
+  f, t, Sxx = scipy.signal.spectrogram(chirp, Fs)
+  plt.pcolormesh(t, f, Sxx, shading='gouraud')
+  plt.ylim([500, 6000])
+
+def plot_freq(chirp):
+  # plot noise
+  noise_fft = sp.fft.rfft(chirp)
+  n = len(noise_fft)
+  f = np.arange(n) * Fs / n / 2
+  plt.plot(f, 10 * np.log10(np.abs(noise_fft)))
+
+plt.figure()
+plt.subplot(131)
+plot_spect(filtered_noiseA)
+plt.xlabel('Time (s)')
+plt.ylabel('Frequency [Hz]')
+plt.title("Chirp A")
+plt.subplot(132)
+plot_spect(filtered_noiseB)
+plt.title("Chirp B")
+plt.xlabel('Time (s)')
+plt.tick_params("y", labelleft=False)
+plt.subplot(133)
+plot_spect(filtered_noiseC)
+plt.title("Chirp C")
+plt.xlabel('Time (s)')
+plt.tick_params("y", labelleft=False)
+
+filtered_noiseA = np.concatenate((filtered_noiseA, np.zeros(silence_length)))
+filtered_noiseB = np.concatenate((filtered_noiseB, np.zeros(silence_length)))
+filtered_noiseC = np.concatenate((filtered_noiseC, np.zeros(silence_length)))
+
+plt.figure()
+plt.subplot(131)
+plot_freq(filtered_noiseA)
+plt.ylabel('Frequency [Hz]')
+plt.xlabel('Time [sec]')
+plt.subplot(132)
+plot_freq(filtered_noiseB)
+plt.subplot(133)
+plot_freq(filtered_noiseC)
+
+
+
+# %%
+np.save("filtered_noiseA.npy", filtered_noiseA)
+np.save("filtered_noiseB.npy", filtered_noiseB)
+np.save("filtered_noiseC.npy", filtered_noiseC)
+
+# %%
+for (letter, noise) in [('A', filtered_noiseA), ('B', filtered_noiseB), ('C', filtered_noiseC)]:
+    with open(f"../pico_play_noise/src/sound_samples/sound_samples{letter}.h", "w") as f:
+        noise = np.copy(noise)
+        noise *= 2**15-1
+        noise = np.asarray(noise, dtype='int16')
+        hexed = [f"{sample}" for sample in noise]
+        f.write("#include <stddef.h> // for size_t\n")
+        f.write("#include <stdint.h> // for uint16_t\n")
+        f.write("\n")
+        f.write(f"#define SOUND_SAMPLES_LEN {len(hexed)}\n")
+        f.write("\n")
+        f.write("//These are actually signed ints \n")
+        f.write("const int16_t sound_samples[SOUND_SAMPLES_LEN] = {\n")
+        for window in range(0, len(hexed), 10):
+            s = "    " + ", ".join(hexed[window:window+10]) + ",\n"
+            f.write(s)
+        f.write("};\n")
+
+
+# %%
+import numpy as np
+import matplotlib.pyplot as plt
+
+def correlate_and_find_delay(rec, noise, name):
+    # rec_padded = np.pad(rec, (len(noise), 0), 'constant', constant_values=0)
+    # print(rec)
+    rec_fft = np.fft.rfft(rec)
+    diff = len(rec) - len(noise)
+    assert diff == 0
+    noise_padded = np.pad(noise, (0, diff), "constant", constant_values=0)
+    noise_fft_conj = np.conj(np.fft.rfft(noise_padded))
+    # print(rec_fft.shape, noise_fft_conj.shape)
+    cross_corr_freq = noise_fft_conj * rec_fft
+    cross_corr = np.abs(np.fft.irfft(cross_corr_freq))
+
+    #valid_len = diff + 1
+    #cross_corr = cross_corr[:valid_len]
+
+    # print(cross_corr)
+    plt.plot(cross_corr)
+    plt.title("correlation " + name)
+
+    k_max_ind = np.argmax(cross_corr)
+    k_max = cross_corr[k_max_ind]
+    avg = np.sum(cross_corr) / len(cross_corr)
+
+    return k_max_ind, k_max, avg
+
+# %%
+import numpy as np
+import matplotlib.pyplot as plt
+
+recording_noise_1 = np.zeros(full_length)
+recording_noise_2 = np.zeros(full_length)
+recording_noise_3 = np.zeros(full_length)
+
+insert_loc = 400
+# recording_noise_1[insert_loc : insert_loc + Nw] += filtered_noise1
+recording_noise_1 = np.roll(filtered_noiseA, insert_loc)
+insert_loc2 = 1000
+# recording_noise_2[insert_loc2 : insert_loc2 + Nw] += filtered_noise2
+recording_noise_2 = np.roll(filtered_noiseB, insert_loc2)
+insert_loc3 = 1200
+# recording_noise_3[insert_loc3 : insert_loc3 + Nw] += filtered_noise3
+recording_noise_3 = np.roll(filtered_noiseC, insert_loc3)
+
+recording_noise_together = recording_noise_1 + recording_noise_2 + recording_noise_3
+# recording_noise_together = recording_noise_together / max(recording_noise_together)
+
+plt.figure()
+ind1 = correlate_and_find_delay(recording_noise_1, filtered_noiseA, "1")
+plt.figure()
+ax1 = plt.subplot(141)
+ind1, max1, avg1 = correlate_and_find_delay(recording_noise_together, filtered_noiseA, "1")
+plt.subplot(142, sharey=ax1)
+
+ind2, max2, avg2 = correlate_and_find_delay(recording_noise_together, filtered_noiseB, "2")
+plt.tick_params("y", labelleft=False)
+plt.subplot(143, sharey=ax1)
+ind3, max3, avg3 = correlate_and_find_delay(recording_noise_together, filtered_noiseC, "3")
+plt.tick_params("y", labelleft=False)
+print("indexes:", ind1, ind2, ind3)
+print("maxes:", max1, max2, max3)
+print("avgs:", avg1, avg2, avg3)
+print("max/avg:", max1/avg1, max2/avg2, max3/avg3)
+
+# %%
+### Time Difference of Arrival with 3 nodes
+
+A = np.array([0, 0])
+B = np.array([10, 0])
+C = np.array([5, 10])
+
+actual_position = np.array([5, 0])
+
+delay1 = int(abs(np.linalg.norm(A - actual_position)) * Fs // 343)
+delay2 = int(abs(np.linalg.norm(B - actual_position)) * Fs // 343)
+delay3 = int(abs(np.linalg.norm(C - actual_position)) * Fs // 343)
+
+recording_noise = np.zeros(full_length)
+print(delay1)
+#recording_noise[delay1 : delay1 + Nw] += filtered_noise1
+recording_noise += np.roll(filtered_noiseA, delay1)
+#recording_noise[delay2 : delay2 + Nw] += filtered_noise2
+recording_noise += np.roll(filtered_noiseB, delay2)
+#recording_noise[delay3 : delay3 + Nw] += filtered_noise3
+recording_noise += np.roll(filtered_noiseC, delay3)
+
+
+def fangs_algorithm_TDoA(ta, tb, tc):
+    ## Fang's algorithm, gotten from the PDF (in the repo or at https://ieeexplore.ieee.org/document/102710)
+    assert A[0] == 0 and A[1] == 0
+    assert B[0] > 0 and B[1] == 0
+    assert C[1] > 0
+
+    c = 343  # speed of wave in medium, speed of sound=343 m/s
+
+    cTa = ta * c
+    cTb = tb * c
+    cTc = tc * c
+
+    b = B[0]  # also = np.linalg.norm(B)
+    cx = C[0]
+    cy = C[1]
+    c = np.linalg.norm(C)
+
+    Rab = cTa - cTb
+    Rac = cTa - cTc
+
+    #avoid division by zero, just make em real small
+    if Rab == 0.0:
+        Rab = 1e-5
+    if Rac == 0.0:
+        Rac = 1e-5
+
+    # variable names correspond to those in the paper
+
+    g = (Rac * b / Rab - cx) / cy
+    h = (c**2 - Rac**2 + Rac * Rab * (1 - (b / Rab) ** 2)) / (2 * cy)
+
+    d = -(1 - (b / Rab) ** 2 + g**2)
+    e = b * (1 - (b / Rab) ** 2) - 2 * g * h
+    f = (Rab**2 / 4) * (1 - (b / Rab) ** 2) ** 2 - h**2
+
+    z = 0
+    x = np.roots([d, e, f - z**2])  # eq 9a
+    y = g * x + h  # eq 13
+    print(x, y)
+
+    guesses = np.transpose([x, y])
+    print(guesses)
+
+    def err(g):
+        # calculate what sort of time deltas would be seen with this guess
+        # compare them to the original, return the MSE
+        deltaA = np.linalg.norm(g - A)
+        deltaB = np.linalg.norm(g - B)
+        deltaC = np.linalg.norm(g - C)
+        rab = deltaA - deltaB
+        rac = deltaA - deltaC
+        mse = ((rab - Rab) ** 2 + (rac - Rac) ** 2) / 2
+        return mse
+    errs = [err(a) for a in guesses]
+    print(errs)
+
+    best_guess = min(guesses, key=err)
+    return best_guess
+
+
+plt.figure()
+ax1 = plt.subplot(231)
+found_delay1, max1, avg1 = correlate_and_find_delay(recording_noise, filtered_noiseA, "A")
+plt.subplot(232, sharey=ax1)
+found_delay2, max2, avg2 = correlate_and_find_delay(recording_noise, filtered_noiseB, "B")
+plt.tick_params('y', labelleft=False)
+plt.subplot(233, sharey=ax1)
+found_delay3, max3, avg3 = correlate_and_find_delay(recording_noise, filtered_noiseC, "C")
+plt.tick_params('y', labelleft=False)
+
+ta = found_delay1 / Fs
+tb = found_delay2 / Fs
+tc = found_delay3 / Fs
+
+guessed_position = fangs_algorithm_TDoA(ta, tb, tc)
+plt.subplot(212)
+plt.scatter([A[0], B[0], C[0]], [A[1], B[1], C[1]], label="base stations", marker="o")
+plt.scatter(guessed_position[0], guessed_position[1], label="position guess")
+plt.scatter(actual_position[0], actual_position[1], label="actual position", marker="x")
+plt.gca().set_aspect("equal")
+plt.legend(loc="center left", bbox_to_anchor=(1.0, 0.5))
+
+# %%
+from sympy import plot_implicit, symbols, Eq, sqrt
+
+x, y = symbols('x y')
+
+A = (0,0)
+B = (1,0)
+C = (0.5,1)
+
+p = (0.75, 0.15)
+
+R_A = sqrt((p[0]-A[0])**2 + (p[1]-A[1])**2)
+R_B = sqrt((p[0]-B[0])**2 + (p[1]-B[1])**2)
+R_C = sqrt((p[0]-C[0])**2 + (p[1]-C[1])**2)
+
+p1 = plot_implicit(Eq(sqrt((A[0]-x)**2 + (A[1]-y)**2), R_A), (x, -1, 2), (y, -1, 2), show=False)
+p2 = plot_implicit(Eq(sqrt((B[0]-x)**2 + (B[1]-y)**2), R_B), (x, -1, 2), (y, -1, 2), show=False)
+p3 = plot_implicit(Eq(sqrt((C[0]-x)**2 + (C[1]-y)**2), R_C), (x, -1, 2), (y, -1, 2), show=False)
+p1.append(p2[0])
+p1.append(p3[0])
+p1.show()
+
+# %%
+import matplotlib.pyplot as plt
+
+
+c = 343
+ta = R_A/c
+tb = R_B/c
+tc = R_C/c
+
+p2 = plot_implicit(Eq(sqrt((B[0]-x)**2 + (B[1]-y)**2)-sqrt((A[0]-x)**2 + (A[1]-y)**2), c*(tb-ta)), (x, -1, 2), (y, -1, 2), show=False, line_color="b",
+                   annotations=[{'xy': (A[0], A[1]), 'text': "A", 'ha': 'center', 'va': 'center', 'color': 'green', 'size': 'large', 'backgroundcolor':'white'},
+                                {'xy': (B[0], B[1]), 'text': "B", 'ha': 'center', 'va': 'center', 'color': 'green', 'size': 'large', 'backgroundcolor':'white'},
+                                {'xy': (C[0], C[1]), 'text': "C", 'ha': 'center', 'va': 'center', 'color': 'green', 'size': 'large', 'backgroundcolor':'white'},
+                                {'xy': (0.5, 0.40),   'text': "c*(tc-ta)", 'rotation': -18.0, 'ha': 'center', 'va': 'center', 'color': 'red'},
+                                {'xy': (0.90, 0.8), 'text': "c*(tb-ta)", 'rotation': 60.0, 'ha': 'center', 'va': 'center', 'color': 'blue'},]
+)
+p3 = plot_implicit(Eq(sqrt((C[0]-x)**2 + (C[1]-y)**2)-sqrt((A[0]-x)**2 + (A[1]-y)**2), c*(tc-ta)), (x, -1, 2), (y, -1, 2),show=False, line_color="r")
+p2.append(p3[0])
+
+p2.show()
+
+
+
+
+
+
+
+```]
