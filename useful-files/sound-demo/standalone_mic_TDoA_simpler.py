@@ -228,9 +228,9 @@ def main_task_pico():
                 sound, noiseC, "C"
             )
 
-            ta = found_delay1 / 48000
-            tb = found_delay2 / 48000
-            tc = found_delay3 / 48000
+            ta = found_delay1 / 50000
+            tb = found_delay2 / 50000
+            tc = found_delay3 / 50000
 
             guessed_position = fangs_algorithm_TDoA(ta, tb, tc)
 
@@ -324,9 +324,9 @@ def main_task_mic():
                 sound, noiseC, "C"
             )
 
-            ta = found_delay1 / 48000
-            tb = found_delay2 / 48000
-            tc = found_delay3 / 48000
+            ta = found_delay1 / 50000
+            tb = found_delay2 / 50000
+            tc = found_delay3 / 50000
 
             guessed_position = fangs_algorithm_TDoA(ta, tb, tc)
 
